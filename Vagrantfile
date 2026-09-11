@@ -77,7 +77,7 @@ Vagrant.configure('2') do |config|
 
     # Run Ansible playbook for testing
     almalinux.vm.provision 'ansible' do |ansible|
-      ansible.playbook = 'site.yml'
+      ansible.playbook = 'playbooks/containerd.yml'
       ansible.groups = {
         'workstations' => ['almalinux']
       }
@@ -91,7 +91,7 @@ Vagrant.configure('2') do |config|
       }
       # ansible.tags = ENV['ANSIBLE_TAGS'] || 'cargo'
       ansible.verbose = ENV['ANSIBLE_VERBOSE'] || false
-      ansible.skip_tags = 'libvirt,containerd'
+      # ansible.skip_tags = 'libvirt,containerd'
       ansible.raw_arguments = ['--check'] if ENV['ANSIBLE_CHECK']
     end
   end
