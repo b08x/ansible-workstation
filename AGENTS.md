@@ -8,7 +8,7 @@ are followed.
 ## Project Structure
 
 Four Ansible Collections under `collections/ansible_collections/b08x/`, each a git submodule:
-- **devworkstation** — base, user, desktop, libvirt, networking, containerd, tuning, run, coding_agents (antigravity, claude, crush, opencode, vibe, skills)
+- **devworkstation** — base, user, desktop (incl. VS Code and the Antigravity Hub/IDE), libvirt, networking, containerd, tuning, run, coding_agents (antigravity CLI, claude, crush, opencode, vibe, skills)
 - **llmops** — run, ollama, hermes, dify, langfuse, tts
 - **rhel_builder** — composer_cli, osbuild, rpm_dev, run
 - **context** — run, plus plugins (action, cache, filter, inventory, lookup, modules, test)

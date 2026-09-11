@@ -200,7 +200,7 @@ desktop, user and coding_agents — and `virt`.
 **System scope**
 - `base`: Package baseline, repositories, system configuration.
 - `tuning`: Kernel and scheduler tuning.
-- `desktop`: Desktop environment and graphical applications.
+- `desktop`: Desktop environment and graphical applications, including VS Code and the Antigravity Hub/IDE.
 - `sudoers`: `requiretty` handling, required for pipelining on non-RHEL distros.
 
 **Virtualisation scope**
@@ -210,7 +210,7 @@ desktop, user and coding_agents — and `virt`.
 
 **User scope**
 - `user`: Shell, dotfiles, per-user paths.
-- `coding_agents`: Agent tooling — antigravity, claude, crush, opencode, vibe, skills.
+- `coding_agents`: Agent tooling — antigravity CLI, claude, crush, opencode, vibe, skills.
 
 ### Examples
 
