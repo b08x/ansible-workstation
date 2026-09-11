@@ -294,6 +294,62 @@ install_yadm() {
   return 0
 }
 
+setup_python_env() {
+  section_header "Setting up Python Environment (uv + venv)"
+
+  # --- uv ---------------------------------------------------------------
+  # 'uv' is in the core package list, but this script must also work when it
+  # is missing (e.g. minimal images or a package list edited later), so an
+  # independent installer path exists. Nothing here changes when uv is present.
+  if command_exists uv; then
+    log info "uv is already installed: $(uv --version | head -1)"
+  else
+    log warning "uv not found on PATH"
+    if with_spinner "Installing uv via dnf..." dnf install -y uv; then
+      log success "uv installed via dnf"
+    elif with_spinner "Installing uv via official script..." \
+      bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'; then
+      log success "uv installed to ~/.local/bin via official installer"
+      export PATH="$HOME/.local/bin:$PATH"
+    else
+      log error "Failed to install uv (both dnf and official installer)"
+      return 1
+    fi
+  fi
+
+  # --- venv -------------------------------------------------------------
+  # The venv lives in the repo (not /root) so the plugins work from a normal
+  # checkout regardless of who ran bootstrap. It uses the system Python.
+  local repo_root
+  repo_root="$(cd "$(dirname "$0")" && pwd)"
+  local venv_dir="${repo_root}/.venv"
+  local py_interpreter
+  py_interpreter="$(command -v python3.14 || command -v python3)"
+
+  if [[ ! -x "${venv_dir}/bin/python" ]]; then
+    log info "Creating venv at ${venv_dir} (interpreter: ${py_interpreter})"
+    if ! with_spinner "Creating venv..." uv venv --python "$py_interpreter" "$venv_dir"; then
+      log error "Failed to create venv"
+      return 1
+    fi
+  else
+    log info "Venv already exists at ${venv_dir}, reusing it"
+  fi
+
+  # --- dependencies -------------------------------------------------------
+  # PyYAML backs the llm_analyzer callback plugin; dspy (via litellm) backs
+  # plugins/callback_utils/llm_engine.py. Pinned in requirements.txt.
+  if ! with_spinner "Installing Python dependencies (uv pip)..." \
+    uv pip install --python "${venv_dir}/bin/python" \
+    -r "${repo_root}/requirements.txt"; then
+    log error "Failed to install Python dependencies"
+    return 1
+  fi
+  log success "Python dependencies installed into ${venv_dir}"
+  log info "To use it: source ${venv_dir}/bin/activate"
+  return 0
+}
+
 setup_flatpak() {
   section_header "Setting up Flatpak"
   log info "Adding Flathub remote repository..."
@@ -320,6 +376,7 @@ show_summary() {
     "Next steps you might want to take:" | typewriter
   local next_steps=(
     "Run 'yadm clone' to set up your dotfiles"
+    "Source ./.venv/bin/activate to use the repo Python environment"
     "Run 'dnf autoremove' to clean up unused packages"
     "Review the log file at: $LOG_FILE"
   )
@@ -381,6 +438,8 @@ main() {
   update_system
   wipe
   install_yadm
+  wipe
+  setup_python_env
   wipe
   setup_flatpak
   wipe
