@@ -212,3 +212,5 @@ docs/pdca
 llm_analysis/
 
 .codebase-memory/
+
+docs/graphs

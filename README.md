@@ -2,6 +2,9 @@
 
 # Syncopated Workstation
 
+An exercise in configuration management, technical debt bankruptcy, and agentic
+coding workflows.
+
 Ansible control repository for provisioning Fedora and AlmaLinux development
 workstations — desktop, virtualisation, container runtimes, and a local LLM ops
 stack — from a single inventory.
@@ -12,29 +15,48 @@ stack — from a single inventory.
 
 </div>
 
-## Features
+## Why This Exists
 
-- **Four purpose-built collections** — `devworkstation`, `llmops`, `rhel_builder`
-  and `context`, each vendored as a git submodule so collection work and control
-  work stay in separate histories.
-- **Two-phase provisioning** — a privileged system play (`base.yml`) and an
-  unprivileged user play (`user.yml`), so dotfiles and per-user tooling never
-  land root-owned in `$HOME`.
-- **LLM-annotated playbook runs** — the `llm_analyzer` callback explains every
-  play and task against a model of choice, off Ansible's main thread, and keeps
-  an append-only trace of every prediction.
-- **Custom image building** — `osbuild` and `composer-cli` roles produce Fedora
-  and AlmaLinux images, including bootc targets.
-- **Local LLM ops stack** — Ollama, Dify, Langfuse and TTS services deployable
-  against Docker or Podman hosts.
-- **Per-role playbooks** — each role has its own playbook under
-  `playbooks/`, so any subsystem can be provisioned independently without
-  composing the full stack.
-- **Tag-scoped execution** — every role carries domain tags, so a full run and a
-  single-subsystem run are the same playbook with different flags.
-- **Committed playbook graphs** — rendered structure for each playbook under
-  `docs/graphs/`, useful as reference when the role graph stops fitting in
-  working memory.
+The repository itself is the artifact. The process of building it — forcing LLM
+agents to respect Ansible idempotency rather than hallucinating bash scripts —
+is the practice.
+
+Three things are being worked out here simultaneously:
+
+- **Configuration management as discipline.** Every role is written to be
+  re-runnable: idempotent tasks, distribution asserts before damage, explicit
+  variable tiers, and firewall rules co-located with the service that owns them.
+  The conventions documented below exist because agents (and humans) drift
+  without them.
+- **Technical debt bankruptcy.** The repo was restructured wholesale — roles
+  promoted into purpose-built collections, defaults/vars inversions fixed,
+  dead handlers and ad-hoc shell migrations audited away — rather than
+  incrementally patched. The sub-module layout makes that bankruptcy
+  repeatable: each collection gets a clean history instead of inheriting the
+  control repo's.
+- **Agentic coding workflows.** The `llm_analyzer` callback and its JSONL
+  trace store record what models actually do against real playbooks;
+  `scripts/llm_trainset.py` turns those traces into DSPy trainsets. The
+  playbooks, their committed graphs under `docs/graphs/`, and the lint and
+  test surface are the guardrails that make agent-driven change safe.
+
+If you came here for the workstation plumbing, read straight down. If you came
+for the meta-practice, the LLM Analyzer and Playbook Graphs sections are the
+interesting parts.
+
+## Iterations
+
+This repository has gone through configuration-management iterations, and it is
+entering another: a retooling pass that treats the workstation itself as the
+test bed for agentic coding workflows.
+
+> **TODO — narrative for the current iteration.** Provisioning retools around
+> devcontainers and atomic (bootc) hosts alongside the traditional dnf path, and
+> the agent tooling — hermes-agent, mistral vibe, antigravity CLI, claude code —
+> moves from a single `coding_agents` role to the subject of its own
+> provisioning loop. The story to tell: what broke, what the agents could and
+> could not be trusted to do, and what the container/atomic targets bought that
+> bare-metal iteration could not.
 
 ## Installation
 
@@ -147,7 +169,7 @@ role defaults, so overrides are always explicit.
 Privileged playbooks (run with `become: true`):
 
 | Playbook | Role | Tags |
-|----------|------|------|
+| ---------- | ------ | ------ |
 | `playbooks/base.yml` | base | base, system |
 | `playbooks/tuning.yml` | tuning | tuning, system |
 | `playbooks/desktop.yml` | desktop | desktop, system |
@@ -165,7 +187,7 @@ Unprivileged playbooks (run without `become`):
 **llmops collection**
 
 | Playbook | Role | Host | Runtime |
-|----------|------|------|---------|
+| ---------- | ------ | ------ | --------- |
 | `playbooks/dify-docker.yml` | dify | ninjabot | Docker |
 | `playbooks/langfuse-podman.yml` | langfuse | tinybot | Podman |
 | `playbooks/ollama.yml` | ollama | workstations | — |
@@ -175,7 +197,7 @@ Unprivileged playbooks (run without `become`):
 **rhel_builder collection**
 
 | Playbook | Role | Host |
-|----------|------|------|
+| ---------- | ------ | ------ |
 | `playbooks/osbuild.yml` | osbuild | osbuild_targets |
 | `playbooks/composer_cli.yml` | composer_cli | builder |
 | `playbooks/rpm_dev.yml` | rpm_dev | builder |
@@ -198,17 +220,20 @@ Tags compose, so `--tags "virt"` covers libvirt and containerd together while
 desktop, user and coding_agents — and `virt`.
 
 **System scope**
+
 - `base`: Package baseline, repositories, system configuration.
 - `tuning`: Kernel and scheduler tuning.
 - `desktop`: Desktop environment and graphical applications, including VS Code and the Antigravity Hub/IDE.
 - `sudoers`: `requiretty` handling, required for pipelining on non-RHEL distros.
 
 **Virtualisation scope**
+
 - `libvirt`: libvirt, KVM, and virtual networking.
 - `containerd`: Container runtime.
 - `virt`: Both of the above.
 
 **User scope**
+
 - `user`: Shell, dotfiles, per-user paths.
 - `coding_agents`: Agent tooling — antigravity CLI, claude, crush, opencode, vibe, skills.
 
@@ -354,12 +379,15 @@ hooks, so collection work wants a run from inside the collection.
 
 ## Contributing
 
-Issues and pull requests are welcome. Roles follow the standard layout, with
+Issues and pull requests are welcome. The same constraints that make the
+repository the artifact apply to contributions: idempotent tasks, the documented
+variable tiers, and collection changes committed in their own repository before
+the pointer bump here. Roles follow the standard layout, with
 distribution-specific tasks under `tasks/distro/{{ ansible_distribution }}.yml`,
 and firewall rules co-located in the role that opens the port rather than
 centralised — services stay self-contained that way.
 
-Collections are submodules: changes there are committed and pushed in the
+The collections are submodules: changes there are committed and pushed in the
 collection repository first, then the pointer bump follows in this one.
 
 ## License
