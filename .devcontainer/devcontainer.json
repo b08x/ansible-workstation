@@ -1,24 +1,24 @@
+// This container is set up to allow systemd and isolated filesystem operations.
+// --userns=keep-id. This is a Podman-specific flag used to map the host user's UID to the container to prevent file permission issues.
 {
-  "name": "ansible-dev-container-codespaces",
+  "name": "ansible-dev-container-podman-a",
   "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
   "containerUser": "root",
   "runArgs": [
-    "--security-opt",
-    "seccomp=unconfined",
-    "--security-opt",
-    "label=disable",
-    "--cap-add=SYS_ADMIN",
-    "--cap-add=SYS_RESOURCE",
     "--device",
     "/dev/fuse",
     "--security-opt",
-    "apparmor=unconfined",
+    "unmask=/sys/fs/cgroup",
+    "--userns=keep-id",
     "--hostname=ansible-dev-container"
   ],
   "updateRemoteUserUID": true,
   "customizations": {
     "vscode": {
-      "extensions": ["redhat.ansible", "redhat.vscode-redhat-account"]
+      "extensions": [
+        "redhat.ansible",
+        "redhat.vscode-redhat-account"
+      ]
     }
   }
 }

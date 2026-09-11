@@ -3,14 +3,8 @@
   hosts: workstations
   become: false
   gather_facts: false
-  vars:
-    path:
-      - "{{ ansible_user_dir }}/.local/bin"
-      - "{{ ansible_user_dir }}/.cargo/bin"
-      - "/usr/local/go/bin"
-      - "$(go env GOPATH)/bin"
   environment:
-    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
+    PATH: "{{ workstation_path_dirs | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
   pre_tasks:
     - name: Gather facts as unprivileged connection user
       ansible.builtin.setup:

@@ -1,0 +1,6 @@
+---
+workstation_path_dirs:
+  - "{{ ansible_user_dir }}/.local/bin"
+  - "{{ ansible_user_dir }}/.cargo/bin"
+  - "/usr/local/go/bin"
+  - "$(go env GOPATH)/bin"
