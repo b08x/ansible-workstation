@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ansible Rich Callback - Topology Knowledge Base</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            900: '#111827',
+                            950: '#030712',
+                        },
+                        brand: {
+                            500: '#10b981', // Emerald
+                            600: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #030712; color: #f3f4f6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .prose code { color: #34d399; background: rgba(16, 185, 129, 0.1); padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Icons
+        const IconTerminal = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>;
+        const IconBook = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>;
+        const IconCode = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>;
+        const IconCopy = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>;
+        const IconCheck = () => <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>;
+
+        // UI Components
+        const CodeBlock = ({ code, language = 'python' }) => {
+            const [copied, setCopied] = useState(false);
+
+            const handleCopy = () => {
+                // Use a fallback text area to copy to clipboard (works in iframes better than navigator.clipboard sometimes)
+                const textArea = document.createElement("textarea");
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                } catch (err) {
+                    console.error('Failed to copy', err);
+                }
+                document.body.removeChild(textArea);
+            };
+
+            return (
+                <div className="relative group rounded-lg overflow-hidden border border-gray-800 bg-gray-900 my-4 shadow-xl">
+                    <div className="flex justify-between items-center px-4 py-2 border-b border-gray-800 bg-gray-950">
+                        <span className="text-xs font-mono text-gray-500 uppercase">{language}</span>
+                        <button 
+                            onClick={handleCopy}
+                            className="text-gray-400 hover:text-white transition-colors flex items-center gap-1 text-xs"
+                        >
+                            {copied ? <><IconCheck /> Copied</> : <><IconCopy /> Copy</>}
+                        </button>
+                    </div>
+                    <pre className="p-4 overflow-x-auto font-mono text-sm text-gray-300 leading-relaxed whitespace-pre">
+                        <code>{code}</code>
+                    </pre>
+                </div>
+            );
+        };
+
+        const TerminalPreview = ({ children, title }) => (
+            <div className="rounded-lg overflow-hidden border border-gray-700 shadow-2xl mb-6">
+                <div className="bg-gray-800 px-4 py-2 flex items-center gap-2 border-b border-gray-900">
+                    <div className="flex gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <span className="text-xs font-mono text-gray-400 ml-2">{title || 'bash'}</span>
+                </div>
+                <div className="bg-gray-950 p-4 font-mono text-sm text-gray-300 overflow-x-auto whitespace-pre">
+                    {children}
+                </div>
+            </div>
+        );
+
+        // Content Data
+        const TOPOLOGY_EXAMPLES = {
+            copy: {
+                id: 'copy',
+                name: 'ansible.builtin.copy',
+                desc: 'File transfer and templating modules.',
+                payload: `{
+  "changed": true,
+  "dest": "/etc/nginx/nginx.conf",
+  "src": "/home/runner/.ansible/tmp/source_123",
+  "checksum": "8a9f0...",
+  "owner": "root",
+  "mode": "0644",
+  "diff": {
+    "before": "worker_processes 1;\\n",
+    "after": "worker_processes auto;\\n"
+  }
+}`,
+                preview: (
+                    <div className="flex flex-col border border-blue-500/30 rounded">
+                        <div className="border-b border-blue-500/30 px-3 py-1 bg-blue-900/20 text-blue-300 font-bold">
+                            📄 File Mutation | web-node-01 | Configure Nginx (0.45s)
+                        </div>
+                        <div className="p-3 grid grid-cols-[120px_1fr] gap-2 text-gray-300">
+                            <div className="text-cyan-400 text-right">Destination:</div><div>/etc/nginx/nginx.conf</div>
+                            <div className="text-cyan-400 text-right">State:</div><div className="text-yellow-400">Modified (Checksum 8a9f0...)</div>
+                            <div className="text-cyan-400 text-right">Ownership:</div><div>root:root (0644)</div>
+                        </div>
+                    </div>
+                ),
+                code: `    def _render_copy_telemetry(self, task: str, host: str, duration: str, payload: Dict[str, Any]) -> None:
+        """
+        Parses copy/template module results, rendering file paths and state mutations.
+        """
+        is_changed = payload.get('changed', False)
+        dest = payload.get('dest', payload.get('path', 'Unknown Path'))
+        
+        table = Table(show_header=False, box=None)
+        table.add_column("Key", style="cyan", justify="right")
+        table.add_column("Value")
+
+        table.add_row("Destination:", dest)
+        
+        if is_changed:
+            state_text = f"Modified (Checksum: {payload.get('checksum', 'N/A')[:8]}...)"
+            table.add_row("State:", f"[yellow]{state_text}[/]")
+            if 'owner' in payload:
+                table.add_row("Ownership:", f"{payload.get('owner')}:{payload.get('group', 'root')} ({payload.get('mode')})")
+        else:
+            table.add_row("State:", "[green]Unchanged (Idempotent)[/]")
+
+        border_color = "yellow" if is_changed else "green"
+        panel = Panel(
+            table, 
+            title=f"📄 File Mutation | {host} | {task} ({duration})", 
+            border_style=border_color, 
+            expand=False
+        )
+        self.console.print(panel)`
+            },
+            command: {
+                id: 'command',
+                name: 'ansible.builtin.command',
+                desc: 'Raw command and shell execution modules.',
+                payload: `{
+  "changed": true,
+  "cmd": ["make", "install"],
+  "rc": 0,
+  "stdout_lines": [
+    "gcc -O2 main.c -o main",
+    "install -m 755 main /usr/local/bin/"
+  ],
+  "stderr_lines": []
+}`,
+                preview: (
+                    <div className="flex flex-col border border-yellow-500/50 rounded">
+                        <div className="border-b border-yellow-500/50 px-3 py-1 bg-yellow-900/20 text-yellow-300 font-bold">
+                            ⚡ Shell Execution | db-node-01 | Compile App (2.10s)
+                        </div>
+                        <div className="p-3 text-gray-300">
+                            <div className="mb-2"><span className="text-cyan-400">Command:</span> <code className="bg-gray-800 px-1 rounded">make install</code></div>
+                            <div className="text-green-400 mb-1">Exit Code: 0</div>
+                            <div className="border-l-2 border-gray-600 pl-3 text-gray-400">
+                                gcc -O2 main.c -o main<br/>
+                                install -m 755 main /usr/local/bin/
+                            </div>
+                        </div>
+                    </div>
+                ),
+                code: `    def _render_command_telemetry(self, task: str, host: str, duration: str, payload: Dict[str, Any]) -> None:
+        """
+        Parses command/shell module results, isolating stdout and stderr.
+        """
+        cmd_raw = payload.get('cmd', 'Unknown Command')
+        cmd_str = " ".join(cmd_raw) if isinstance(cmd_raw, list) else str(cmd_raw)
+        rc = payload.get('rc', 0)
+        
+        content = Text()
+        content.append("Command: ", style="cyan")
+        content.append(f"{cmd_str}\\n", style="bold white")
+        
+        rc_color = "bold green" if rc == 0 else "bold red"
+        content.append(f"Exit Code: {rc}\\n\\n", style=rc_color)
+
+        stdout_lines = payload.get('stdout_lines', [])
+        if stdout_lines:
+            content.append("Standard Output:\\n", style="cyan")
+            for line in stdout_lines:
+                content.append(f"  {line}\\n", style="dim white")
+
+        stderr_lines = payload.get('stderr_lines', [])
+        if stderr_lines:
+            content.append("\\nStandard Error:\\n", style="red")
+            for line in stderr_lines:
+                content.append(f"  {line}\\n", style="dim red")
+
+        panel = Panel(
+            content, 
+            title=f"⚡ Shell Execution | {host} | {task} ({duration})", 
+            border_style="yellow" if rc == 0 else "red", 
+            expand=False
+        )
+        self.console.print(panel)`
+            }
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [selectedTopology, setSelectedTopology] = useState('copy');
+
+            const navItems = [
+                { id: 'overview', label: 'Overview', icon: IconBook },
+                { id: 'guide', label: 'Step-by-Step Guide', icon: IconTerminal },
+                { id: 'builder', label: 'Topology Builder', icon: IconCode },
+            ];
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 bg-gray-950 border-r border-gray-800 flex flex-col hidden md:flex flex-shrink-0">
+                        <div className="p-6">
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500">
+                                Rich Callback KB
+                            </h1>
+                            <p className="text-xs text-gray-500 mt-2 font-mono">Module Topology Editor</p>
+                        </div>
+                        <nav className="flex-1 px-4 space-y-2 mt-4">
+                            {navItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                                        activeTab === item.id 
+                                            ? 'bg-gray-800 text-emerald-400 shadow-inner border border-gray-700' 
+                                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+                                    }`}
+                                >
+                                    <item.icon />
+                                    {item.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-4 border-t border-gray-800">
+                            <div className="text-xs text-gray-600 font-mono flex items-center justify-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                IntentAST Architecture
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-y-auto bg-gray-900 hide-scrollbar scroll-smooth">
+                        {/* Mobile Nav (simple) */}
+                        <div className="md:hidden flex p-4 overflow-x-auto gap-2 border-b border-gray-800 bg-gray-950">
+                            {navItems.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id)}
+                                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${
+                                        activeTab === item.id ? 'bg-gray-800 text-emerald-400 border border-gray-700' : 'text-gray-400'
+                                    }`}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="max-w-4xl mx-auto p-6 md:p-12 pb-24">
+                            {}
+                            {activeTab === 'overview' && (
+                                <div className="animate-fade-in prose prose-invert max-w-none">
+                                    <h2 className="text-3xl font-bold mb-4">Adding Module-Specific Topologies</h2>
+                                    <p className="text-gray-300 text-lg leading-relaxed">
+                                        The Ansible Rich Callback plugin architecture utilizes <strong>Module-Specific Topologies</strong> to intercept unstructured JSON payloads and translate them into high-contrast, terminal-native interfaces. 
+                                    </p>
+                                    
+                                    <div className="bg-gray-800/50 border border-emerald-500/20 rounded-xl p-6 my-8">
+                                        <h3 className="text-xl font-semibold text-emerald-400 mb-4 flex items-center gap-2">
+                                            <IconTerminal /> The Problem with Default Output
+                                        </h3>
+                                        <p className="text-gray-300 mb-4">
+                                            By default, when an Ansible module (like <code>ansible.builtin.copy</code>) executes, it returns a massive dictionary containing paths, checksums, and deep diffs. The standard Ansible logger dumps this directly to the console as serialized text.
+                                        </p>
+                                        <p className="text-gray-300">
+                                            To fix this, we extend our custom callback plugin. We create a <strong>Topology Definition</strong>—a dedicated Python method that parses that specific module's dictionary and builds a visual <code>rich.Table</code> or <code>rich.Panel</code>.
+                                        </p>
+                                    </div>
+
+                                    <h3 className="text-2xl font-semibold mt-10 mb-4">The IntentAST Paradigm</h3>
+                                    <p className="text-gray-300 mb-4">
+                                        When adding a new topology, you must map the execution flow using the four IntentAST primitives:
+                                    </p>
+                                    <div className="grid md:grid-cols-2 gap-4 mt-6">
+                                        <div className="bg-gray-800 border border-gray-700 p-5 rounded-lg">
+                                            <div className="text-emerald-400 font-mono font-bold mb-2">1. Actor</div>
+                                            <p className="text-sm text-gray-400">The Ansible runtime thread generating the event (e.g., successful module exit).</p>
+                                        </div>
+                                        <div className="bg-gray-800 border border-gray-700 p-5 rounded-lg">
+                                            <div className="text-blue-400 font-mono font-bold mb-2">2. Context</div>
+                                            <p className="text-sm text-gray-400">The specific payload payload from the node. Evaluated via <code>result._task.action == 'module_name'</code>.</p>
+                                        </div>
+                                        <div className="bg-gray-800 border border-gray-700 p-5 rounded-lg">
+                                            <div className="text-yellow-400 font-mono font-bold mb-2">3. Action</div>
+                                            <p className="text-sm text-gray-400">Your custom python method instantiating <code>rich.table.Table</code>, iterating over the module's dictionary.</p>
+                                        </div>
+                                        <div className="bg-gray-800 border border-gray-700 p-5 rounded-lg">
+                                            <div className="text-purple-400 font-mono font-bold mb-2">4. Outcome</div>
+                                            <p className="text-sm text-gray-400">The emission of the formatted component to the global <code>self.console.print()</code> buffer.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-10 pt-6 border-t border-gray-800 text-right">
+                                        <button 
+                                            onClick={() => setActiveTab('guide')}
+                                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                                        >
+                                            Start Step-by-Step Guide <IconBook />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {}
+                            {activeTab === 'guide' && (
+                                <div className="animate-fade-in">
+                                    <h2 className="text-3xl font-bold mb-8">Implementation Guide</h2>
+                                    
+                                    <div className="space-y-12">
+                                        {/* Step 1 */}
+                                        <div className="relative pl-8 md:pl-12 border-l border-gray-700">
+                                            <div className="absolute top-0 left-0 -translate-x-1/2 w-8 h-8 rounded-full bg-gray-900 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm">1</div>
+                                            <h3 className="text-xl font-bold text-white mb-2">Identify the Context Payload</h3>
+                                            <p className="text-gray-400 mb-4">
+                                                Before writing code, you must understand the exact dictionary the target Ansible module returns. Run your playbook with the verbose flag (<code>-v</code>) using the default callback to capture the raw JSON.
+                                            </p>
+                                            <TerminalPreview>
+{`$ ansible-playbook playbook.yml -v
+
+TASK [Copy config file] ********************************************
+changed: [web-01] => {
+    "changed": true,
+    "dest": "/etc/foo.conf",
+    "src": "/tmp/source",
+    "diff": { "before": "", "after": "content" }
+}`}
+                                            </TerminalPreview>
+                                        </div>
+
+                                        {/* Step 2 */}
+                                        <div className="relative pl-8 md:pl-12 border-l border-gray-700">
+                                            <div className="absolute top-0 left-0 -translate-x-1/2 w-8 h-8 rounded-full bg-gray-900 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm">2</div>
+                                            <h3 className="text-xl font-bold text-white mb-2">Define the IntentAST Action Method</h3>
+                                            <p className="text-gray-400 mb-4">
+                                                Within your <code>rich_ci_formatter.py</code> file, create a new private method prefixed with <code>_render_</code>. Use the <code>rich</code> library (Panels, Tables, Trees) to map the payload keys to visual elements.
+                                            </p>
+                                            <CodeBlock 
+                                                language="python"
+                                                code={`    def _render_custom_telemetry(self, task: str, host: str, duration: str, payload: Dict[str, Any]) -> None:
+        # 1. Extract context from payload
+        is_changed = payload.get('changed', False)
+        dest = payload.get('dest', 'Unknown')
+        
+        # 2. Instantiate Rich UI Component
+        table = Table(title=f"Custom Action | {host} | {task}", show_header=False)
+        table.add_column("Key", style="cyan")
+        table.add_column("Value")
+        
+        # 3. Map Data
+        table.add_row("Destination", dest)
+        table.add_row("State", "[yellow]Modified[/]" if is_changed else "[green]OK[/]")
+        
+        # 4. Outcome
+        self.console.print(table)`}
+                                            />
+                                        </div>
+
+                                        {/* Step 3 */}
+                                        <div className="relative pl-8 md:pl-12 border-l border-transparent"> {/* Last item, hide border */}
+                                            <div className="absolute top-0 left-0 -translate-x-1/2 w-8 h-8 rounded-full bg-gray-900 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm">3</div>
+                                            <h3 className="text-xl font-bold text-white mb-2">Wire the Event Hook</h3>
+                                            <p className="text-gray-400 mb-4">
+                                                Finally, update the core <code>v2_runner_on_ok</code> method. Add an <code>elif</code> branch that intercepts your specific module's action name and routes the payload to your new render method.
+                                            </p>
+                                            <CodeBlock 
+                                                language="python"
+                                                code={`    def v2_runner_on_ok(self, result: TaskResult) -> None:
+        task_action: str = result._task.action
+        # ... existing context extraction ...
+
+        if payload.get('_ansible_no_log', False):
+            return # Security gate
+
+        # Routing Logic
+        if task_action in ('ansible.builtin.dnf5', 'ansible.builtin.dnf'):
+            self._render_dnf5_telemetry(task_name, host_name, duration, payload)
+        
+        # >>> ADD YOUR NEW ROUTE HERE <<<
+        elif task_action == 'ansible.builtin.custom_module':
+            self._render_custom_telemetry(task_name, host_name, duration, payload)
+            
+        else:
+            self._render_generic_success(...)`}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {}
+                            {activeTab === 'builder' && (
+                                <div className="animate-fade-in">
+                                    <div className="mb-8">
+                                        <h2 className="text-3xl font-bold mb-2">Interactive Topology Builder</h2>
+                                        <p className="text-gray-400">Select an Ansible module to view its raw payload, visual target, and the Python boilerplate required to render it.</p>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-4 gap-6">
+                                        {/* Module Selector Sidebar */}
+                                        <div className="md:col-span-1 space-y-2">
+                                            {Object.values(TOPOLOGY_EXAMPLES).map(mod => (
+                                                <button
+                                                    key={mod.id}
+                                                    onClick={() => setSelectedTopology(mod.id)}
+                                                    className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                                                        selectedTopology === mod.id
+                                                            ? 'bg-gray-800 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                                                            : 'bg-gray-900 border-gray-800 hover:border-gray-700 text-gray-400'
+                                                    }`}
+                                                >
+                                                    <div className="font-mono text-xs mb-1 truncate text-white">{mod.name}</div>
+                                                    <div className="text-xs text-gray-500 line-clamp-2">{mod.desc}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Code & Preview Area */}
+                                        <div className="md:col-span-3 space-y-6">
+                                            
+                                            {/* Preview Card */}
+                                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                                                <div className="px-4 py-3 border-b border-gray-800 bg-gray-950 flex justify-between items-center">
+                                                    <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                                                        <IconTerminal /> TUI Render Target
+                                                    </h3>
+                                                    <span className="text-xs text-emerald-400 font-mono">rich library Output</span>
+                                                </div>
+                                                <div className="p-6 bg-[#0c0c0c] font-mono text-sm">
+                                                    {TOPOLOGY_EXAMPLES[selectedTopology].preview}
+                                                </div>
+                                            </div>
+
+                                            {/* Payload Card */}
+                                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                                                <div className="px-4 py-3 border-b border-gray-800 bg-gray-950 flex justify-between items-center">
+                                                    <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                                                        <IconCode /> Raw Ansible Payload Context
+                                                    </h3>
+                                                    <span className="text-xs text-gray-500 font-mono">Input dictionary</span>
+                                                </div>
+                                                <div className="p-0">
+                                                    <CodeBlock language="json" code={TOPOLOGY_EXAMPLES[selectedTopology].payload} />
+                                                </div>
+                                            </div>
+
+                                            {/* Python Code Card */}
+                                            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+                                                <div className="px-4 py-3 border-b border-gray-800 bg-gray-950 flex justify-between items-center">
+                                                    <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                                                        <IconCode /> Python Implementation
+                                                    </h3>
+                                                    <span className="text-xs text-emerald-400 font-mono">Action Phase</span>
+                                                </div>
+                                                <div className="p-0">
+                                                    <CodeBlock language="python" code={TOPOLOGY_EXAMPLES[selectedTopology].code} />
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
