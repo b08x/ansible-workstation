@@ -5,6 +5,7 @@
 logs/*
 *.retry
 *.vault
+.ansible/collections/ansible_collections
 collections/*
 !collections/ansible_collections
 !collections/requirements.yml

@@ -3,43 +3,11 @@
 
 require "tty-prompt"
 require "yaml"
-require "nexo_ai"
+require_relative "config"
+require_relative "agent"
 
 module Syncopated
   module Wizard
-    class BuildImageWorkflow < Nexo::Workflow
-      def call(payload)
-        emit(:started, components: payload[:components])
-
-        playbook = checkpoint(:build_playbook_structure) do
-          [
-            {
-              "name" => "Build Custom OS Image",
-              "hosts" => "localhost",
-              "become" => true,
-              "vars" => {
-                "osbuild_components" => payload[:components],
-                "blueprint_name" => payload[:image_name],
-                "use_blueprint_template" => true,
-              },
-              "tasks" => [
-                {
-                  "include_role" => { "name" => "b08x.rhel_builder.osbuild" },
-                },
-              ],
-            },
-          ]
-        end
-
-        checkpoint(:write_playbook) do
-          File.write(payload[:filename], playbook.to_yaml)
-        end
-
-        emit(:finished, filename: payload[:filename])
-        { "filename" => payload[:filename], "status" => "success" }
-      end
-    end
-
     class CLI
       class << self
         def start
@@ -50,9 +18,11 @@ module Syncopated
             provision_host
           when "build_image", "build-image"
             build_image
+          when "config"
+            Syncopated::Config.configure_llm(TTY::Prompt.new(active_color: :cyan), force: true)
           else
             puts "Unknown command: #{command}"
-            puts "Available commands: provision, build_image"
+            puts "Available commands: provision, build_image, config"
             exit 1
           end
         end
@@ -81,7 +51,8 @@ module Syncopated
             { name: "Local LLMOps (Ollama, Difify, Langfuse)", value: "b08x.llmops.run" },
           ]
 
-          selected_roles = prompt.multi_select("Select the components you want to provision on this host:", choices, min: 1)
+          selected_roles = prompt.multi_select("Select the components you want to provision on this host:", choices,
+            min: 1)
 
           tasks = selected_roles.map do |role_name|
             { "include_role" => { "name" => role_name } }
@@ -93,35 +64,36 @@ module Syncopated
 
         def build_image
           prompt = TTY::Prompt.new(active_color: :cyan)
-          prompt.puts "📦 \e[36mWelcome to the OSBuild Image Generator\e[0m"
+          Syncopated::Config.configure_llm(prompt)
 
-          image_name = prompt.ask("Enter a name for your custom image:", default: "custom-workstation")
-          filename = "#{image_name}_build.yml"
+          prompt.puts "📦 \e[36mWelcome to the AI-Assisted OSBuild Image Generator\e[0m"
+          prompt.puts "Describe the custom appliance or OS image you want to build."
+          prompt.puts "(e.g., 'I need a kiosk ISO installer for a microservice based application')\n\n"
 
-          osbuild_choices = [
-            { name: "Base Workstation (core)", value: "core" },
-            { name: "GNOME Desktop + Extras (desktop)", value: "desktop" },
-            { name: "NVIDIA Drivers", value: "nvidia" },
-            { name: "Audio Production Stack", value: "audio" },
-            { name: "Virtualization Host", value: "virtualization" },
-          ]
+          initial_request = prompt.ask("Your request:")
+          return if initial_request.nil? || initial_request.strip.empty?
 
-          selected_components = prompt.multi_select("Select the osbuild components to include in the image:",
-            osbuild_choices, min: 1)
+          prompt.puts "\n\e[33mInitializing Syncopated::Agent with :syncopated skill...\e[0m\n"
+          agent = Syncopated::Agent.new(model: ENV.fetch("NEXO_MODEL", "gemini-2.5-pro"))
+          chat = agent.chat
 
-          prompt.puts "Starting Nexo workflow to generate playbook..."
+          response = chat.prompt(initial_request)
 
-          run = BuildImageWorkflow.run(
-            image_name: image_name,
-            components: selected_components,
-            filename: filename
-          )
+          loop do
+            prompt.puts "\n🤖 \e[32mAgent:\e[0m\n#{response.content}"
 
-          if run.status == "done"
-            prompt.ok("Playbook successfully generated: #{run.result['filename']}")
-          else
-            prompt.error("Workflow failed with status: #{run.status}")
+            # Allow exiting if the agent thinks it's done or user wants to stop
+            if response.content.downcase.include?("playbook generated") || response.content.downcase.include?("written the playbook")
+              break
+            end
+
+            user_input = prompt.ask("\n👤 \e[36mYou (type 'exit' to quit):\e[0m")
+            break if user_input.nil? || user_input.strip.downcase == "exit"
+
+            response = chat.prompt(user_input)
           end
+
+          prompt.ok("\nImage builder workflow completed.")
         end
       end
     end

@@ -14,9 +14,7 @@ begin
     ARGV.shift
     Syncopated::Wizard::CLI.start
   else
-    if command
-      puts "Unknown command: #{command}"
-    end
+    puts "Unknown command: #{command}" if command
     puts "Usage: syncopated [command]"
     puts ""
     puts "Commands:"
