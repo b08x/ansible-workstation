@@ -42,7 +42,7 @@ class PlaybookModel
       # Render YAML with markdown formatting using Glamour
       # Wraps the YAML in a code block for markdown rendering
       @viewport.content = Glamour::Renderer.new(style: "dark").render("```yaml\n#{yaml_output}\n```")
-    rescue StandardError
+    rescue
       # Fallback to plain YAML if markdown rendering fails
       @viewport.content = yaml_output
     end

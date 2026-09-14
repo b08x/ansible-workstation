@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../lib/syncopated"
+
+# Start the Syncopated CLI
+begin
+  command = ARGV[0]
+
+  if command == "tui"
+    ARGV.shift
+    Syncopated::TUI::App.start
+  elsif command == "wizard"
+    ARGV.shift
+    Syncopated::Wizard::CLI.start
+  else
+    if command
+      puts "Unknown command: #{command}"
+    end
+    puts "Usage: syncopated [command]"
+    puts ""
+    puts "Commands:"
+    puts "  tui       Start the interactive BubbleTea playbook composer"
+    puts "  wizard    Start the TTY-Prompt wizard (provision/build_image)"
+    exit 1
+  end
+rescue => e
+  warn "Error starting application: #{e.message}"
+  warn e.backtrace.join("\n")
+  exit 1
+end

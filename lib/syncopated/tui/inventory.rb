@@ -98,7 +98,7 @@ module Inventory
             # Role is only supported if its platforms overlap with local OS
             supported = false unless local_os.intersect?(role_os)
           end
-        rescue StandardError
+        rescue
           # Silently handle any YAML parsing or structure errors
         end
       end
@@ -111,7 +111,7 @@ module Inventory
         begin
           tasks = YAML.load_file(tasks_file)
           tasks_count = tasks.is_a?(Array) ? tasks.length : 0
-        rescue StandardError
+        rescue
           # Silently handle any YAML parsing errors
         end
       end
@@ -141,7 +141,7 @@ module Inventory
       data = YAML.load_file(file)
       # Merge hash data into the result (later files override earlier)
       vars.merge!(data) if data.is_a?(Hash)
-    rescue StandardError
+    rescue
       # Silently handle any YAML parsing errors
     end
     vars
