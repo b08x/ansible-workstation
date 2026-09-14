@@ -1,55 +1,55 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+ENV["VAGRANT_DEFAULT_PROVIDER"] = "libvirt"
 
 # Configuration variables
-ALMALINUX_HOSTNAME = 'almalinux-test.syncopated.dev'
-ARCH_HOSTNAME = 'arch-test.syncopated.dev'
+ALMALINUX_HOSTNAME = "almalinux-test.syncopated.dev"
+ARCH_HOSTNAME = "arch-test.syncopated.dev"
 
-DEV_USER = ENV['USER']
+DEV_USER = ENV.fetch("USER", nil)
 
 # rubocop:disable Metrics/BlockLength
-Vagrant.configure('2') do |config|
+Vagrant.configure("2") do |config|
   # Global SSH configuration
   config.ssh.insert_key = false
   config.ssh.forward_agent = true
 
   # Rocky Linux 9 VM for testing
-  config.vm.define 'almalinux', primary: true do |almalinux|
-    almalinux.vm.box = 'almalinux/10'
+  config.vm.define "almalinux", primary: true do |almalinux|
+    almalinux.vm.box = "almalinux/10"
     almalinux.vm.hostname = ALMALINUX_HOSTNAME
 
     almalinux.vm.network :private_network,
-                         ip: '192.168.122.10',
-                         libvirt__network_name: 'default'
+      ip: "192.168.122.10",
+      libvirt__network_name: "default"
 
     almalinux.vm.provider :libvirt do |libvirt|
       libvirt.memory = 8192
-      libvirt.uri = 'qemu:///system'
+      libvirt.uri = "qemu:///system"
       libvirt.cpus = 8
       libvirt.nested = true
-      libvirt.disk_bus = 'virtio'
-      libvirt.cpu_mode = 'host-passthrough'
-      libvirt.nic_model_type = 'virtio'
-      libvirt.disk_driver cache: 'writeback'
+      libvirt.disk_bus = "virtio"
+      libvirt.cpu_mode = "host-passthrough"
+      libvirt.nic_model_type = "virtio"
+      libvirt.disk_driver cache: "writeback"
       libvirt.machine_virtual_size = 50
-      libvirt.graphics_type = 'spice'
-      libvirt.video_type = 'qxl'
+      libvirt.graphics_type = "spice"
+      libvirt.video_type = "qxl"
     end
 
     # Sync the entire project for testing
-    almalinux.vm.synced_folder '.', '/vagrant',
-                               type: 'rsync',
-                               rsync__exclude: ['.git/', '*.swp', '.venv/', '.vagrant/']
+    almalinux.vm.synced_folder ".", "/vagrant",
+      type: "rsync",
+      rsync__exclude: [".git/", "*.swp", ".venv/", ".vagrant/"]
 
     # Copy SSH key for testing
-    almalinux.vm.provision 'file',
-                           source: '~/.ssh/id_ed25519.pub',
-                           destination: '/tmp/id_ed25519.pub'
+    almalinux.vm.provision "file",
+      source: "~/.ssh/id_ed25519.pub",
+      destination: "/tmp/id_ed25519.pub"
 
     # Bootstrap system for testing
-    almalinux.vm.provision 'shell', inline: <<-SHELL
+    almalinux.vm.provision "shell", inline: <<-SHELL
       # Update system
 	    dnf config-manager --set-enabled crb
       # Install required packages
@@ -76,23 +76,23 @@ Vagrant.configure('2') do |config|
     SHELL
 
     # Run Ansible playbook for testing
-    almalinux.vm.provision 'ansible' do |ansible|
-      ansible.playbook = 'playbooks/containerd.yml'
+    almalinux.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbooks/containerd.yml"
       ansible.groups = {
-        'workstations' => ['almalinux']
+        "workstations" => ["almalinux"],
       }
       ansible.extra_vars = {
-        ansible_python_interpreter: '/usr/bin/python3',
-        ansible_user: 'b08x',
-        user: { name: 'b08x', group: 'b08x', home: '/home/b08x', shell: '/usr/bin/zsh' },
+        ansible_python_interpreter: "/usr/bin/python3",
+        ansible_user: "b08x",
+        user: { name: "b08x", group: "b08x", home: "/home/b08x", shell: "/usr/bin/zsh" },
         # Override variables for testing
-        use_containers: 'false',
-        use_kvm: 'false'
+        use_containers: "false",
+        use_kvm: "false",
       }
       # ansible.tags = ENV['ANSIBLE_TAGS'] || 'cargo'
-      ansible.verbose = ENV['ANSIBLE_VERBOSE'] || false
+      ansible.verbose = ENV["ANSIBLE_VERBOSE"] || false
       # ansible.skip_tags = 'libvirt,containerd'
-      ansible.raw_arguments = ['--check'] if ENV['ANSIBLE_CHECK']
+      ansible.raw_arguments = ["--check"] if ENV["ANSIBLE_CHECK"]
     end
   end
 

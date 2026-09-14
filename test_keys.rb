@@ -1,15 +1,18 @@
-require 'bubbletea'
+# frozen_string_literal: true
+
+require "bubbletea"
 
 class TestModel
   include Bubbletea::Model
 
-  def init; [self, nil]; end
+  def init = [self, nil]
 
   def update(msg)
     case msg
     when Bubbletea::KeyMessage
       return [self, Bubbletea.quit] if msg.to_s == "q"
-      @last_key = "'#{msg.to_s}' (space? #{msg.space?})"
+
+      @last_key = "'#{msg}' (space? #{msg.space?})"
     end
     [self, nil]
   end
