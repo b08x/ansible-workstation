@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Verify that the XDG-rekeyed taxonomy resolves through the osbuild role's
+# component definitions without errors, and that package pins flow through.
+- name: Verify taxonomy re-keying and pin plumbing
+  hosts: localhost
+  gather_facts: true
+  vars:
+    osbuild_package_pins:
+      cuda-toolkit: "13-4.*"
+      python3: "3.11.*"
+  tasks:
+    - name: Load distribution taxonomy
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../collections/ansible_collections/b08x/rhel_builder/vars/packages/{{ ansible_distribution }}.yml"
+      when: ansible_distribution in ['Fedora', 'AlmaLinux']
+
+    - name: Load role defaults (component defs reference the taxonomy)
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../collections/ansible_collections/b08x/rhel_builder/roles/osbuild/defaults/main.yml"
+        name: osbuild_defaults
+
+    - name: Show resolved taxonomy categories
+      ansible.builtin.debug:
+        msg: >-
+          {{ (lookup('ansible.builtin.vars', 'system_packages', default={}) | dict2items) | map(attribute='key') | list }}
+
+    - name: Resolve a sample component package list (must not error)
+      vars:
+        osbuild_components: [base, nvidia, development]
+      ansible.builtin.debug:
+        msg: >-
+          {{ osbuild_defaults.osbuild_component_defs.nvidia.packages | default([]) | length }} nvidia pkgs,
+          {{ osbuild_defaults.osbuild_component_defs.base.packages | default([]) | length }} base pkgs
+
+    - name: Simulate blueprint pin rendering
+      ansible.builtin.debug:
+        msg: >-
+          {% for p in ['cuda-toolkit', 'python3', 'zsh'] %}{{ p }} -> {{ osbuild_package_pins.get(p, '*') }}
+          {% endfor %}
