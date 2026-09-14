@@ -1,0 +1,18 @@
+---
+workstation_path_dirs:
+  - "{{ ansible_user_dir }}/.local/bin"
+  - "{{ ansible_user_dir }}/.cargo/bin"
+  - "/usr/local/go/bin"
+  - "$(go env GOPATH)/bin"
+
+user:
+  name: b08x
+  group: b08x
+  uid: 1000
+  gid: 1000
+  home: /home/b08x
+  shell: /usr/bin/zsh
+  secondary_groups: "input,video,audio,render"
+  realname: Robert Pannick
+  sudoers: true
+  email: rwpannick@gmail.com
