@@ -1,0 +1,406 @@
+NAME,CATEGORY,SUBCATEGORY,DESCRIPTION
+kernel,System,kernel,Provides kernel
+kernel-devel,System,kernel,Provides kernel-devel
+kernel-headers,System,kernel,Provides kernel-headers
+kernel-modules,System,kernel,Provides kernel-modules
+kernel-modules-core,System,kernel,Provides kernel-modules-core
+kernel-modules-extra,System,kernel,Provides kernel-modules-extra
+kernel-tools,System,kernel,Provides kernel-tools
+kernel-tools-libs,System,kernel,Provides kernel-tools-libs
+bash,System,base,Provides bash
+coreutils,System,base,Provides coreutils
+bind-utils,System,base,Provides bind-utils
+tar,System,base,Provides tar
+rsync,System,base,Provides rsync
+erofs-utils,System,base,Provides erofs-utils
+nbd,System,base,Provides nbd
+cifs-utils,System,base,Provides cifs-utils
+anaconda,System,installer,Provides anaconda
+anaconda-gui,System,installer,Provides anaconda-gui
+anaconda-dracut,System,installer,Provides anaconda-dracut
+dracut-live,System,installer,Provides dracut-live
+dracut-network,System,installer,Provides dracut-network
+dracut,System,installer,Provides dracut
+ansible,System,ansible,Provides ansible
+ansible-collection-ansible-posix,System,ansible,Provides ansible-collection-ansible-posix
+ansible-collection-community-general,System,ansible,Provides ansible-collection-community-general
+ansible-collection-community-docker,System,ansible,Provides ansible-collection-community-docker
+ansible-collection-community-postgresql,System,ansible,Provides ansible-collection-community-postgresql
+ansible-collection-community-libvirt,System,ansible,Provides ansible-collection-community-libvirt
+ansible-collection-community-library_inventory_filtering_v1,System,ansible,Provides ansible-collection-community-library_inventory_filtering_v1
+linux-system-roles,System,ansible,Provides linux-system-roles
+NetworkManager,System,networking,Provides NetworkManager
+NetworkManager-config-connectivity-fedora,System,networking,Provides NetworkManager-config-connectivity-fedora
+firewalld,System,networking,Provides firewalld
+chrony,System,networking,Provides chrony
+podman,System,podman,Provides podman
+podman-compose,System,podman,Provides podman-compose
+buildah,System,podman,Provides buildah
+skopeo,System,podman,Provides skopeo
+containers-common,System,podman,Provides containers-common
+docker-ce,System,docker,Provides docker-ce
+docker-ce-cli,System,docker,Provides docker-ce-cli
+docker-compose-plugin,System,docker,Provides docker-compose-plugin
+docker-buildx-plugin,System,docker,Provides docker-buildx-plugin
+libvirt,System,libvirt,Provides libvirt
+libvirt-daemon,System,libvirt,Provides libvirt-daemon
+libvirt-daemon-kvm,System,libvirt,Provides libvirt-daemon-kvm
+libvirt-client,System,libvirt,Provides libvirt-client
+qemu-kvm,System,qemu,Provides qemu-kvm
+qemu-img,System,qemu,Provides qemu-img
+virt-install,System,tools,Provides virt-install
+virt-viewer,System,tools,Provides virt-viewer
+virt-manager,System,tools,Provides virt-manager
+libguestfs-tools,System,tools,Provides libguestfs-tools
+ebtables,System,network,Provides ebtables
+dnsmasq,System,network,Provides dnsmasq
+bridge-utils,System,network,Provides bridge-utils
+cockpit,System,cockpit,Provides cockpit
+cockpit-machines,System,cockpit,Provides cockpit-machines
+cockpit-podman,System,cockpit,Provides cockpit-podman
+cockpit-storaged,System,cockpit,Provides cockpit-storaged
+gnome-shell,Settings,gnome,Provides gnome-shell
+gnome-terminal,Settings,gnome,Provides gnome-terminal
+gnome-tweaks,Settings,gnome,Provides gnome-tweaks
+nautilus,Settings,gnome,Provides nautilus
+gdm,Settings,gnome,Provides gdm
+gnome-control-center,Settings,gnome,Provides gnome-control-center
+gnome-system-monitor,Settings,gnome,Provides gnome-system-monitor
+sway,Settings,sway_core,Provides sway
+swayidle,Settings,sway_core,Provides swayidle
+swaylock,Settings,sway_core,Provides swaylock
+swaybg,Settings,sway_core,Provides swaybg
+sway-config-fedora,Settings,sway_core,Provides sway-config-fedora
+xdg-desktop-portal-wlr,Settings,sway_core,Provides xdg-desktop-portal-wlr
+xdg-desktop-portal-gnome,Settings,sway_core,Provides xdg-desktop-portal-gnome
+xorg-x11-server-Xwayland,Settings,sway_core,Provides xorg-x11-server-Xwayland
+gnome-keyring,Settings,sway_integration,serves as the system keyring.
+polkit,Settings,sway_integration,Provides polkit
+network-manager-applet,Settings,sway_integration,Applet for NetworkManager
+blueman,Settings,sway_integration,bluetooth
+grim,Settings,sway_wayland,Provides grim
+slurp,Settings,sway_wayland,Provides slurp
+wl-clipboard,Settings,sway_wayland,Provides wl-clipboard
+wf-recorder,Settings,sway_wayland,Provides wf-recorder
+qt5-qtwayland,Settings,sway_wayland,Provides qt5-qtwayland
+qt6-qtwayland,Settings,sway_wayland,Provides qt6-qtwayland
+fuzzel,Settings,sway_launchers,Provides fuzzel
+wofi,Settings,sway_launchers,Provides wofi
+rofi-wayland,Settings,sway_launchers,Provides rofi-wayland
+waybar,Settings,sway_ui,Provides waybar
+mako,Settings,sway_ui,Provides mako
+azote,Settings,sway_ui,Provides azote
+kanshi,Settings,sway_ui,Provides kanshi
+wlogout,Settings,sway_ui,Provides wlogout
+foot,Settings,sway_ui,Provides foot
+jq,Settings,sway_utils,JSON parser
+curl,Settings,sway_utils,Provides curl
+bc,Settings,sway_utils,classic calculator.
+brightnessctl,Settings,sway_utils,Provides brightnessctl
+gettext,Settings,sway_utils,Provides gettext
+alacritty,Settings,sway_utils,Provides alacritty
+python3,Settings,sway_python,Provides python3
+python3-requests,Settings,sway_python,Provides python3-requests
+python3-dbus-next,Settings,sway_python,Provides python3-dbus-next
+cuda,Graphics,nvidia,Provides cuda
+cuda-toolkit,Graphics,nvidia,Provides cuda-toolkit
+nvidia-container-toolkit,Graphics,nvidia,Provides nvidia-container-toolkit
+nvidia-driver,Graphics,nvidia,Provides nvidia-driver
+nvidia-driver-cuda,Graphics,nvidia,Provides nvidia-driver-cuda
+nvidia-driver-cuda-libs,Graphics,nvidia,Provides nvidia-driver-cuda-libs
+nvidia-driver-libs,Graphics,nvidia,Provides nvidia-driver-libs
+nvidia-persistenced,Graphics,nvidia,Provides nvidia-persistenced
+nvidia-settings,Graphics,nvidia,Provides nvidia-settings
+nvidia-gpu-firmware,Graphics,nvidia,Provides nvidia-gpu-firmware
+nvidia-kmod-common,Graphics,nvidia,Provides nvidia-kmod-common
+nvidia-modprobe,Graphics,nvidia,Provides nvidia-modprobe
+kmod-nvidia-open-dkms,Graphics,nvidia,Provides kmod-nvidia-open-dkms
+dkms,Graphics,nvidia,Provides dkms
+intel-media-driver,Graphics,intel,Provides intel-media-driver
+libva-intel-driver,Graphics,intel,Provides libva-intel-driver
+tuned,AudioVideo,tuning,Provides tuned
+tuned-profiles-realtime,AudioVideo,tuning,Provides tuned-profiles-realtime
+rt-tests,AudioVideo,tuning,Provides rt-tests
+pipewire,AudioVideo,pipewire,Provides pipewire
+pipewire-alsa,AudioVideo,pipewire,Provides pipewire-alsa
+pipewire-gstreamer,AudioVideo,pipewire,Provides pipewire-gstreamer
+pipewire-pulseaudio,AudioVideo,pipewire,Provides pipewire-pulseaudio
+pipewire-utils,AudioVideo,pipewire,Provides pipewire-utils
+pipewire-jack-audio-connection-kit,AudioVideo,pipewire,Provides pipewire-jack-audio-connection-kit
+wireplumber,AudioVideo,pipewire,Provides wireplumber
+a2jmidid,AudioVideo,alsa,Provides a2jmidid
+alsa-lib-devel,AudioVideo,alsa,Provides alsa-lib-devel
+alsa-plugins-pulseaudio,AudioVideo,alsa,Provides alsa-plugins-pulseaudio
+alsa-tools,AudioVideo,alsa,Provides alsa-tools
+alsa-utils,AudioVideo,alsa,Provides alsa-utils
+pulseaudio-utils,AudioVideo,pulseaudio,Provides pulseaudio-utils
+pulseaudio-module-bluetooth,AudioVideo,pulseaudio,Provides pulseaudio-module-bluetooth
+mixxx,AudioVideo,applications,Provides mixxx
+sox,AudioVideo,applications,Provides sox
+vorbis-tools,AudioVideo,applications,Provides vorbis-tools
+wavpack,AudioVideo,applications,Provides wavpack
+calf,AudioVideo,plugins,Provides calf
+gcc,Development,compilers,Provides gcc
+gcc-c++,Development,compilers,Provides gcc-c++
+cmake,Development,compilers,Provides cmake
+make,Development,compilers,make shit
+python3-devel,Development,languages,Provides python3-devel
+python3-pip,Development,languages,Provides python3-pip
+nodejs,Development,languages,Provides nodejs
+npm,Development,languages,node package manager
+git,Development,vcs,Provides git
+rpm-build,Development,rpm_build,Provides rpm-build
+rpmdevtools,Development,rpm_build,Provides rpmdevtools
+rpmlint,Development,rpm_build,Provides rpmlint
+mock,Development,rpm_build,Provides mock
+fedora-packager,Development,rpm_build,Provides fedora-packager
+distribution-gpg-keys,Development,rpm_build,Provides distribution-gpg-keys
+intel-basekit,Development,basekit,Provides intel-basekit
+intel-hpckit,Development,hpckit,Provides intel-hpckit
+xdg-desktop-portal,Utility,xdg,Provides xdg-desktop-portal
+xdg-desktop-portal-gtk,Utility,xdg,Provides xdg-desktop-portal-gtk
+xdg-user-dirs,Utility,xdg,allows changing default dirs
+xdg-utils,Utility,xdg,XDG utils
+deja-dup,Utility,tools,Provides deja-dup
+terminator,Utility,tools,Provides terminator
+tuned-switcher,Utility,tools,Provides tuned-switcher
+distrobox,Utility,tools,Provides distrobox
+kitty,Utility,tools,Provides kitty
+fd-find,Utility,cli_modern,Provides fd-find
+du-dust,Utility,cli_modern,Provides du-dust
+zoxide,Utility,cli_modern,better cd
+micro,Utility,cli_modern,Provides micro
+lnav,Utility,cli_modern,logfile viewer
+htop,Utility,cli_modern,process monitor
+gitui,Utility,cli_modern,Provides gitui
+ranger,Utility,cli_modern,TUI file manager
+aria2,Utility,cli_modern,Provides aria2
+gum,Utility,cli_modern,Provides gum
+zsh,Utility,shell,Provides zsh
+zsh-syntax-highlighting,Utility,shell,Provides zsh-syntax-highlighting
+zsh-autosuggestions,Utility,shell,Provides zsh-autosuggestions
+google-chrome-stable,Utility,browsers,Provides google-chrome-stable
+firefox,Utility,browsers,fuckin firefox
+arandr,Utility,extra,allows the user to customize monitor arrangements.
+atool,Utility,extra,manages and gives information about archives.
+asciiquarium,Utility,extra,asciiquarium
+atop,Utility,extra,A system and process level monitor
+akregator,Utility,extra,RSS feed reader
+audacity,Utility,extra,audio editor
+asunder,Utility,extra,GUI CD ripper and encoder
+automake,Utility,extra,make shit
+baobab,Utility,extra,disk usage GUI
+bashtop,Utility,extra,TUI system monitor
+bash-language-server,Utility,extra,LS for bash
+bat,Utility,extra,better cat
+bluez,Utility,extra,bluetooth
+bluez-utils,Utility,extra,bluetooth
+blender,Utility,extra,3D modeling and art software
+bmon,Utility,extra,bandwidth monitor
+bandwhich,Utility,extra,bandwidth monitor
+blanket,Utility,extra,Ambient noise mixer with multiple sounds
+calcurse,Utility,extra,TUI calendar
+calligra-plan,Utility,extra,Project management software
+cantor,Utility,extra,GUI interface for mathematical software
+ccls,Utility,extra,C language server
+celestia,Utility,extra,astronomy program
+chromium,Utility,extra,fuckin chromium
+code,Utility,extra,VS Code
+ctags,Utility,extra,ctags
+cheese,Utility,extra,take pictures throgh webcam
+dialog,Utility,extra,dialog
+discord,Utility,extra,discord
+digikam,Utility,extra,Photo management software with editing capabilities
+docker,Utility,extra,docker
+docker-compose,Utility,extra,docker-compose
+dosfstools,Utility,extra,allows your computer to access dos-like filesystems.
+dunst,Utility,extra,is a suckless notification system.
+easytag,Utility,extra,music file tagger
+espeak-ng-espeak,Utility,extra,Text to speech (symlinks to espeak for compatibility)
+exa,Utility,extra,better ls
+exfat-utils,Utility,extra,allows management of FAT drives.
+element-desktop,Utility,extra,GUI Matrix client
+feh,Utility,extra,wallpaper setter
+fzf,Utility,extra,is a fuzzy finder tool.
+ffmpeg,Utility,extra,can record and splice video and audio on the command line.
+figlet,Utility,extra,ACII art generator
+freecad,Utility,extra,3D Cad Modeler
+frescobaldi,Utility,extra,Editor for Lilipond
+fish,Utility,extra,fish shell
+flameshot,Utility,extra,screenshot utility
+fd,Utility,extra,find alternative
+geogebra,Utility,extra,Graphing calculator
+gimp,Utility,extra,GIMP
+glances,Utility,extra,system monitor
+gucharmap,Utility,extra,font viewer
+gnuplot,Utility,extra,Graphing utility
+gopls,Utility,extra,Golang language server
+gnome-font-viewer,Utility,extra,view system fonts.
+gpick,Utility,extra,color picker
+grub-customizer,Utility,extra,customize GRUB bootloader
+hexyl,Utility,extra,hex viewer
+hugo,Utility,extra,static site generator
+highlight,Utility,extra,can highlight code output.
+handbrake,Utility,extra,GUI video transcoder.
+i3-gaps,Utility,extra,i3 window manager
+inetutils,Utility,extra,network utilities
+iotop,Utility,extra,IO monitor
+inkscape,Utility,extra,Vector graphics editor
+jdk-openjdk,Utility,extra,OpenJDK
+java-runtime-common,Utility,extra,archlinux-java among other utils
+jnettop,Utility,extra,Network monitor
+jmol,Utility,extra,Java molecule viewer with many formats
+kalarm,Utility,extra,Desktop alarm
+kdeconnect,Utility,extra,KDE Connect
+kdenlive,Utility,extra,Video editor
+kalzium,Utility,extra,Periodic table
+keepassxc,Utility,extra,Password manager
+khal,Utility,extra,calendar
+khard,Utility,extra,contacts
+kmon,Utility,extra,TUI kernel monitor
+kronometer,Utility,extra,stopwatch
+kcron,Utility,extra,GUI for cron
+krita,Utility,extra,Drawing application
+kicad,Utility,extra,PCB/Circuit schematic GUI
+kstars,Utility,extra,desktop planetarium
+ktimer,Utility,extra,desktop timer
+ksystemlog,Utility,extra,GUI log viewer
+korganizer,Utility,extra,GUI calendar (should work with nextcloud)
+lightdm-slick-greeter,Utility,extra,display manager config
+lightdm,Utility,extra,display manager
+libnotify,Utility,extra,allows desktop notifications.
+lilypond,Utility,extra,LaTeX like formatter for sheet music
+lolcat,Utility,extra,text color changer
+luarocks,Utility,extra,lua package manager
+lutris,Utility,extra,game manager and launcher
+lxappearance-gtk3,Utility,extra,LXAppearance
+marble,Utility,extra,GUI globe
+maxima,Utility,extra,computer algebra system
+marble-maps,Utility,extra,maps for marble
+minuet,Utility,extra,Music theory learning software
+minder,Utility,extra,mind mapping application
+mpv,Utility,extra,is the patrician's choice video player.
+man-db,Utility,extra,lets you read man pages of programs.
+mediainfo,Utility,extra,shows audio and video information.
+moreutils,Utility,extra,is a collection of useful unix tools.
+nextcloud-client,Utility,extra,Nextcloud
+neofetch,Utility,extra,system info in console
+nload,Utility,extra,network load monitor
+nm-connection-editor,Utility,extra,edit network connections
+nmon,Utility,extra,network monitor
+newsboat,Utility,extra,is a terminal RSS client.
+ntfs-3g,Utility,extra,allows accessing NTFS partitions.
+obs-studio,Utility,extra,OBS
+ocrfeeder,Utility,extra,Optical Character Recognition
+okular,Utility,extra,GUI PDF viewer
+openssh,Utility,extra,SSH server
+otf-font-awesome,Utility,extra,font-awesome
+offroad,Utility,extra,offlien vector maps GUI
+pandoc,Utility,extra,document utilities
+piper,Utility,extra,Interact with mice/gaming mice
+paraview,Utility,extra,Data analysis and visualization
+pavucontrol,Utility,extra,Pulseaudio controller
+perl-anyevent-i3,Utility,extra,perl i3 bindings
+perl-file-mimeinfo,Utility,extra,perl filetype bindings
+playerctl,Utility,extra,media controller
+progress,Utility,extra,show progress
+pulseaudio-bluetooth,Utility,extra,pulseaudio bluetooth
+pymol,Utility,extra,molecule viewer and editor
+python-configargparse,Utility,extra,parse config args
+poppler,Utility,extra,manipulates .pdfs and gives .pdf previews and other .pdf functions.
+qt5ct,Utility,extra,QT theme utility
+qtcurve-qt5,Utility,extra,QT theme utility
+qgis,Utility,extra,GIS software
+r,Utility,extra,R language
+r2ghidra,Utility,extra,Ghidra decompiler for radare 2
+rizin,Utility,extra,Newer better radare2
+rz-cutter,Utility,extra,GUI for rizin reverse engineering tool
+rz-ghidra,Utility,extra,ghidra decompiler
+reflector,Utility,extra,automatically update mirrors
+rhythmbox,Utility,extra,GUI music player
+rofi,Utility,extra,selector
+rofi-emoji,Utility,extra,rofi emoji selector
+rofimoji,Utility,extra,rofi emoji selector
+rocs,Utility,extra,Grap-binh theory GUI
+rustup,Utility,extra,rust toolchain installer
+rust-analyzer,Utility,extra,rust LSP/compiler frontend
+rxvt-unicode,Utility,extra,urxvt
+s-tui,Utility,extra,TUI stress tester
+seahorse,Utility,extra,TUI secret manager
+signal-desktop,Utility,extra,Signal client
+slop,Utility,extra,screen selector
+scrot,Utility,extra,screenshot
+step,Utility,extra,physical simulator
+spotifyd,Utility,extra,daemon for spotify
+sl,Utility,extra,CHOO CHOO
+speedtest-cli,Utility,extra,speedtest
+steam,Utility,extra,Steam
+sigrok-cli,Utility,extra,signal analysis software
+sweethome3d,Utility,extra,Interior design in 3D
+songrec,Utility,extra,Open source Shazam/SoundHound alternative to identify music
+skrooge,Utility,extra,Personal finance manager
+termdown,Utility,extra,TUI timer
+texlive-bibtexextra,Utility,extra,Latex shit
+texlive-most,Utility,extra,Latex shit
+texlive-fontsextra,Utility,extra,Latex shit
+texlive-core,Utility,extra,Latex shit
+texlive-science,Utility,extra,Latex shit
+texlive-latexextra,Utility,extra,Latex shit
+texlive-music,Utility,extra,Latex shit
+texlive-humanities,Utility,extra,Latex shit
+texlive-formatsextra,Utility,extra,Latex shit
+texlive-binextra,Utility,extra,Latex shit
+texstudio,Utility,extra,GUI LaTeX editor
+thunar,Utility,extra,GUI file manager
+tree,Utility,extra,file tree viewer
+translate-shell,Utility,extra,CLI translator
+traceroute,Utility,extra,track packet path
+transmission-cli,Utility,extra,CLI torrent client
+transmission-gtk,Utility,extra,GUI torrent client
+tree-sitter,Utility,extra,CLI torrent client
+ttf-font-awesome,Utility,extra,Font awesome 5
+udiskie,Utility,extra,automount daemon
+unrar,Utility,extra,extracts rar's.
+unzip,Utility,extra,unzips zips.
+umbrello,Utility,extra,UML modeller.
+ueberzug,Utility,extra,Image viewer for terminal (used by ranger).
+vdirsyncer,Utility,extra,autosync dirs
+vim,Utility,extra,vanilla vim
+w3m,Utility,extra,web browser and pager
+weechat,Utility,extra,IRC client
+wget,Utility,extra,wget
+wine-staging,Utility,extra,WINE
+zathura,Utility,extra,is a pdf viewer with vim-like bindings.
+zathura-pdf-mupdf,Utility,extra,allows mupdf pdf compatibility in zathura.
+zip,Utility,extra,zip
+qalculate-gtk,Utility,extra,calculator GUI and TUI
+qt5-tools,Utility,extra,tools for Qt/KDE
+chemtool,Utility,extra,tool for drawing chemical structures
+powertop,Utility,extra,power monitor
+pulseview,Utility,extra,GUI for sigrok signal analyzer
+gping,Utility,extra,graphical ping
+gpx-viewer,Utility,extra,GUI to visualize GPX files
+ufw,Utility,extra,uncomplicated firewall
+gufw,Utility,extra,graphical frontend for ufw
+gnome-disk-utility,Utility,extra,partition manager
+gnome-recipes,Utility,extra,recipe manager
+gparted,Utility,extra,partition manager
+vlc,Utility,extra,full featured media player
+vscode-html-languageserver,Utility,extra,html/css language server
+xournalpp,Utility,extra,notetaking app with pen/touch support
+xorg-server,Utility,extra,is the graphical server.
+xorg-xwininfo,Utility,extra,allows querying information about windows.
+xorg-xprop,Utility,extra,is a tool for detecting window properties.
+xorg-xrdb,Utility,extra,is a tool for detecting window properties.
+xorg-xev,Utility,extra,subscribe to x events.
+xorg-xkill,Utility,extra,kill x windows.
+xclip,Utility,extra,allows for copying and pasting from the command line.
+xdotool,Utility,extra,provides window action utilities on the command line.
+xorg-xdpyinfo,Utility,extra,aids with resolution determination and screen recording.
+xorg-xbacklight,Utility,extra,enables changing screen brightness levels.
+networkmanager,Utility,extra,NetworkManager
+lm_sensors,Utility,extra,Sensors
+labplot,Utility,extra,interactive graphing of scientific data
+tmux,Utility,extra,terminal multiplexer
+youtube-dl,Utility,extra,can download any YouTube video (or playlist or channel) when given the link.
+zanshin,Utility,extra,Tasks utility (should integrate with nextcloud)
