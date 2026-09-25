@@ -1,0 +1,10 @@
+---
+# RPM Development Environment handlers
+
+- name: "Clear mock cache"
+  ansible.builtin.command:
+    cmd: "mock --scrub=all"
+  become: true
+  failed_when: false
+  listen: "Clear mock cache"
+  changed_when: false

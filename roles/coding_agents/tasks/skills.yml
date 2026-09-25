@@ -1,0 +1,58 @@
+---
+# Skills and agents directory management for coding_agents role
+
+- name: Ensure shared skills directory exists
+  ansible.builtin.file:
+    path: "{{ coding_agents_skills_dir }}"
+    state: directory
+    mode: "0755"
+  tags: ["skills", "coding_agents"]
+
+- name: Ensure shared agents directory exists
+  ansible.builtin.file:
+    path: "{{ coding_agents_agents_dir }}"
+    state: directory
+    mode: "0755"
+  tags: ["skills", "coding_agents"]
+
+- name: Clone GitHub-sourced skills
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ coding_agents_skills_dir }}/{{ item.dest }}"
+    version: "{{ item.version | default('main') }}"
+  loop: "{{ coding_agents_skills_github }}"
+  when: coding_agents_skills_github | length > 0
+  tags: ["skills", "coding_agents"]
+
+- name: Install npm-sourced skills
+  ansible.builtin.command: "npx -y {{ item.package }}"
+  args:
+    creates: "{{ coding_agents_skills_dir }}/{{ item.dest }}"
+  loop: "{{ coding_agents_skills_npx }}"
+  when: coding_agents_skills_npx | length > 0
+  tags: ["skills", "coding_agents"]
+
+- name: Clone GitHub-sourced agent definitions
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ coding_agents_agents_dir }}/{{ item.dest }}"
+    version: "{{ item.version | default('main') }}"
+  loop: "{{ coding_agents_agents_github }}"
+  when: coding_agents_agents_github | length > 0
+  tags: ["skills", "coding_agents"]
+
+- name: Ensure Antigravity parent directory exists for skills symlink
+  ansible.builtin.file:
+    path: "{{ coding_agents_antigravity_skills_dir | dirname }}"
+    state: directory
+    mode: "0755"
+  when: coding_agents_antigravity_state == 'present'
+  tags: ["skills", "coding_agents", "antigravity"]
+
+- name: Create Antigravity skills symlink
+  ansible.builtin.file:
+    src: "{{ coding_agents_skills_dir }}"
+    dest: "{{ coding_agents_antigravity_skills_dir }}"
+    state: link
+  when: coding_agents_antigravity_state == 'present'
+  tags: ["skills", "coding_agents", "antigravity"]

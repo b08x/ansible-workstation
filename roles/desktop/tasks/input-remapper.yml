@@ -1,0 +1,63 @@
+---
+- name: Check if input-remapper is installed
+  ansible.builtin.stat:
+    path: /etc/systemd/system/input-remapper.service
+  register: desktop_input_remapper_service
+  tags: ["input-remapper", "desktop"]
+
+- name: Setup input-remapper
+  tags: ["input-remapper", "desktop"]
+  ignore_errors: "{{ ansible_check_mode }}"
+  block:
+    - name: Build and install input-remapper
+      when: not desktop_input_remapper_service.stat.exists | default(false)
+      block:
+        - name: Install dependencies
+          ansible.builtin.pip:
+            name: "{{ item }}"
+            state: present
+          loop:
+            - evdev
+            - pydantic
+            - dasbus
+            - PyGObject
+            - psutil
+
+        - name: Ensure clean state for input-remapper clone
+          ansible.builtin.file:
+            path: /tmp/input-remapper
+            state: absent
+
+        - name: Clone input-remapper
+          ansible.builtin.git:
+            repo: https://github.com/sezanzeb/input-remapper.git
+            dest: /tmp/input-remapper
+            clone: true
+            update: true
+            version: main
+
+        # pip, in many cases, fails to install data files, which need to go into system paths,
+        # and instead puts them (despite them being absolute paths) into
+        # /usr/lib/python3/inputremapper/usr/share/...
+        # python3 setup.py install is deprecated
+        # meson fails to install the module into a path that can actually be imported, and
+        # its python features require one to specify each individual file of the module.
+        # So instead, input-remapper uses a custom python solution. Hopefulls this works well
+        # enough to prevent all ModuleNotFoundErrors in the future.
+        # https://raw.githubusercontent.com/sezanzeb/input-remapper/refs/heads/main/install/__main__.py
+        - name: Install input-remapper service
+          ansible.builtin.command:
+            cmd: python3 -m install --root /
+            chdir: /tmp/input-remapper
+          notify: Daemon reload
+
+        - name: Clean up input-remapper clone
+          ansible.builtin.file:
+            path: /tmp/input-remapper
+            state: absent
+
+    - name: Enable input-remapper service
+      ansible.builtin.systemd:
+        name: input-remapper
+        enabled: true
+        state: started

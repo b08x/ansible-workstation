@@ -1,0 +1,6 @@
+# Managed by system_tuning role
+{% for group, limits in tuning_limits.items() %}
+@{{ group }}   -  rtprio     {{ limits.rtprio | default(98) }}
+@{{ group }}   -  memlock    {{ limits.memlock | default('unlimited') }}
+@{{ group }}   -  nice       {{ limits.nice | default(-20) }}
+{% endfor %}

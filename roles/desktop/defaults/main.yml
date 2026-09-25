@@ -1,0 +1,87 @@
+---
+# defaults file for b08x.devworkstation.desktop
+
+# Variable that will be displayed in debug output
+# This demonstrates proper role variable naming with the 'run_' prefix
+desktop_my_variable: "default_value"
+
+desktop_environment: gnome
+
+desktop_vscode_flatpak: false
+
+# Antigravity Hub + IDE (the agy CLI is installed by the coding_agents role)
+desktop_antigravity_state: present
+desktop_antigravity_hub_url: "https://storage.googleapis.com/antigravity-public/antigravity-hub/2.11.0-6376446768316416/linux-x64/Antigravity.tar.gz"
+desktop_antigravity_ide_url: >-
+  {{ 'https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/' ~
+     '2.5.5-4923483625488384/linux-x64/Antigravity%20IDE.tar.gz' }}
+
+desktop_vscode_extensions:
+  - ahmadawais.shades-of-purple
+  - anseki.vscode-color
+  - anthropic.claude-code
+  - batisteo.vscode-django
+  - beardedbear.beardedicons
+  - bierner.markdown-mermaid
+  - bulletproof-sh.ctrl
+  - castwide.solargraph
+  - catppuccin.catppuccin-vsc-icons
+  - davidanson.vscode-markdownlint
+  - donjayamanne.python-environment-manager
+  - donjayamanne.python-extension-pack
+  - dracula-theme.theme-dracula
+  - dreamcatcher45.podmanager
+  - eliverlara.sweet-vscode-icons
+  - enkia.tokyo-night
+  - file-icons.file-icons
+  - github.github-vscode-theme
+  - github.vscode-github-actions
+  - google.google-antigravity
+  - hangxingliu.vscode-systemd-support
+  - johnpapa.winteriscoming
+  - kameshkotwani.google-search
+  - kevinrose.vsc-python-indent
+  - kuscamara.yamllint-fix
+  - magicstack.magicpython
+  - mechatroner.rainbow-csv
+  - miguelsolorio.fluent-icons
+  - misogi.ruby-rubocop
+  - mistralai.mistral-vibe-code
+  - ms-azuretools.vscode-containers
+  - ms-python.black-formatter
+  - ms-python.debugpy
+  - ms-python.flake8
+  - ms-python.pylint
+  - ms-python.python
+  - ms-python.vscode-pylance
+  - ms-python.vscode-python-envs
+  - ms-toolsai.jupyter
+  - ms-toolsai.jupyter-keymap
+  - ms-toolsai.jupyter-renderers
+  - ms-toolsai.vscode-jupyter-cell-tags
+  - ms-toolsai.vscode-jupyter-slideshow
+  - ms-vscode-remote.remote-containers
+  - ms-vscode.makefile-tools
+  - ms-vscode.vscode-chat-customizations-evaluations
+  - naumovs.color-highlight
+  - nefrob.vscode-just-syntax
+  - njpwerner.autodocstring
+  - onatm.open-in-new-window
+  - onlyati.quadlet-lsp
+  - openai.chatgpt
+  - redhat.ansible
+  - redhat.vscode-openshift-connector
+  - redhat.vscode-redhat-account
+  - redhat.vscode-yaml
+  - sdras.night-owl
+  - shakram02.bash-beautify
+  - shopify.ruby-lsp
+  - sst-dev.opencode
+  - takkao.open-window-tab-context
+  - tamasfe.even-better-toml
+  - teabyii.ayu
+  - tomoki1207.pdf
+  - vsls-contrib.gistfs
+  - wholroyd.jinja
+  - yzane.markdown-pdf
+  - zhuangtongfa.material-theme

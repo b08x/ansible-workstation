@@ -1,0 +1,32 @@
+---
+- name: Starting system tuning tasks
+  ansible.builtin.debug:
+    msg: "Starting system tuning tasks"
+
+- name: Configure user groups
+  ansible.builtin.include_tasks: user_groups.yml
+  tags: ["tuning", "groups"]
+
+- name: Configure system limits
+  ansible.builtin.include_tasks: limits.yml
+  tags: ["tuning", "limits"]
+
+- name: Configure udev rules
+  ansible.builtin.include_tasks: udev.yml
+  tags: ["tuning", "udev"]
+
+- name: Configure sysctl settings
+  ansible.builtin.include_tasks: sysctl.yml
+  tags: ["tuning", "sysctl"]
+
+- name: Configure tuned
+  ansible.builtin.include_tasks: tuned.yml
+  tags: ["tuning", "tuned"]
+
+- name: Configure rtirq
+  ansible.builtin.include_tasks: rtirq.yml
+  tags: ["tuning", "rtirq"]
+
+- name: Configure cpupower
+  ansible.builtin.include_tasks: cpupower.yml
+  tags: ["tuning", "cpupower"]

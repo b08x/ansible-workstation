@@ -1,0 +1,23 @@
+---
+- name: "Create RPM build directories"
+  ansible.builtin.file:
+    path: "{{ rpm_build.build_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ rpm_dev_user.name }}"
+    group: "{{ rpm_dev_user.name }}"
+    mode: "0755"
+  become: false
+  loop: "{{ rpm_build.directories }}"
+  tags: ["rpm-dev", "directories"]
+
+- name: "Deploy .rpmmacros template"
+  ansible.builtin.template:
+    src: home/.rpmmacros.j2
+    dest: "{{ rpm_build.home_dir }}/.rpmmacros"
+    owner: "{{ rpm_dev_user.name }}"
+    group: "{{ rpm_dev_user.name }}"
+    mode: "0644"
+    backup: true
+  become: false
+  when: rpm_build.setup_macros | default(false) | bool
+  tags: ["rpm-dev", "configuration"]

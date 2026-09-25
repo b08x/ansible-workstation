@@ -1,0 +1,11 @@
+---
+# tasks file for b08x.devworkstation.networking
+
+- name: Starting networking tasks
+  ansible.builtin.debug:
+    msg: "Starting networking tasks"
+  tags: ["always"]
+
+- name: Display the value of networking_my_variable
+  ansible.builtin.debug:
+    msg: "The value of networking_my_variable is {{ networking_my_variable }}"

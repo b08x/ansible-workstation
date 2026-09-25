@@ -1,0 +1,45 @@
+---
+# tasks file for containerd
+
+
+- name: Starting containerd tasks
+  ansible.builtin.debug:
+    msg: "Starting containerd tasks"
+  tags: ["always"]
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars:
+    file: "{{ ansible_distribution }}.yml"
+  tags: ["always"]
+
+- name: Install Podman and related packages
+  ansible.builtin.include_tasks: podman.yml
+  when: containerd_use_podman | default(true)
+  tags: ["podman", "containerd"]
+
+- name: Install Docker and related packages
+  ansible.builtin.include_tasks: docker.yml
+  when: containerd_use_docker | default(true)
+  tags: ["docker", "containerd"]
+
+- name: Install distrobox
+  tags: ["packages", "distrobox", "containerd"]
+  block:
+    - name: Install distrobox
+      ansible.builtin.dnf:
+        name: distrobox
+        state: present
+        allowerasing: true
+
+  rescue:
+    # Shape 1 (add context, then re-raise): distrobox is one of the three things
+    # this role installs, so a failure must not report green.
+    - name: Report distrobox installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install distrobox. On AlmaLinux this package comes from EPEL
+          - check that the base role enabled it.
+
+    - name: Fail the play on distrobox installation failure
+      ansible.builtin.fail:
+        msg: "distrobox installation failed - see the preceding task output."

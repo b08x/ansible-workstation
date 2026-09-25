@@ -1,0 +1,119 @@
+---
+# defaults file for b08x.llmops.dify
+
+# Container runtime: "docker" for Docker Compose, "podman" for podman compose CLI
+dify_container_runtime: docker
+
+# Deployment directory for compose files and data
+dify_deploy_dir: "{{ user.home | default('/opt') }}/dify"
+
+# Docker Compose project name
+dify_project_name: dify
+
+# Image tags
+dify_image_tag: "1.17.0"
+dify_sandbox_image_tag: "0.2.15"
+dify_plugin_daemon_image_tag: "0.6.10-local"
+dify_postgres_version: "15-alpine"
+dify_redis_version: "6-alpine"
+dify_weaviate_image_tag: "1.39.2"
+
+# Network ports (host bindings)
+dify_nginx_port: 80
+dify_nginx_ssl_port: 443
+dify_plugin_debugging_port: 5003
+
+# Whether to bind ports to localhost only
+dify_bind_localhost: true
+
+# Firewall ports to open (empty list skips firewall management)
+# Only the Nginx entry port is exposed; all internal services stay
+# localhost-bound even when dify_bind_localhost is false
+dify_firewall_ports:
+  - "{{ dify_nginx_port }}/tcp"
+  - "{{ dify_nginx_ssl_port }}/tcp"
+
+# Force container recreation (useful after image tag bumps)
+dify_force_recreate: false
+
+# Core service URLs (leave empty to use defaults derived from Nginx ingress)
+dify_console_api_url: ""
+dify_console_web_url: ""
+dify_service_api_url: ""
+dify_app_api_url: ""
+dify_app_web_url: ""
+
+# Runtime and security
+# Leave empty to auto-generate a persistent key in the storage directory.
+dify_secret_key: ""
+dify_init_password: ""
+dify_deploy_env: PRODUCTION
+dify_log_level: INFO
+
+# Database configuration (PostgreSQL)
+# Compose service name of the PostgreSQL container (see templates/docker-compose.yml.j2).
+# Used to look the container up for backup/restore exec.
+dify_db_service_name: db_postgres
+dify_db_username: postgres
+dify_db_password: difyai123456
+dify_db_database: dify
+dify_db_plugin_database: dify_plugin
+
+# Redis configuration
+dify_redis_password: difyai123456
+
+# Sandbox configuration
+dify_sandbox_api_key: dify-sandbox
+
+# Plugin daemon configuration
+dify_plugin_daemon_key: "lYkiYYT6owG+71oLerGzA7GXCgOT++6ovaezWAjpCjf+Sjc3ZU+qUEi"
+dify_plugin_dify_inner_api_key: "QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1"
+
+# Agent backend configuration
+dify_agent_api_token: "dify-agent-run-token-for-dev-only"
+dify_agent_server_secret_key: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY"
+
+# Vector store (weaviate is the default; alternatives: pgvector)
+dify_vector_store: weaviate
+dify_weaviate_api_key: "WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih"
+
+# pgvector vector store configuration
+# Uses a separate PostgreSQL container with the pgvector extension (pgvector/pgvector:pg16)
+dify_pgvector_image_tag: "pg16"
+dify_pgvector_host: pgvector
+dify_pgvector_port: 5432
+dify_pgvector_user: postgres
+dify_pgvector_password: difyai123456
+dify_pgvector_database: dify
+dify_pgvector_pgdata: /var/lib/postgresql/data/pgdata
+dify_pgvector_min_connection: 1
+dify_pgvector_max_connection: 5
+dify_pgvector_pg_bigm: false
+dify_pgvector_pg_bigm_version: "1.2-20240606"
+
+# Enable collaboration mode (websocket service)
+dify_enable_collaboration_mode: true
+
+# Nginx configuration
+dify_nginx_server_name: "_"
+dify_nginx_https_enabled: false
+
+# SSRF proxy
+dify_ssrf_proxy_allow_private_ips: ""
+
+# Backup/restore configuration
+# Set dify_backup_action to "backup" or "restore" to trigger those operations
+dify_backup_action: "none"
+dify_backup_dir: "{{ dify_deploy_dir }}/backups"
+# For restore: absolute path to the .dump or .sql file to restore from
+dify_backup_file: ""
+# Include volume data (app storage, weaviate, plugin daemon, sandbox, certs, configs)
+dify_backup_include_volumes: true
+# For restore: absolute path to the volume tarball to restore from
+dify_backup_volume_file: ""
+# pg_dump format: "custom" (-Fc, compressed, pg_restore) or "plain" (-Fp, SQL text, psql)
+dify_backup_format: "custom"
+# Compression level 0-9 (only used with custom format)
+dify_backup_compression: 6
+# Number of days to retain backups (older files are pruned during backup)
+dify_backup_retention_days: 7

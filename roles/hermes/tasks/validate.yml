@@ -1,0 +1,141 @@
+---
+# validate.yml - Verification and testing tasks for b08x.llmops.hermes
+
+- name: Verify Hermes CLI is available
+  ansible.builtin.stat:
+    path: "{{ hermes_cli }}"
+  register: hermes_cli_validate
+  tags: ["hermes", "validation", "verify", "always"]
+
+- name: Fail if Hermes CLI is not available
+  ansible.builtin.fail:
+    msg: >-
+      Hermes CLI not found at expected location: {{ hermes_cli }}
+      Installation may have failed. Check installation logs.
+  when: not hermes_cli_validate.stat.exists
+  tags: ["hermes", "validation", "verify", "always"]
+
+- name: Verify Hermes CLI version
+  ansible.builtin.command: "{{ hermes_cli }} --version"
+  changed_when: false
+  register: hermes_version_validate
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  tags: ["hermes", "validation", "version"]
+
+- name: Verify systemd service is installed
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/{{ hermes_service_name }}.service"
+  register: hermes_service_validate
+  when: hermes_system_service | bool
+  tags: ["hermes", "validation", "service"]
+
+- name: Verify systemd service is active
+  ansible.builtin.service:
+    name: hermes-gateway
+    state: started
+  become: true
+  when: hermes_system_service | bool
+  tags: ["hermes", "validation", "service", "active"]
+
+- name: Verify Hermes gateway is running via CLI
+  ansible.builtin.command: "{{ hermes_cli }} gateway status --system"
+  register: hermes_gateway_validate
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  when: hermes_system_service | bool
+  tags: ["hermes", "validation", "gateway"]
+
+- name: Verify Podman backend is configured
+  ansible.builtin.command: "{{ hermes_cli }} config get terminal.backend"
+  register: hermes_backend_validate
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  tags: ["hermes", "validation", "podman", "backend"]
+
+- name: Verify HERMES_DOCKER_BINARY environment variable
+  ansible.builtin.command: grep -q "HERMES_DOCKER_BINARY=podman" /etc/systemd/system/{{ hermes_service_name }}.service.d/override.conf
+  register: hermes_docker_binary_validate
+  changed_when: false
+  failed_when: false
+  become: true
+  when:
+    - hermes_container_runtime == 'podman'
+    - hermes_system_service | bool
+  tags: ["hermes", "validation", "podman", "environment"]
+
+- name: Verify SELinux contexts on installation directory
+  ansible.builtin.command: >-
+    ls -Zd "{{ hermes_install_dir }}"
+  register: hermes_selinux_context_validate
+  changed_when: false
+  when: hermes_selinux_enforcing | bool
+  tags: ["hermes", "validation", "selinux"]
+
+- name: Verify SELinux is in enforcing mode
+  ansible.builtin.command: getenforce
+  register: hermes_selinux_validate
+  changed_when: false
+  when: hermes_selinux_enforcing | bool
+  tags: ["hermes", "validation", "selinux"]
+
+- name: Verify firewall ports are open
+  ansible.builtin.command: >-
+    firewall-cmd --list-ports --permanent | grep -E '{{ hermes_firewall_ports | map("regex_replace", "\\/", "\\\") | join("|") }}'
+  register: hermes_firewall_validate
+  changed_when: false
+  become: true
+  when:
+    - hermes_firewall_enabled | bool
+    - hermes_firewall_ports | length > 0
+    - not hermes_bind_localhost | bool
+  tags: ["hermes", "validation", "firewall"]
+
+- name: Test Hermes gateway API accessibility (localhost only)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ hermes_gateway_port }}/api/health"
+    method: GET
+    return_content: true
+    timeout: 5
+    validate_certs: false
+    status_code: 200
+  register: hermes_api_validate
+  failed_when: false
+  when: not hermes_bind_localhost | bool
+  tags: ["hermes", "validation", "api"]
+
+- name: Display comprehensive validation summary
+  ansible.builtin.debug:
+    msg: >-
+      === HERMES ROLE VALIDATION SUMMARY ===
+      
+      Installation:
+      - Hermes CLI Available: {{ hermes_cli_validate.stat.exists | ternary('✓ YES', '✗ NO') }}
+      - Hermes CLI Version: {{ hermes_version_validate.stdout | default('Not checked') | trim }}
+      
+      Service:
+      - Systemd Service File: {{ hermes_service_validate.stat.exists | default(false) | ternary('✓ EXISTS', '✗ NOT FOUND') }}
+      - Service Active: {{ ansible_facts.services['hermes-gateway.service'].state | default('unknown') }}
+      - Gateway Status: {{ hermes_gateway_validate.stdout | default('Not checked') | trim }}
+      
+      Backend:
+      - Terminal Backend: {{ hermes_backend_validate.stdout | default('Not checked') | trim }}
+      - HERMES_DOCKER_BINARY: {{ hermes_docker_binary_validate.rc == 0 | ternary('✓ CONFIGURED', '✗ NOT FOUND') }}
+      
+      SELinux:
+      - SELinux Mode: {{ hermes_selinux_validate.stdout | default('Not checked') | trim }}
+      - Contexts Correct: {{ hermes_selinux_context_validate.rc == 0 | ternary('✓ YES', '✗ CHECK') }}
+      
+      Firewall:
+      - Firewall Enabled: {{ hermes_firewall_enabled | bool | ternary('Yes', 'No') }}
+      - Ports Open: {{ hermes_firewall_validate.rc == 0 | ternary('✓ CONFIGURED', '✗ NOT FOUND') }}
+      
+      API Test:
+      - API Accessible: {{ hermes_api_validate.status | default(-1) == 200 | ternary('✓ YES', '✗ NO') }}
+      
+      Overall Status: {{ (hermes_cli_validate.stat.exists and (not hermes_system_service or hermes_service_validate.stat.exists) and (not hermes_selinux_enforcing or hermes_selinux_validate.rc == 0)) | ternary('✓ PASS', '✗ FAIL') }}
+  tags: ["hermes", "validation", "summary", "always"]

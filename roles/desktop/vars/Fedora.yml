@@ -1,0 +1,37 @@
+---
+# distribution package variables for b08x.devworkstation.desktop on Fedora
+#
+# Every key looped over in tasks/ must exist here. tasks/main.yml installs
+# `qt` and `gtk`; gnome.yml installs `gnome`; theme.yml installs `theme`.
+desktop_packages:
+  gnome:
+    - "@gnome-desktop"
+    - "@graphical-server-environment"
+    - gdm
+    - gnome-tweaks
+  theme:
+    - gnome-shell-theme-yaru
+    - yaru-gtk2-theme
+    - yaru-gtk3-theme
+    - yaru-gtk4-theme
+    - yaru-gtksourceview-theme
+    - yaru-icon-theme
+    - yaru-sound-theme
+    - yaru-theme
+  qt:
+    - qt6-qtbase
+    - qt6-qttools
+    - qt6-qtmultimedia
+    - qt6-qtdeclarative
+    - qt5-qtbase
+    - qt5-qttools
+    - qt5-qtquickcontrols2
+    - qt5-qtgraphicaleffects
+    - qscintilla-qt5
+    - qt5ct
+    - qt6ct
+  gtk:
+    - gtk4
+    - gtk3-devel
+    - gtksourceview4
+    - gtksourceview5

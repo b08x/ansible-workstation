@@ -18,5 +18,5 @@
     composer_cli_service_state: "started"
     composer_cli_service_enabled: true
   roles:
-    - role: b08x.rhel_builder.composer_cli
+    - role: composer_cli
       tags: ["composer_cli", "builder"]

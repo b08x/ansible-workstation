@@ -54,5 +54,5 @@
     dify_secret_key: ""
     dify_init_password: ""
   roles:
-    - role: b08x.llmops.dify
+    - role: dify
       tags: ["dify", "llmops"]

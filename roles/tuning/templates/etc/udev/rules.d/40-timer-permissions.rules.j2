@@ -1,0 +1,7 @@
+# Managed by system_tuning role
+# To account for any hardware timers, such as a real-time clock (/dev/rtc) or high-precision event timer (/dev/hpet), there should also be a file in /etc/udev/rules.d/ dealing with these devices, and it should contain:
+{% for timer in tuning_udev_timers %}
+KERNEL=="{{ timer }}", GROUP="audio"
+{% endfor %}
+# It is safe to have this file even if your hardware contains neither device, so you can include/create it if you are not sure.
+# source: https://gentoostudio.org/?page_id=420

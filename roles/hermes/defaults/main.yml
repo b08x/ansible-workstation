@@ -1,0 +1,76 @@
+---
+# defaults file for b08x.llmops.hermes
+
+# Container runtime selection
+# Valid options: "docker" (Docker Engine) or "podman" (Podman)
+hermes_container_runtime: podman
+
+# Installation user and directory
+# For root installation on RHEL with system service
+# HERMES_HOME environment variable can override the installation directory
+hermes_install_user: root
+hermes_install_group: root
+hermes_home: "{{ lookup('env', 'HERMES_HOME') | default('/opt/hermes') }}"
+hermes_install_dir: "{{ hermes_home }}"
+
+# Hermes gateway configuration
+hermes_gateway_enabled: true
+hermes_gateway_port: 8642
+hermes_gateway_host: "127.0.0.1"
+
+# Hermes dashboard configuration
+hermes_dashboard_enabled: true
+hermes_dashboard_port: 9119
+hermes_dashboard_host: "127.0.0.1"
+
+# Network binding configuration
+# When true, all services bind to localhost only (recommended for security)
+hermes_bind_localhost: true
+
+# System service configuration
+# When true, installs as systemd system service (requires root)
+hermes_system_service: true
+hermes_service_type: system  # system or user
+hermes_service_name: hermes-gateway
+
+# Firewall configuration
+# Ports to open in firewalld. Empty list skips firewall management.
+# Only applied when hermes_bind_localhost is false.
+hermes_firewall_enabled: true
+hermes_firewall_ports:
+  - "{{ hermes_gateway_port }}/tcp"
+
+# SELinux configuration
+# Whether SELinux is in enforcing mode (default on RHEL)
+hermes_selinux_enforcing: true
+hermes_selinux_context: "system_u:object_r:usr_t:s0"
+
+# Podman configuration
+hermes_podman_version_minimum: "4.0"
+
+# Prerequisites packages
+# These are installed automatically if missing
+hermes_prerequisites:
+  - git
+  - curl
+  - xz-utils
+
+# Additional packages for Podman
+hermes_podman_prerequisites:
+  - podman
+
+# Hermes installer URL
+hermes_installer_url: "https://hermes-agent.nousresearch.com/install.sh"
+
+# Environment variables for Hermes
+hermes_environment:
+  HERMES_DOCKER_BINARY: "{{ hermes_container_runtime }}"
+
+# Configuration file path
+hermes_config_file: "{{ hermes_install_dir }}/config.yml"
+hermes_env_file: "{{ hermes_install_dir }}/.env"
+hermes_soul_file: "{{ hermes_install_dir }}/SOUL.md"
+
+# Backup configuration
+hermes_backup_enabled: false
+hermes_backup_dir: "{{ hermes_install_dir }}/backups"

@@ -1,0 +1,8 @@
+---
+- name: "Install RPM development packages"
+  ansible.builtin.dnf:
+    name: "{{ packages.rpm_dev }}"
+    state: present
+  when: packages.rpm_dev is defined
+  tags: ["rpm-dev", "packages"]
+  notify: "Clear mock cache"

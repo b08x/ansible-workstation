@@ -1,0 +1,37 @@
+---
+- name: Check if iptables command is available
+  ansible.builtin.command: which iptables
+  register: libvirt_iptables_check
+  changed_when: false
+  ignore_errors: true
+
+- name: Check if DOCKER-USER chain exists
+  ansible.builtin.command: iptables -L DOCKER-USER -n
+  register: libvirt_docker_user_chain
+  changed_when: false
+  ignore_errors: true
+  when: libvirt_iptables_check.rc == 0
+
+- name: Ensure libvirt inbound traffic is accepted in DOCKER-USER chain
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    in_interface: virbr+
+    jump: ACCEPT
+    action: insert
+    rule_num: 1
+    state: present
+  when:
+    - libvirt_iptables_check.rc == 0
+    - libvirt_docker_user_chain.rc == 0
+
+- name: Ensure libvirt outbound traffic is accepted in DOCKER-USER chain
+  ansible.builtin.iptables:
+    chain: DOCKER-USER
+    out_interface: virbr+
+    jump: ACCEPT
+    action: insert
+    rule_num: 1
+    state: present
+  when:
+    - libvirt_iptables_check.rc == 0
+    - libvirt_docker_user_chain.rc == 0

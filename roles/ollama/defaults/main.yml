@@ -1,0 +1,6 @@
+---
+# defaults file for b08x.llmops.ollama
+
+# Variable that will be displayed in debug output
+# This demonstrates proper role variable naming with the 'run_' prefix
+ollama_my_variable: "default_value"

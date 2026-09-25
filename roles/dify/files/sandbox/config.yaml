@@ -1,0 +1,19 @@
+---
+app:
+  port: 8194
+  debug: true
+  key: dify-sandbox
+max_workers: 4
+max_requests: 50
+worker_timeout: 5
+python_path: /opt/python/bin/python3
+enable_network: true
+enable_preload: false
+log_path: "./logs"
+allowed_syscalls:
+proxy:
+  socks5: ""
+  http: ""
+  https: ""
+  no_proxy: ""
+allowed_env_vars: []

@@ -1,0 +1,13 @@
+---
+# handlers file for base role
+
+- name: Daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: "Daemon reload"
+
+- name: Restart zram service
+  ansible.builtin.systemd:
+    name: "systemd-zram-setup@zram0.service"
+    state: restarted
+  listen: "Restart zram service"

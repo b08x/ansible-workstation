@@ -1,0 +1,94 @@
+---
+- name: Install VS Code via Flatpak
+  when: desktop_vscode_flatpak | default(false) | bool
+  block:
+    - name: Install VS Code via Flatpak
+      community.general.flatpak:
+        name: com.visualstudio.code
+        state: present
+        method: system
+        remote: flathub
+
+    - name: Install VS Code extensions
+      ansible.builtin.shell: |
+        set -o pipefail
+        if ! flatpak run com.visualstudio.code --list-extensions | grep -Fqx "{{ item }}"; then
+          flatpak run com.visualstudio.code --install-extension "{{ item }}"
+        fi
+      args:
+        executable: /bin/bash
+      loop: "{{ desktop_vscode_extensions }}"
+      when: desktop_vscode_extensions is defined and desktop_vscode_extensions | length > 0
+      become: false
+      changed_when: false
+
+- name: Install VS Code from dnf repo
+  block:
+    - name: Import Microsoft GPG key
+      ansible.builtin.rpm_key:
+        key: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Add Visual Studio Code repository
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/vscode.repo
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [code]
+          name=Visual Studio Code
+          baseurl=https://packages.microsoft.com/yumrepos/vscode
+          enabled=1
+          gpgcheck=1
+          gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+
+        backup: true
+    - name: Update package cache (dnf)
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Install Visual Studio Code (dnf)
+      ansible.builtin.dnf:
+        name: code
+        state: present
+
+- name: Install VS Code Extensions
+  become: false
+  block:
+    - name: Check currently installed extensions
+      ansible.builtin.command: code --list-extensions
+      register: desktop_vscode_installed_extensions
+      changed_when: desktop_vscode_installed_extensions.rc != 0
+      ignore_errors: true
+
+    - name: Set list of extensions to install
+      ansible.builtin.set_fact:
+        desktop_vscode_missing_extensions: "{{ desktop_vscode_extensions | difference(desktop_vscode_installed_extensions.stdout_lines) }}"
+
+    - name: Install VSCode extensions
+      ansible.builtin.command:
+        argv:
+          - code
+          - --install-extension
+          - "{{ item }}"
+      with_items:
+        - "{{ desktop_vscode_missing_extensions }}"
+      when: desktop_vscode_missing_extensions | length > 0
+      changed_when: true
+
+  rescue:
+    # Shape 1 (add context, then re-raise). The previous rescue looped over
+    # ansible_failed_result.results, which only exists when the failing task was
+    # itself looped - when the set_fact above failed instead, the rescue raised
+    # an undefined-attribute error and buried the real one.
+    - name: Report VS Code extension installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed while installing VS Code extensions. If 'code' is not on PATH
+          the preceding list-extensions task returns nothing and every extension
+          is attempted; otherwise check the id of the extension that failed.
+
+    - name: Fail the play on VS Code extension installation failure
+      ansible.builtin.fail:
+        msg: "VS Code extension installation failed - see the preceding task output."

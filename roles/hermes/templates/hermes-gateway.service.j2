@@ -1,0 +1,28 @@
+[Unit]
+Description=Hermes Gateway Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User={{ hermes_install_user }}
+Group={{ hermes_install_group }}
+WorkingDirectory={{ hermes_agent_dir }}
+EnvironmentFile={{ hermes_install_dir }}/hermes.env
+ExecStart={{ hermes_cli }} gateway
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables for container backend
+Environment="HERMES_DOCKER_BINARY=podman"
+Environment="PATH={{ hermes_venv_bin }}:/usr/local/bin:/usr/bin:/bin"
+
+# SELinux context for root installation
+{% if hermes_selinux_enforcing %}
+ExecStartPre=/usr/bin/chcon -R -t bin_t "{{ hermes_agent_dir }}"
+{% endif %}
+
+[Install]
+WantedBy=multi-user.target

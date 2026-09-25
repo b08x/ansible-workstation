@@ -4,5 +4,5 @@
   become: false
   gather_facts: true
   roles:
-    - role: b08x.llmops.ollama
+    - role: ollama
       tags: ["ollama", "llmops"]

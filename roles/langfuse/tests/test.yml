@@ -1,0 +1,9 @@
+---
+- name: Test langfuse role
+  hosts: localhost
+  gather_facts: false
+  vars:
+    user:
+      home: /tmp
+  roles:
+    - role: b08x.llmops.langfuse

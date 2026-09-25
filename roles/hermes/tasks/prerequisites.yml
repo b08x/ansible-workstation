@@ -1,0 +1,175 @@
+---
+# prerequisites.yml - Prerequisite verification and installation for b08x.llmops.hermes
+
+- name: Verify RHEL platform
+  ansible.builtin.assert:
+    that: ansible_distribution in ['RedHat', 'CentOS', 'Rocky', 'AlmaLinux']
+    msg: >-
+      Hermes role requires RHEL-based distribution.
+      Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}
+    fail_msg: "This role only supports RHEL-based distributions (RHEL, CentOS, Rocky, AlmaLinux)."
+  tags: ["hermes", "prerequisites", "platform", "always"]
+
+- name: Verify minimum RHEL version (8+)
+  ansible.builtin.assert:
+    that: ansible_distribution_version | replace(".", "") | int >= 80
+    msg: "RHEL 8 or higher is required. Detected version: {{ ansible_distribution_version }}"
+    fail_msg: "RHEL 8 or higher is required for this role."
+  when: ansible_distribution == 'RedHat'
+  tags: ["hermes", "prerequisites", "platform", "always"]
+
+- name: Check SELinux status
+  ansible.builtin.command: getenforce
+  changed_when: false
+  register: hermes_selinux_status
+  check_mode: false
+  tags: ["hermes", "prerequisites", "selinux", "always"]
+
+- name: Validate SELinux mode
+  ansible.builtin.assert:
+    that: hermes_selinux_status.stdout in ['Enforcing', 'Permissive', 'Disabled']
+    fail_msg: "Unable to determine SELinux status"
+  tags: ["hermes", "prerequisites", "selinux", "always"]
+
+- name: Set SELinux enforcing fact
+  ansible.builtin.set_fact:
+    hermes_selinux_is_enforcing: "{{ hermes_selinux_status.stdout == 'Enforcing' }}"
+  tags: ["hermes", "prerequisites", "selinux", "always"]
+
+- name: Verify SELinux enforcing mode (if configured)
+  ansible.builtin.assert:
+    that: hermes_selinux_is_enforcing
+    msg: >-
+      SELinux is in {{ hermes_selinux_status.stdout }} mode but role expects enforcing.
+      Set hermes_selinux_enforcing: false in role variables if SELinux is not enforcing.
+  when: hermes_selinux_enforcing | bool
+  tags: ["hermes", "prerequisites", "selinux"]
+
+- name: Check for Podman installation
+  ansible.builtin.command: podman --version
+  changed_when: false
+  register: hermes_podman_check
+  failed_when: false
+  tags: ["hermes", "prerequisites", "podman", "always"]
+
+- name: Verify Podman version meets minimum requirement
+  ansible.builtin.set_fact:
+    hermes_podman_version: >-
+      {% if hermes_podman_check.rc == 0 %}
+        {{ hermes_podman_check.stdout | regex_replace('podman version (.*)', '\\1') | trim }}
+      {% else %}
+        ""
+      {% endif %}
+  tags: ["hermes", "prerequisites", "podman"]
+
+- name: Fail if Podman is not installed
+  ansible.builtin.fail:
+    msg: >-
+      Podman is not installed on this system.
+      Required for Hermes container backend.
+      Install with: sudo dnf install -y podman
+  when: hermes_podman_check.rc != 0 and hermes_container_runtime == 'podman'
+  tags: ["hermes", "prerequisites", "podman", "always"]
+
+- name: Fail if Podman version is too old
+  ansible.builtin.fail:
+    msg: >-
+      Podman version {{ hermes_podman_version }} is below minimum {{ hermes_podman_version_minimum }}.
+      Upgrade with: sudo dnf upgrade -y podman
+  when:
+    - hermes_podman_check.rc == 0
+    - hermes_container_runtime == 'podman'
+    - hermes_podman_version is version_compare(hermes_podman_version_minimum, '<')
+  tags: ["hermes", "prerequisites", "podman"]
+
+- name: Check for Docker installation (if using Docker backend)
+  ansible.builtin.command: docker --version
+  changed_when: false
+  register: hermes_docker_check
+  failed_when: false
+  when: hermes_container_runtime == 'docker'
+  tags: ["hermes", "prerequisites", "docker"]
+
+- name: Fail if Docker is not installed (Docker backend selected)
+  ansible.builtin.fail:
+    msg: >-
+      Docker is not installed on this system.
+      Required for Hermes container backend.
+      Install Docker Engine or switch to Podman backend (hermes_container_runtime: podman).
+  when:
+    - hermes_container_runtime == 'docker'
+    - hermes_docker_check.rc != 0
+  tags: ["hermes", "prerequisites", "docker", "always"]
+
+- name: Check for required system packages
+  ansible.builtin.package_facts:
+    manager: auto
+  tags: ["hermes", "prerequisites", "packages", "always"]
+
+- name: Set fact for missing prerequisites
+  ansible.builtin.set_fact:
+    hermes_missing_prerequisites: >-
+      {% set missing = [] %}
+      {% for pkg in hermes_all_prerequisites %}
+        {% if pkg not in ansible_facts.packages %}
+          {{ missing.append(pkg) or '' }}
+        {% endif %}
+      {% endfor %}
+      {{ missing }}
+  tags: ["hermes", "prerequisites", "packages"]
+
+- name: Install missing prerequisites (DNF)
+  ansible.builtin.dnf:
+    name: "{{ hermes_missing_prerequisites }}"
+    state: present
+    update_cache: true
+  become: true
+  when:
+    - hermes_missing_prerequisites | length > 0
+    - ansible_pkg_mgr == 'dnf'
+  tags: ["hermes", "prerequisites", "packages", "install"]
+
+- name: Install missing prerequisites (YUM fallback)
+  ansible.builtin.yum:
+    name: "{{ hermes_missing_prerequisites }}"
+    state: present
+    update_cache: true
+  become: true
+  when:
+    - hermes_missing_prerequisites | length > 0
+    - ansible_pkg_mgr == 'yum'
+  tags: ["hermes", "prerequisites", "packages", "install"]
+
+- name: Verify all prerequisites are installed
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ hermes_all_prerequisites }}"
+  become: true
+  tags: ["hermes", "prerequisites", "packages", "verify"]
+
+- name: Verify container runtime executable exists
+  ansible.builtin.stat:
+    path: "/usr/bin/{{ hermes_podman_bin }}"
+  register: hermes_runtime_bin
+  tags: ["hermes", "prerequisites", "runtime", "always"]
+
+- name: Fail if container runtime binary is missing
+  ansible.builtin.fail:
+    msg: >-
+      Container runtime binary /usr/bin/{{ hermes_podman_bin }} not found.
+      Expected: {{ hermes_container_runtime }}
+      {{ hermes_all_prerequisites }} may need to be installed.
+  when: not hermes_runtime_bin.stat.exists
+  tags: ["hermes", "prerequisites", "runtime", "always"]
+
+- name: Display prerequisites verification summary
+  ansible.builtin.debug:
+    msg: >-
+      Hermes Prerequisites Summary:
+      - Platform: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      - SELinux: {{ hermes_selinux_status.stdout }} (enforcing={{ hermes_selinux_is_enforcing }})
+      - Container Runtime: {{ hermes_container_runtime }}
+      - Podman Version: {{ hermes_podman_version if hermes_podman_check.rc == 0 else 'NOT FOUND' }}
+      - Missing Packages: {{ hermes_missing_prerequisites | default([]) | join(', ') | default('None') }}
+  tags: ["hermes", "prerequisites", "summary", "always"]

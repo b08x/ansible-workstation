@@ -8,5 +8,5 @@
       ansible.builtin.setup:
       tags: ["always"]
   roles:
-    - role: b08x.devworkstation.coding_agents
+    - role: coding_agents
       tags: ["coding_agents", "system"]

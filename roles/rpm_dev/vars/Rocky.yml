@@ -1,0 +1,49 @@
+---
+packages__rpm_dev:
+  - createrepo_c
+  - curl
+  - diffutils
+  - fedora-packager
+  - fedpkg
+  - git
+  - gnupg2
+  - koji
+  - mock
+  - patch
+  - python3-pip
+  - python3-setuptools
+  - redhat-rpm-config
+  - rpm-build
+  - rpm-sign
+  - rpmdevtools
+  - rpmlint
+  - wget
+
+packages__mock_deps:
+  - systemd-container
+  - dnf
+  - dnf-plugins-core
+  - usermode
+
+packages__dev_tools:
+  - vim-enhanced
+  - nano
+  - tree
+  - less
+
+packages:
+  rpm_dev: "{{ packages__rpm_dev + packages__mock_deps + packages__dev_tools }}"
+
+mock_configs:
+  - src: "rocky-10-x86_64.cfg.j2"
+    dest: "rocky-10-x86_64.cfg"
+  - src: "rocky+epel-10-x86_64.cfg.j2"
+    dest: "rocky+epel-10-x86_64.cfg"
+
+mock_templates:
+  - "custom-rocky-10.tpl"
+  - "custom-epel-z-10.tpl"
+
+_mock_targets:
+  - "rocky-{{ ansible_distribution_major_version }}-x86_64"
+  - "rocky-{{ ansible_distribution_major_version }}-aarch64"

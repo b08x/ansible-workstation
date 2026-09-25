@@ -1,0 +1,133 @@
+---
+# selinux.yml - SELinux configuration for b08x.llmops.hermes
+
+- name: Verify SELinux is enabled
+  ansible.builtin.command: getenforce
+  changed_when: false
+  register: hermes_selinux_enabled
+  check_mode: false
+  tags: ["hermes", "selinux", "verify", "always"]
+
+- name: Set SELinux enabled fact
+  ansible.builtin.set_fact:
+    hermes_selinux_is_enabled: "{{ hermes_selinux_enabled.stdout != 'Disabled' }}"
+  tags: ["hermes", "selinux", "facts"]
+
+- name: Display SELinux status
+  ansible.builtin.debug:
+    msg: "SELinux is {{ hermes_selinux_enabled.stdout }} on this system"
+  tags: ["hermes", "selinux", "status", "always"]
+
+- name: Install SELinux management packages
+  ansible.builtin.package:
+    name:
+      - policycoreutils
+      - policycoreutils-python-utils
+      - selinux-policy
+      - selinux-policy-targeted
+    state: present
+  become: true
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "packages"]
+
+- name: Configure container_selinux boolean (allow containers to use SELinux)
+  ansible.posix.selinux:
+    name: container_selinux
+    state: true
+    persistent: true
+  become: true
+  when:
+    - hermes_selinux_is_enabled
+    - hermes_container_runtime == 'podman' or hermes_container_runtime == 'docker'
+  tags: ["hermes", "selinux", "containers"]
+
+- name: Configure container_manage_cgroup boolean (allow container runtime to manage cgroups)
+  ansible.posix.selinux:
+    name: container_manage_cgroup
+    state: true
+    persistent: true
+  become: true
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "cgroups"]
+
+- name: Apply proper SELinux context to installation directory
+  ansible.builtin.command: >-
+    restorecon -Rv "{{ hermes_install_dir }}"
+  become: true
+  changed_when: false
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "context"]
+
+- name: Apply proper SELinux context to hermes-agent directory
+  ansible.builtin.command: >-
+    restorecon -Rv "{{ hermes_agent_dir }}"
+  become: true
+  changed_when: false
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "context"]
+
+- name: Set custom SELinux context for Hermes data directory (if needed)
+  ansible.builtin.command: >-
+    chcon -R -t svirt_sandbox_file_t "{{ hermes_install_dir }}/.hermes/profiles"
+  become: true
+  changed_when: false
+  when:
+    - hermes_selinux_is_enabled
+    - hermes_selinux_enforcing
+  tags: ["hermes", "selinux", "context"]
+
+- name: Ensure Podman can access user home directories (SELinux)
+  ansible.builtin.command: >-
+    setsebool -P container_home_dirs_on 1
+  become: true
+  when:
+    - hermes_selinux_is_enabled
+    - hermes_container_runtime == 'podman'
+    - hermes_install_user != 'root'
+  tags: ["hermes", "selinux", "podman"]
+
+- name: Configure SELinux for installation directory
+  block:
+    - name: Set context for installation directory
+      ansible.builtin.file:
+        path: "{{ hermes_install_dir }}"
+        state: directory
+        setype: user_home_t
+        seuser: system_u
+      become: true
+      when: hermes_selinux_is_enabled
+      tags: ["hermes", "selinux", "install"]
+
+    - name: Ensure proper context for all files in installation directory
+      ansible.builtin.command: >-
+        chcon -R -t user_home_t "{{ hermes_install_dir }}"
+      become: true
+      changed_when: false
+      when: hermes_selinux_is_enabled
+      tags: ["hermes", "selinux", "install"]
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "install"]
+
+- name: Verify SELinux contexts are correct
+  ansible.builtin.command: >-
+    ls -Zd "{{ hermes_install_dir }}" "{{ hermes_agent_dir }}"
+  changed_when: false
+  register: hermes_selinux_contexts
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "verify"]
+
+- name: Display SELinux configuration summary
+  ansible.builtin.debug:
+    msg: >-
+      SELinux Configuration Summary:
+      - SELinux Status: {{ hermes_selinux_enabled.stdout }}
+      - Enabled: {{ hermes_selinux_is_enabled | ternary('Yes', 'No') }}
+      - container_selinux: Enabled (for container runtime)
+      - container_manage_cgroup: Enabled
+      - Installation Directory Context: {{ hermes_selinux_contexts.stdout | default('Not checked') | trim }}
+      {% if hermes_selinux_is_enabled %}
+      - SELinux Contexts Applied: Yes
+      {% else %}
+      - SELinux Contexts Applied: N/A (SELinux disabled)
+      {% endif %}
+  tags: ["hermes", "selinux", "summary", "always"]

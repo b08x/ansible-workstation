@@ -1,0 +1,124 @@
+---
+# install.yml - Main Hermes Agent installation workflow for b08x.llmops.hermes
+
+- name: Ensure installation directory exists
+  ansible.builtin.file:
+    path: "{{ hermes_install_dir }}"
+    state: directory
+    owner: "{{ hermes_install_user }}"
+    group: "{{ hermes_install_group }}"
+    mode: "0755"
+  become: "{{ hermes_install_user != ansible_user }}"
+  tags: ["hermes", "install", "directory"]
+
+- name: Ensure hermes-agent subdirectory exists
+  ansible.builtin.file:
+    path: "{{ hermes_agent_dir }}"
+    state: directory
+    owner: "{{ hermes_install_user }}"
+    group: "{{ hermes_install_group }}"
+    mode: "0755"
+  become: "{{ hermes_install_user != ansible_user }}"
+  tags: ["hermes", "install", "directory"]
+
+- name: Download and run Hermes installer
+  ansible.builtin.command: >-
+    curl -fsSL {{ hermes_installer_url }} | bash -s --
+      --skip-prompt
+      --install-dir {{ hermes_agent_dir }}
+  args:
+    creates: "{{ hermes_cli }}"
+  environment:
+    # Pass environment variables to installer
+    HERMES_DOCKER_BINARY: "{{ hermes_container_runtime }}"
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  register: hermes_install_result
+  changed_when: hermes_install_result.rc == 0 and not ansible_check_mode
+  tags: ["hermes", "install", "installer"]
+
+- name: Verify Hermes CLI is accessible
+  ansible.builtin.stat:
+    path: "{{ hermes_cli }}"
+  register: hermes_cli_stat
+  tags: ["hermes", "install", "verify"]
+
+- name: Fail if Hermes installation failed
+  ansible.builtin.fail:
+    msg: >-
+      Hermes installation failed.
+      Expected CLI at: {{ hermes_cli }}
+      Installer output: {{ hermes_install_result.stdout | default('No output') }}
+      Installer error: {{ hermes_install_result.stderr | default('No error') }}
+      
+      Troubleshooting:
+      - Check internet connectivity (curl requires access to hermes-agent.nousresearch.com)
+      - Verify prerequisites are installed (git, curl, xz-utils)
+      - Try running installer manually: curl -fsSL {{ hermes_installer_url }} | bash
+  when: not hermes_cli_stat.stat.exists
+  tags: ["hermes", "install", "verify", "always"]
+
+- name: Add Hermes to PATH for install user
+  ansible.builtin.lineinfile:
+    path: "{{ hermes_home_dir }}/.bashrc"
+    line: 'export PATH="{{ hermes_venv_bin }}:$PATH"'
+    regexp: '^export PATH="{{ hermes_venv_bin }}:.*"$'
+    insertafter: EOF
+    create: true
+    backup: true
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  when: hermes_install_user != 'root' or (hermes_install_user == 'root' and ansible_user == 'root')
+  tags: ["hermes", "install", "path"]
+
+- name: Add Hermes to root PATH (if installing as root)
+  ansible.builtin.lineinfile:
+    path: "/root/.bashrc"
+    line: 'export PATH="{{ hermes_venv_bin }}:$PATH"'
+    regexp: '^export PATH="{{ hermes_venv_bin }}:.*"$'
+    insertafter: EOF
+    create: true
+    backup: true
+  become: true
+  when: hermes_install_user == 'root'
+  tags: ["hermes", "install", "path"]
+
+- name: Create Hermes environment file for service
+  ansible.builtin.template:
+    src: hermes.env.j2
+    dest: "{{ hermes_install_dir }}/hermes.env"
+    mode: "0640"
+    owner: "{{ hermes_install_user }}"
+    group: "{{ hermes_install_group }}"
+    backup: true
+  become: "{{ hermes_install_user != ansible_user }}"
+  tags: ["hermes", "install", "config"]
+
+- name: Create Hermes configuration directory
+  ansible.builtin.file:
+    path: "{{ hermes_install_dir }}"
+    state: directory
+    owner: "{{ hermes_install_user }}"
+    group: "{{ hermes_install_group }}"
+    mode: "0755"
+  become: "{{ hermes_install_user != ansible_user }}"
+  tags: ["hermes", "install", "config"]
+
+- name: Verify Hermes version
+  ansible.builtin.command: "{{ hermes_cli }} --version"
+  changed_when: false
+  register: hermes_version_check
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  tags: ["hermes", "install", "verify"]
+
+- name: Display Hermes installation summary
+  ansible.builtin.debug:
+    msg: >-
+      Hermes Installation Summary:
+      - CLI Path: {{ hermes_cli }}
+      - Version: {{ hermes_version_check.stdout | default('Unknown') | trim }}
+      - Installation Directory: {{ hermes_install_dir }}
+      - Container Runtime: {{ hermes_container_runtime }}
+      - HERMES_DOCKER_BINARY: {{ hermes_environment.HERMES_DOCKER_BINARY }}
+  tags: ["hermes", "install", "summary", "always"]

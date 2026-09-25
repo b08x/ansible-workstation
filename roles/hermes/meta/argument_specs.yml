@@ -1,0 +1,78 @@
+---
+# argument spec file for b08x.llmops.hermes
+
+argument_specs:
+  main:
+    short_description: Deploy Hermes Agent as root on RHEL with Podman backend and SELinux enforcing.
+    description: |
+      Installs Hermes Agent using the official curl installer, configures Podman as the container
+      backend, sets up systemd service for persistent operation, and manages SELinux contexts
+      for root installation on RHEL-based systems.
+    options:
+      hermes_container_runtime:
+        type: str
+        description: Container runtime to use ("docker" for Docker, "podman" for Podman).
+        default: podman
+        choices: ["docker", "podman"]
+
+      hermes_install_user:
+        type: str
+        description: User under which to install Hermes Agent. For root installation, use "root".
+        default: root
+
+      hermes_home:
+        type: str
+        description: Hermes home directory. Can be overridden by HERMES_HOME environment variable.
+        default: "/opt/hermes"
+      hermes_install_dir:
+        type: str
+        description: Installation directory for Hermes Agent (same as hermes_home).
+        default: "{{ hermes_home }}"
+
+      hermes_gateway_port:
+        type: int
+        description: Port for the Hermes gateway API server.
+        default: 8642
+
+      hermes_dashboard_port:
+        type: int
+        description: Port for the Hermes dashboard (loopback-bound by default).
+        default: 9119
+
+      hermes_bind_localhost:
+        type: bool
+        description: Bind gateway and dashboard to 127.0.0.1 only.
+        default: true
+
+      hermes_system_service:
+        type: bool
+        description: Install Hermes gateway as a systemd system service (requires root).
+        default: true
+
+      hermes_firewall_ports:
+        type: list
+        description: |
+          Firewall ports to open via firewalld. Empty list skips firewall management.
+          Only applied when hermes_bind_localhost is false.
+        default:
+          - "{{ hermes_gateway_port }}/tcp"
+        elements: str
+
+      hermes_selinux_enforcing:
+        type: bool
+        description: Whether SELinux is in enforcing mode on the system.
+        default: true
+
+      hermes_podman_version:
+        type: str
+        description: Minimum Podman version requirement.
+        default: "4.0"
+
+      hermes_prerequisites:
+        type: list
+        description: List of packages to install as prerequisites.
+        default:
+          - git
+          - curl
+          - xz-utils
+        elements: str

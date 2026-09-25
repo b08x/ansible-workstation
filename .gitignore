@@ -1,3 +1,5 @@
+goals/
+wiki.json
 .codemap/
 *.code-workspace
 .vagrant/machines/
@@ -6,16 +8,6 @@ logs/*
 *.retry
 *.vault
 .ansible/collections/ansible_collections
-collections/*
-!collections/ansible_collections
-!collections/requirements.yml
-collections/ansible_collections/*
-!collections/ansible_collections/b08x
-collections/ansible_collections/b08x/*
-!collections/ansible_collections/b08x/devworkstation
-!collections/ansible_collections/b08x/llmops
-!collections/ansible_collections/b08x/rhel_builder
-!collections/ansible_collections/b08x/context
 # https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -188,7 +180,9 @@ cython_debug/
 
 *.code-workspace
 
-.agents/skills/*
+.agents/skills/langfuse
+.agents/skills/trackboi
+.agents/skills/zread
 
 .trackboi/
 .vagrant/
@@ -204,7 +198,6 @@ Gemfile
 devfile.yaml
 .mcp.json
 .graphifyignore
-.gitmodules
 .env
 
 .ruff_cache/

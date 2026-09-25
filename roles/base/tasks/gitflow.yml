@@ -1,0 +1,34 @@
+---
+- name: Check if git-flow is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/git-flow
+  register: base_gitflow_bin
+  tags: ["gitflow", "base"]
+
+- name: Deploy gitflow-avh
+  block:
+    - name: Ensure clean state for clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent
+
+    - name: Clone gitflow-avh repository
+      ansible.builtin.git:
+        repo: https://github.com/b08x/gitflow-avh.git
+        dest: /tmp/gitflow-avh
+        clone: true
+        update: true
+        version: develop
+      become: false
+
+    - name: Install git flow-avh
+      ansible.builtin.command:
+        cmd: make install
+        chdir: /tmp/gitflow-avh
+
+    - name: Clean up gitflow-avh clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent
+  when: not base_gitflow_bin.stat.exists
+  tags: ["gitflow", "base"]

@@ -1,0 +1,39 @@
+- name: Check current Go version
+  ansible.builtin.command: /usr/local/go/bin/go version
+  register: base_go_version_check
+  changed_when: false
+  failed_when: false
+  tags: ["go", "base"]
+
+- name: Install or update Go
+  tags: ["go", "base"]
+  when: >
+    base_go_version_check.rc != 0 or
+    ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout
+  block:
+    - name: Download Go tarball
+      ansible.builtin.get_url:
+        url: "https://go.dev/dl/go{{ base_go_version }}.linux-amd64.tar.gz"
+        dest: "/tmp/go{{ base_go_version }}.linux-amd64.tar.gz"
+        mode: "0644"
+
+    - name: Remove existing Go installation
+      ansible.builtin.file:
+        path: /usr/local/go
+        state: absent
+
+    - name: Extract Go tarball
+      ansible.builtin.unarchive:
+        src: "/tmp/go{{ base_go_version }}.linux-amd64.tar.gz"
+        dest: /usr/local
+        remote_src: true
+
+- name: Configure Go environment variables
+  ansible.builtin.copy:
+    dest: /etc/profile.d/golang.sh
+    content: |
+      export PATH=/usr/local/go/bin:$PATH
+      export PATH="$(go env GOPATH)/bin:$PATH"
+    mode: "0755"
+    backup: true
+  tags: ["go", "base"]

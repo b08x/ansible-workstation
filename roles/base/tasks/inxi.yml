@@ -1,0 +1,31 @@
+---
+# tasks file for inxi installation in b08x.devworkstation.base
+
+- name: Install inxi system information tool
+  tags: ["inxi", "base"]
+  block:
+    - name: Check if inxi is installed
+      ansible.builtin.command:
+        cmd: "stat /usr/local/bin/inxi"
+      register: base_inxi_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Install inxi using package manager
+      ansible.builtin.package:
+        name: inxi
+        state: present
+      when: base_inxi_check.rc != 0
+
+  rescue:
+    # Shape 2 (real fallback): inxi is absent from some repository sets, so
+    # the rescue satisfies the same contract by fetching the standalone script.
+    - name: Download inxi standalone script from smxi.org
+      ansible.builtin.get_url:
+        url: https://codeberg.org/smxi/inxi/raw/branch/master/inxi
+        dest: /usr/local/bin/inxi
+        mode: "0755"
+        owner: root
+        group: root
+        timeout: 60
+      tags: ["inxi", "base"]

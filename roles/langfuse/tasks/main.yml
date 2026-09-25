@@ -1,0 +1,68 @@
+---
+# tasks file for b08x.llmops.langfuse
+
+- name: Starting langfuse tasks
+  ansible.builtin.debug:
+    msg: "Starting langfuse tasks"
+  tags: ["langfuse", "always"]
+
+- name: Verify container runtime is available
+  ansible.builtin.command:
+    cmd: "{{ langfuse_container_runtime }} --version"
+  changed_when: false
+  failed_when: false
+  register: langfuse_runtime_check
+  tags: ["langfuse", "always"]
+
+- name: Fail if container runtime is not available
+  ansible.builtin.fail:
+    msg: >-
+      Container runtime '{{ langfuse_container_runtime }}' is not available
+      on this host. Install it or set langfuse_container_runtime to a
+      runtime that is installed.
+  when: langfuse_runtime_check.rc != 0
+  tags: ["langfuse", "always"]
+
+- name: Create Langfuse deployment directory
+  ansible.builtin.file:
+    path: "{{ langfuse_deploy_dir }}"
+    state: directory
+    mode: "0755"
+  tags: ["langfuse", "config"]
+
+- name: Deploy environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ langfuse_env_file }}"
+    mode: "0600"
+    backup: true
+  notify: Restart Langfuse stack
+  tags: ["langfuse", "config"]
+
+- name: Deploy Langfuse via Docker Compose
+  ansible.builtin.include_tasks: docker.yml
+  when: langfuse_container_runtime == "docker"
+  tags: ["langfuse", "docker"]
+
+- name: Deploy Langfuse via Podman
+  ansible.builtin.include_tasks: podman.yml
+  when: langfuse_container_runtime == "podman"
+  tags: ["langfuse", "podman"]
+
+- name: Open firewall ports for Langfuse
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  loop: "{{ langfuse_firewall_ports }}"
+  when:
+    - langfuse_firewall_ports | length > 0
+    - not (langfuse_bind_localhost | bool)
+  become: true
+  tags: ["langfuse", "firewall"]
+
+- name: Backup or restore Langfuse PostgreSQL database
+  ansible.builtin.include_tasks: backup.yml
+  when: langfuse_backup_action != "none"
+  tags: ["langfuse", "backup"]

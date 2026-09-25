@@ -1,0 +1,206 @@
+---
+# argument spec file for b08x.llmops.dify
+
+argument_specs:
+  main:
+    short_description: Deploy self-hosted Dify LLM platform via Docker Compose or Podman.
+    options:
+      dify_container_runtime:
+        type: str
+        description: Container runtime to use ("docker" for Docker Compose, "podman" for podman compose).
+        default: docker
+        choices: ["docker", "podman"]
+      dify_deploy_dir:
+        type: str
+        description: Directory for compose files and persistent data.
+        default: "{{ user.home | default('/opt') }}/dify"
+      dify_project_name:
+        type: str
+        description: Docker Compose project name.
+        default: dify
+      dify_image_tag:
+        type: str
+        description: Dify API, web, and agent image tag.
+        default: "1.17.0"
+      dify_sandbox_image_tag:
+        type: str
+        description: Dify sandbox image tag.
+        default: "0.2.15"
+      dify_plugin_daemon_image_tag:
+        type: str
+        description: Dify plugin daemon image tag.
+        default: "0.6.10-local"
+      dify_postgres_version:
+        type: str
+        description: PostgreSQL image version tag.
+        default: "15-alpine"
+      dify_redis_version:
+        type: str
+        description: Redis image version tag.
+        default: "6-alpine"
+      dify_weaviate_image_tag:
+        type: str
+        description: Weaviate vector store image tag.
+        default: "1.39.2"
+      dify_nginx_port:
+        type: int
+        description: Host port for Nginx HTTP entry point.
+        default: 80
+      dify_nginx_ssl_port:
+        type: int
+        description: Host port for Nginx HTTPS entry point.
+        default: 443
+      dify_plugin_debugging_port:
+        type: int
+        description: Host port for plugin daemon debugging.
+        default: 5003
+      dify_bind_localhost:
+        type: bool
+        description: Bind Nginx ports to 127.0.0.1 only.
+        default: true
+      dify_firewall_ports:
+        type: list
+        description: >-
+          Firewall ports to open via firewalld. Empty list skips firewall
+          management. Only applied when dify_bind_localhost is false.
+        default: "{{ dify_firewall_ports }}"
+      dify_force_recreate:
+        type: bool
+        description: Force container recreation on every run.
+        default: false
+      dify_console_api_url:
+        type: str
+        description: Public URL for the Dify console API.
+        default: ""
+      dify_console_web_url:
+        type: str
+        description: Public URL for the Dify console web.
+        default: ""
+      dify_service_api_url:
+        type: str
+        description: Public URL for the Dify service API.
+        default: ""
+      dify_app_api_url:
+        type: str
+        description: Public URL for the Dify app API.
+        default: ""
+      dify_app_web_url:
+        type: str
+        description: Public URL for the Dify app web.
+        default: ""
+      dify_secret_key:
+        type: str
+        description: Secret key for Dify. Leave empty to auto-generate.
+        default: ""
+      dify_init_password:
+        type: str
+        description: Initial admin password for the Dify console.
+        default: ""
+      dify_deploy_env:
+        type: str
+        description: Deployment environment (PRODUCTION or DEVELOPMENT).
+        default: PRODUCTION
+      dify_log_level:
+        type: str
+        description: Log level for Dify services.
+        default: INFO
+      dify_db_username:
+        type: str
+        description: PostgreSQL database user.
+        default: postgres
+      dify_db_password:
+        type: str
+        description: PostgreSQL database password.
+        default: difyai123456
+      dify_db_database:
+        type: str
+        description: PostgreSQL database name for the main Dify schema.
+        default: dify
+      dify_db_plugin_database:
+        type: str
+        description: PostgreSQL database name for the plugin daemon.
+        default: dify_plugin
+      dify_redis_password:
+        type: str
+        description: Redis authentication password.
+        default: difyai123456
+      dify_sandbox_api_key:
+        type: str
+        description: API key for the sandbox service.
+        default: dify-sandbox
+      dify_plugin_daemon_key:
+        type: str
+        description: Server key for the plugin daemon.
+        default: "lYkiYYT6owG+71oLerGzA7GXCgOT++6ovaezWAjpCjf+Sjc3ZU+qUEi"
+      dify_plugin_dify_inner_api_key:
+        type: str
+        description: Inner API key for plugin-to-Dify communication.
+        default: "QaHbTe77CtuXmsfyhR7+vRjI/+XbV1AaFy691iy+kGDv2Jvy0/eAh8Y1"
+      dify_agent_api_token:
+        type: str
+        description: Bearer token for the agent backend control-plane API.
+        default: "dify-agent-run-token-for-dev-only"
+      dify_agent_server_secret_key:
+        type: str
+        description: JWE encryption key for agent stub bearer tokens.
+        default: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY"
+      dify_vector_store:
+        type: str
+        description: Vector store backend to use.
+        default: weaviate
+      dify_weaviate_api_key:
+        type: str
+        description: API key for Weaviate authentication.
+        default: "WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih"
+      dify_enable_collaboration_mode:
+        type: bool
+        description: Enable the websocket collaboration service.
+        default: true
+      dify_nginx_server_name:
+        type: str
+        description: Nginx server_name directive.
+        default: "_"
+      dify_nginx_https_enabled:
+        type: bool
+        description: Enable HTTPS in Nginx.
+        default: false
+      dify_ssrf_proxy_allow_private_ips:
+        type: str
+        description: Comma-separated CIDR ranges the SSRF proxy should allow.
+        default: ""
+      dify_backup_action:
+        type: str
+        description: Backup action to perform (none, backup, or restore).
+        default: "none"
+        choices: ["none", "backup", "restore"]
+      dify_backup_dir:
+        type: str
+        description: Directory for database backup files.
+        default: "{{ dify_deploy_dir }}/backups"
+      dify_backup_file:
+        type: str
+        description: For restore, absolute path to the .dump or .sql file to restore from.
+        default: ""
+      dify_backup_include_volumes:
+        type: bool
+        description: >-
+          Include volume data (app storage, weaviate, plugin daemon, sandbox,
+          certs, nginx and ssrf_proxy configs) in backup and restore operations.
+        default: true
+      dify_backup_volume_file:
+        type: str
+        description: For restore, absolute path to the volume tarball to restore from.
+        default: ""
+      dify_backup_format:
+        type: str
+        description: pg_dump format (custom uses -Fc/pg_restore, plain uses -Fp/psql).
+        default: custom
+        choices: ["custom", "plain"]
+      dify_backup_compression:
+        type: int
+        description: Compression level 0-9 for custom format backups.
+        default: 6
+      dify_backup_retention_days:
+        type: int
+        description: Number of days to retain backups before pruning.
+        default: 7

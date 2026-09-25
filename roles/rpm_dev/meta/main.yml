@@ -1,0 +1,41 @@
+---
+# RPM Development Environment role metadata
+
+dependencies: []
+galaxy_info:
+  author: "Ansible Automation Framework"
+  description: "Sets up a complete RPM development environment with mock for Fedora, AlmaLinux, and Rocky Linux"
+  company: ""
+  license: MIT
+  min_ansible_version: "2.9"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - "43"
+    - name: AlmaLinux
+      versions:
+        - "8"
+        - "9"
+        - "10"
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+        - "10"
+
+  galaxy_tags:
+    - rpm
+    - mock
+    - development
+    - packaging
+    - fedora
+    - almalinux
+    - rocky
+    - build
+    - system
+    - el8
+    - el9
+    - el10
+
+allow_duplicates: false

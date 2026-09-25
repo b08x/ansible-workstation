@@ -1,0 +1,17 @@
+---
+- name: Ensure /etc/security/limits.d directory exists
+  ansible.builtin.file:
+    path: /etc/security/limits.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install limits file
+  ansible.builtin.template:
+    src: etc/security/limits.d/41-realtime.conf.j2
+    dest: /etc/security/limits.d/41-realtime.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true

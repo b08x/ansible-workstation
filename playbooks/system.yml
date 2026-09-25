@@ -1,0 +1,21 @@
+---
+- name: System Configuration
+  hosts: workstations
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      become: false
+      tags: ["always"]
+  roles:
+    - role: tuning
+      tags: ["tuning", "system"]
+    - role: networking
+      tags: ["networking", "system"]
+    - role: containerd
+      tags: ["containerd", "virt"]
+    - role: desktop
+      tags: ["desktop", "system"]
+    - role: libvirt
+      tags: ["libvirt", "virt"]

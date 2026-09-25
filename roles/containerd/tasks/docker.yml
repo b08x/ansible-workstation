@@ -1,0 +1,88 @@
+---
+- name: Ensure dnf-plugins-core is installed
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+
+- name: Import Docker GPG key
+  ansible.builtin.rpm_key:
+    key: "{{ containerd_docker_gpg_key_url }}"
+    state: present
+
+- name: Set docker repo baseurl dynamically
+  ansible.builtin.set_fact:
+    containerd_docker_baseurl: >-
+      https://download.docker.com/linux/{{ containerd_docker_repo_os }}/$releasever/$basearch/stable
+
+- name: Add Docker CE repository
+  ansible.builtin.yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - x86_64
+    baseurl: "{{ containerd_docker_baseurl }}"
+    enabled: true
+    gpgcheck: true
+    gpgkey: "{{ containerd_docker_gpg_key_url }}"
+    state: present
+
+- name: Determine Docker packages
+  ansible.builtin.set_fact:
+    containerd_docker_package_list: "{{ containerd_docker_packages + containerd_docker_distro_packages }}"
+
+- name: Install Docker packages
+  ansible.builtin.dnf:
+    name: >-
+      {{
+        containerd_docker_package_list | map('regex_replace', '^(.*)$', '\\1-' + containerd_docker_version) | list
+        if containerd_docker_version else containerd_docker_package_list
+      }}
+    state: present
+    update_cache: true
+  notify: Restart Docker
+
+- name: Add specified users to the docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ containerd_docker_users }}"
+  when: containerd_docker_users | length > 0 and containerd_docker_manage_users
+
+- name: Configure the Docker daemon (/etc/docker/daemon.json)
+  ansible.builtin.template:
+    src: etc/docker/daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: containerd_docker_daemon_config | length > 0
+  notify: Restart Docker
+
+- name: Set Docker Storage Location
+  ansible.builtin.lineinfile:
+    path: "/usr/lib/systemd/system/docker.service"
+    regexp: "^ExecStart=/usr/bin/dockerd -H fd://"
+    line: "ExecStart=/usr/bin/dockerd --data-root {{ containerd_docker_storage }} -H fd://"
+    backup: true
+  when: containerd_docker_storage is defined and containerd_docker_manage_storage
+
+- name: Disable Overlay Redirect
+  ansible.builtin.copy:
+    content: |
+      options overlay metacopy=off redirect_dir=off
+    dest: "/etc/modprobe.d/disable-overlay-redirect-dir.conf"
+    owner: root
+    group: root
+    mode: "0644"
+
+    backup: true
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Ensure Docker service is started and enabled
+  ansible.builtin.service:
+    name: "{{ containerd_docker_service_name }}"
+    state: started
+    enabled: "{{ containerd_docker_service_enabled }}"
+  when: containerd_docker_service_enabled

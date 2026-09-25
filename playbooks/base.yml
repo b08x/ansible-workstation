@@ -36,5 +36,5 @@
         dest: /etc/system-release
         state: link
   roles:
-    - role: b08x.devworkstation.base
+    - role: base
       tags: ["base", "system"]

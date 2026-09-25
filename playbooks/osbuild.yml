@@ -16,9 +16,9 @@
     osbuild_arch: "x86_64"
 
     # Blueprint
-    blueprint_name: "workstation"
-    blueprint_version: "1.0.0"
-    blueprint_description: "Custom Workstation"
+    osbuild_blueprint_name: "workstation"
+    osbuild_blueprint_version: "1.0.0"
+    osbuild_blueprint_description: "Custom Workstation"
 
     # Build mode
     osbuild_build_bootc: false
@@ -62,4 +62,4 @@
           Target distribution '{{ ansible_distribution }}' is supported.
 
   roles:
-    - role: b08x.rhel_builder.osbuild
+    - role: osbuild

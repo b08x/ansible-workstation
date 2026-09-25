@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: b08x
+  description: Deploy self-hosted Langfuse v4 LLM observability platform via Docker Compose
+  company: b08x
+
+  license: GPL-2.0-or-later
+
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "9"
+        - "8"
+
+  galaxy_tags:
+    - llm
+    - observability
+    - docker
+    - langfuse
+
+dependencies: []

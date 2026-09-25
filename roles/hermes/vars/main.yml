@@ -1,0 +1,37 @@
+---
+# vars file for b08x.llmops.hermes
+
+# Installation identity
+hermes_install_uid: "{{ ansible_facts.getent_passwd[hermes_install_user].1 if hermes_install_user in ansible_facts.getent_passwd else omit }}"
+hermes_install_gid: "{{ ansible_facts.getent_group[hermes_install_group].1 if hermes_install_group in ansible_facts.getent_group else omit }}"
+
+# Computed paths
+hermes_agent_dir: "{{ hermes_install_dir }}/hermes-agent"
+hermes_venv_dir: "{{ hermes_agent_dir }}/venv"
+hermes_venv_bin: "{{ hermes_venv_dir }}/bin"
+hermes_cli: "{{ hermes_venv_bin }}/hermes"
+
+# Systemd service paths
+hermes_service_unit_path: "/etc/systemd/system/{{ hermes_service_name }}.service"
+hermes_service_systemd_dir: "/etc/systemd/system"
+
+# Environment variable for templates
+hermes_home_env: "HERMES_HOME={{ hermes_install_dir }}"
+
+# Podman binary path
+hermes_podman_bin: "{{ 'podman' if hermes_container_runtime == 'podman' else 'docker' }}"
+
+# Firewall zone
+hermes_firewall_zone: public
+
+# Prerequisites command lists
+hermes_prerequisites_dnf:
+  - git
+  - curl
+  - xz-utils
+
+hermes_podman_prerequisites_dnf:
+  - podman
+
+# Combined prerequisites
+hermes_all_prerequisites: "{{ hermes_prerequisites + hermes_podman_prerequisites | unique }}"

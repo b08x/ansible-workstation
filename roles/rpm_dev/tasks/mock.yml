@@ -1,0 +1,33 @@
+---
+- name: "Ensure mock cache directory exists"
+  ansible.builtin.file:
+    path: "{{ mock_config.cache_topdir }}"
+    state: directory
+    owner: root
+    group: mock
+    mode: "0775"
+  tags: ["rpm-dev", "mock-setup"]
+
+- name: "Deploy custom mock configurations"
+  ansible.builtin.template:
+    src: "etc/mock/{{ item.src }}"
+    dest: "/etc/mock/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  loop: "{{ mock_configs | default([]) }}"
+  tags: ["rpm-dev", "mock-config"]
+  notify: "Clear mock cache"
+
+- name: "Deploy custom mock templates"
+  ansible.builtin.copy:
+    src: "etc/mock/templates/{{ item }}"
+    dest: "/etc/mock/templates/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  loop: "{{ mock_templates | default([]) }}"
+  tags: ["rpm-dev", "mock-config"]
+  notify: "Clear mock cache"

@@ -64,5 +64,5 @@
     langfuse_clickhouse_image_tag: "25.12"
     langfuse_postgres_version: "17"
   roles:
-    - role: b08x.llmops.langfuse
+    - role: langfuse
       tags: ["langfuse", "llmops"]
