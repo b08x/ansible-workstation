@@ -1,0 +1,9 @@
+---
+- name: Install Podman and related packages
+  ansible.builtin.dnf:
+    name: "{{ containerd_podman_packages }}"
+    state: present
+
+- name: Ensure rootless podman configuration (optional/check)
+  ansible.builtin.debug:
+    msg: "Podman is installed. Rootless operation is standard on RHEL/Fedora."

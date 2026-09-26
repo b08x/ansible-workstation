@@ -1,0 +1,145 @@
+---
+# ============================================================================
+# Rocky/RHEL Repository and DNF Configuration
+# Sets up EPEL, PowerTools/CRB, RPM Fusion and optimizes DNF
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Repository Configuration
+# ----------------------------------------------------------------------------
+
+- name: Configure RHEL family repositories
+  tags: ["repositories"]
+  block:
+    - name: Install EPEL repository
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - epel-release
+        - distribution-gpg-keys
+        - dnf-plugins-core
+      register: base_epel_install
+      tags: ["epel"]
+
+    - name: Replace stock EPEL repo with managed repo configuration
+      ansible.builtin.copy:
+        src: etc/yum.repos.d/epel.repo
+        dest: /etc/yum.repos.d/epel.repo
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+      tags: ["epel", "repositories"]
+
+    - name: Enable PowerTools/CRB and additional repositories
+      ansible.builtin.shell: |
+        dnf config-manager --set-enabled crb
+
+        # Enable additional repositories
+        dnf config-manager --set-enabled highavailability
+        dnf config-manager --set-enabled rt
+      changed_when: false
+      tags: ["highavailability", "crb", "rt"]
+
+  rescue:
+    # Shape 1 (add context, then re-raise): EPEL and CRB carry most of the base
+    # package set, so continuing guarantees a more confusing failure later.
+    - name: Report repository setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to enable EPEL, CRB or the RT/HA repositories.
+          Usually network connectivity or an unavailable mirror.
+
+    - name: Fail the play on repository setup failure
+      ansible.builtin.fail:
+        msg: "RHEL-family repository configuration failed - see the preceding task output."
+
+- name: Install RPM Fusion keys and repositories
+  tags: ["rpmfusion"]
+  block:
+    - name: Install RPM Fusion Free and Non-Free keys
+      ansible.builtin.rpm_key:
+        key: "{{ item }}"
+        state: present
+      loop:
+        - /usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-el-10
+        - /usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-el-10
+      register: base_rpmfusion_keys
+      tags: ["rpmfusion"]
+
+    # - name: Install RPM Fusion Free and Non-Free repositories
+    #   ansible.builtin.dnf:
+    #     name: "{{ item }}"
+    #     state: present
+    #     sslverify: false
+    #   loop:
+    #     - https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-10.noarch.rpm
+    #     - https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-10.noarch.rpm
+    #   tags: ["rpmfusion"]
+    - name: Install RPM Fusion Free and Non-Free repositories via shell
+      ansible.builtin.shell: |
+        dnf --setopt=localpkg_gpgcheck=1 install -y \
+            https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm \
+            https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-$(rpm -E %rhel).noarch.rpm
+      register: base_rpmfusion_repos
+      changed_when: "'Nothing to do' not in base_rpmfusion_repos.stdout and 'already installed' not in base_rpmfusion_repos.stdout"
+
+  rescue:
+    # Shape 1 (add context, then re-raise): multimedia entries in base_packages
+    # resolve against RPM Fusion and fail to install without it.
+    - name: Report RPM Fusion setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install the RPM Fusion keys or release packages.
+          Check connectivity and that mirrors.rpmfusion.org is reachable.
+
+    - name: Fail the play on RPM Fusion setup failure
+      ansible.builtin.fail:
+        msg: "RPM Fusion configuration failed - see the preceding task output."
+
+# ----------------------------------------------------------------------------
+# DNF Performance Optimization
+# ----------------------------------------------------------------------------
+
+# - name: Set DNF Repository Priorities
+#   tags: ["dnf_configuration"]
+#   block:
+#     - name: Configure repository priorities
+#       ansible.builtin.shell: |
+#         # Base system and official extension repositories (highest priority)
+#         dnf config-manager --save --setopt="baseos.priority=1"
+#         dnf config-manager --save --setopt="appstream.priority=1"
+#         dnf config-manager --save --setopt="crb.priority=1"
+#         dnf config-manager --save --setopt="rt.priority=1"
+#         dnf config-manager --save --setopt="highavailability.priority=1"
+
+#         # EPEL and RPM Fusion repositories (must be at the same priority tier)
+#         dnf config-manager --save --setopt="epel.priority=20"
+#         dnf config-manager --save --setopt="rpmfusion-*.priority=20"
+#       changed_when: false
+#       tags: ["repo_priorities"]
+
+#   rescue:
+#     # Shape 3 (optional): priorities only decide which repository wins a tie.
+#     # DNF still resolves packages without them, so this continues by default;
+#     # set base_dnf_priorities_required=true to make it a hard failure.
+#     - name: Report DNF priority configuration failure
+#       ansible.builtin.debug:
+#         msg: >-
+#           WARNING: failed to set DNF repository priorities. DNF still works with
+#           its default ordering, but EPEL or RPM Fusion may shadow a base package.
+
+#     - name: Fail the play when DNF priorities are required
+#       ansible.builtin.fail:
+#         msg: "DNF repository priority configuration failed and base_dnf_priorities_required is true."
+#       when: base_dnf_priorities_required | bool
+
+- name: Force refresh DNF metadata cache
+  ansible.builtin.command:
+    cmd: dnf makecache
+  changed_when: true
+  when: >
+    (base_epel_install is changed) or
+    (base_rpmfusion_keys is changed) or
+    (base_rpmfusion_repos is changed)

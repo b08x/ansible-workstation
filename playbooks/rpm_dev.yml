@@ -37,5 +37,5 @@
     rpm_dev_setup_mock: true
     rpm_dev_setup_directories: true
   roles:
-    - role: b08x.rhel_builder.rpm_dev
+    - role: rpm_dev
       tags: ["rpm_dev", "builder"]

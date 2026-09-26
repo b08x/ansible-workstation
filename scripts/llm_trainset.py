@@ -129,9 +129,7 @@ def build_examples(
             payload.update({k: gold[k] for k in GOLD_FIELDS if k in gold})
         else:
             payload.update(row["outputs"])
-        examples.append(
-            dspy.Example(**payload).with_inputs("task_yaml", "style_observations")
-        )
+        examples.append(dspy.Example(**payload).with_inputs("task_yaml", "style_observations"))
     return examples
 
 
@@ -188,9 +186,7 @@ def cmd_backfill(root, kind, limit):
             metric_version=METRIC_VERSION,
         )
         written += 1
-    print(
-        f"wrote {written} heuristic judgments -> {Path(root) / 'judgments' / 'heuristic.jsonl'}"
-    )
+    print(f"wrote {written} heuristic judgments -> {Path(root) / 'judgments' / 'heuristic.jsonl'}")
 
 
 def cmd_stats(root):
@@ -211,8 +207,7 @@ def cmd_stats(root):
             ),
             (
                 "  by metric",
-                "SELECT metric_version, count(*), round(avg(score),3) "
-                "FROM judgments GROUP BY 1",
+                "SELECT metric_version, count(*), round(avg(score),3) " "FROM judgments GROUP BY 1",
             ),
         ):
             try:
@@ -227,9 +222,7 @@ def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument(
-        "command", choices=["stats", "evaluate", "backfill", "examples", "sql"]
-    )
+    ap.add_argument("command", choices=["stats", "evaluate", "backfill", "examples", "sql"])
     ap.add_argument("query", nargs="?")
     ap.add_argument("--root", default=os.environ.get("LLM_TRACE_ROOT", DEFAULT_ROOT))
     ap.add_argument("--kind", default="task", choices=["task", "play"])

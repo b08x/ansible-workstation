@@ -1,0 +1,4 @@
+---
+# https://github.com/handy-computer/transcribe.cpp
+
+# for the binaries, for the host that's running the build has NVIDIA, compile it with CUDA. If it has Intel 1API drivers installed, compile with SYSL 16.

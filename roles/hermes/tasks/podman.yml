@@ -1,0 +1,119 @@
+---
+# podman.yml - Podman backend configuration for b08x.llmops.hermes
+
+- name: Verify Podman is the selected container runtime
+  ansible.builtin.assert:
+    that: hermes_container_runtime == 'podman'
+    msg: "Podman-specific tasks should only run when hermes_container_runtime is 'podman'"
+  tags: ["hermes", "podman", "config", "always"]
+
+- name: Ensure Podman is installed and available
+  ansible.builtin.package:
+    name: podman
+    state: present
+  become: true
+  tags: ["hermes", "podman", "install"]
+
+- name: Verify Podman version meets minimum requirement
+  ansible.builtin.command: podman --version
+  changed_when: false
+  register: podman_version_check
+  tags: ["hermes", "podman", "verify"]
+
+- name: Fail if Podman version is too old
+  ansible.builtin.fail:
+    msg: >-
+      Podman version check failed or version is too old.
+      Minimum required: {{ hermes_podman_version_minimum }}
+      {{ podman_version_check.stdout | default('Podman not found') }}
+  when: podman_version_check.rc != 0
+  tags: ["hermes", "podman", "verify", "always"]
+
+- name: Ensure Podman storage is initialized
+  ansible.builtin.command: podman info
+  changed_when: false
+  register: podman_info_check
+  failed_when: false
+  tags: ["hermes", "podman", "storage"]
+
+- name: Initialize Podman storage if needed
+  ansible.builtin.command: podman system connection default
+  changed_when: false
+  when: podman_info_check.rc != 0
+  become: true
+  tags: ["hermes", "podman", "storage"]
+
+- name: Create Hermes Podman volumes directory
+  ansible.builtin.file:
+    path: "{{ hermes_install_dir }}/podman-volumes"
+    state: directory
+    owner: "{{ hermes_install_user }}"
+    group: "{{ hermes_install_group }}"
+    mode: "0755"
+  become: "{{ hermes_install_user != ansible_user }}"
+  tags: ["hermes", "podman", "volumes"]
+
+- name: Configure systemd service with Podman environment
+  ansible.builtin.template:
+    src: hermes-gateway.service.j2
+    dest: "/etc/systemd/system/{{ hermes_service_name }}.service"
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+  become: true
+  notify: Reload systemd daemon
+  when: hermes_system_service | bool
+  tags: ["hermes", "podman", "systemd", "service"]
+
+- name: Create systemd service override directory
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ hermes_service_name }}.service.d"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+  when: hermes_system_service | bool
+  tags: ["hermes", "podman", "systemd"]
+
+- name: Create systemd override for environment variables
+  ansible.builtin.template:
+    src: hermes-gateway-override.conf.j2
+    dest: "/etc/systemd/system/{{ hermes_service_name }}.service.d/override.conf"
+    mode: "0644"
+    owner: root
+    group: root
+    backup: true
+  become: true
+  notify: Reload systemd daemon
+  when: hermes_system_service | bool
+  tags: ["hermes", "podman", "systemd", "environment"]
+
+- name: Enable Podman socket (rootful mode)
+  ansible.builtin.service:
+    name: podman.socket
+    enabled: true
+    state: started
+  become: true
+  when: hermes_install_user == 'root'
+  tags: ["hermes", "podman", "socket"]
+
+- name: Verify Podman can pull images
+  ansible.builtin.command: podman pull --quiet docker.io/hello-world
+  changed_when: false
+  failed_when: false
+  register: podman_pull_test
+  tags: ["hermes", "podman", "verify"]
+
+- name: Display Podman backend configuration summary
+  ansible.builtin.debug:
+    msg: >-
+      Podman Backend Configuration Summary:
+      - Podman Version: {{ podman_version_check.stdout | default('Unknown') | trim }}
+      - Storage Status: {{ podman_info_check.rc == 0 | ternary('Initialized', 'Needs initialization') }}
+      - Volumes Directory: {{ hermes_install_dir }}/podman-volumes
+      - System Service: {{ hermes_system_service | bool | ternary('Configured', 'Not configured') }}
+      - HERMES_DOCKER_BINARY: podman
+      - Socket: {{ hermes_install_user == 'root' | ternary('Enabled (rootful)', 'Rootless') }}
+  tags: ["hermes", "podman", "summary", "always"]

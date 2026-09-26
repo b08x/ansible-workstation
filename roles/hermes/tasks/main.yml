@@ -1,0 +1,52 @@
+---
+# tasks file for b08x.llmops.hermes
+
+- name: Starting hermes tasks
+  ansible.builtin.debug:
+    msg: "Starting hermes tasks"
+  tags: ["hermes", "always"]
+
+- name: Display hermes configuration
+  ansible.builtin.debug:
+    msg: |
+      Hermes Role Configuration:
+      - Container Runtime: {{ hermes_container_runtime }}
+      - Install User: {{ hermes_install_user }}
+      - Install Directory: {{ hermes_install_dir }}
+      - Gateway Port: {{ hermes_gateway_port }}
+      - Dashboard Port: {{ hermes_dashboard_port }}
+      - System Service: {{ hermes_system_service }}
+      - Bind Localhost: {{ hermes_bind_localhost }}
+  tags: ["hermes", "config", "debug"]
+
+- name: Verify and install prerequisites
+  ansible.builtin.include_tasks: prerequisites.yml
+  tags: ["hermes", "prerequisites"]
+
+- name: Install Hermes Agent
+  ansible.builtin.include_tasks: install.yml
+  tags: ["hermes", "install"]
+
+- name: Configure Podman backend
+  ansible.builtin.include_tasks: podman.yml
+  when: hermes_container_runtime == 'podman'
+  tags: ["hermes", "podman", "config"]
+
+- name: Configure SELinux
+  ansible.builtin.include_tasks: selinux.yml
+  when: hermes_selinux_enforcing | bool
+  tags: ["hermes", "selinux"]
+
+- name: Configure firewall
+  ansible.builtin.include_tasks: firewall.yml
+  when: hermes_firewall_enabled | bool
+  tags: ["hermes", "firewall"]
+
+- name: Manage systemd service
+  ansible.builtin.include_tasks: service.yml
+  when: hermes_system_service | bool
+  tags: ["hermes", "service", "systemd"]
+
+- name: Validate installation
+  ansible.builtin.include_tasks: validate.yml
+  tags: ["hermes", "validation", "verify"]

@@ -1,0 +1,16 @@
+---
+# handlers file for b08x.llmops.dify
+
+# Podman compose recreates containers automatically when the compose file
+# changes — no handler needed for that runtime.
+
+- name: Restart Dify stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ dify_deploy_dir }}"
+    project_name: "{{ dify_project_name }}"
+    env_files:
+      - ".env"
+    state: present
+    pull: always
+    recreate: always
+  when: dify_container_runtime == "docker"

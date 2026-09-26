@@ -1,0 +1,35 @@
+---
+# RPM Development Environment setup tasks
+
+- name: Starting rpm-dev tasks
+  ansible.builtin.debug:
+    msg: "Starting rpm-dev tasks"
+  tags: ["rpm-dev", "always"]
+
+- name: "Load distribution-specific variables"
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["rpm-dev", "packages"]
+
+- name: Import installation tasks
+  ansible.builtin.import_tasks:
+    file: install.yml
+  when: rpm_dev_install_packages | default(false) | bool
+  tags: ["rpm-dev", "packages"]
+
+- name: Import user setup tasks
+  ansible.builtin.import_tasks:
+    file: user.yml
+  when: rpm_dev_setup_user | default(false) | bool
+  tags: ["rpm-dev", "user-setup"]
+
+- name: Import build environment tasks
+  ansible.builtin.import_tasks:
+    file: build_env.yml
+  when: rpm_dev_setup_directories | default(false) | bool
+  tags: ["rpm-dev", "directories", "configuration"]
+
+- name: Import mock setup tasks
+  ansible.builtin.import_tasks:
+    file: mock.yml
+  when: rpm_dev_setup_mock | default(false) | bool
+  tags: ["rpm-dev", "mock-setup", "mock-config"]

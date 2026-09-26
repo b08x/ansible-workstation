@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Explicit build-mode selection entry point.
+# Resolves exactly one mode into osbuild_resolved_build_mode and
+# fails fast on unsupported combinations.
+
+- name: Default input mode flags
+  ansible.builtin.set_fact:
+    osbuild_build_bootc: "{{ osbuild_build_bootc | default(false) | bool }}"
+    osbuild_only_generate: "{{ osbuild_only_generate | default(false) | bool }}"
+
+- name: Determine resolved build mode
+  ansible.builtin.set_fact:
+    osbuild_resolved_build_mode: >-
+      {{
+        (osbuild_build_bootc and not osbuild_only_generate)
+        | ternary('bootc_image',
+          (not osbuild_build_bootc and not osbuild_only_generate)
+          | ternary('traditional_iso',
+            (osbuild_only_generate)
+            | ternary('generate_only', 'mode_unknown')
+          )
+        )
+      }}
+
+- name: Fail on invalid build mode
+  ansible.builtin.assert:
+    that:
+      - osbuild_resolved_build_mode != 'mode_unknown'
+    fail_msg: >-
+      Unsupported build mode:
+      osbuild_build_bootc={{ osbuild_build_bootc }},
+      osbuild_only_generate={{ osbuild_only_generate }}.
+    success_msg: "Build mode resolved: {{ osbuild_resolved_build_mode }}"

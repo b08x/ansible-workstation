@@ -6,5 +6,5 @@
   vars:
     whisper_my_variable: "default_value"
   roles:
-    - role: b08x.llmops.tts
+    - role: tts
       tags: ["tts", "llmops"]

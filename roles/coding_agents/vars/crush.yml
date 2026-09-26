@@ -1,0 +1,14 @@
+---
+# Per-agent settings for Crush (Charm)
+# Config file: ~/.config/crush/crushrc (Bash script)
+# MCP config: embedded in crushrc via 'mcp add' commands
+# Shell variable references ($VAR) are preserved literally in the template
+
+coding_agents_crush_provider: "anthropic"
+coding_agents_crush_model_large: "claude-sonnet-4-20250514"
+coding_agents_crush_model_small: "claude-3-5-haiku-20241022"
+coding_agents_crush_permissions:
+  allow:
+    - "Bash(git *)"
+    - "Read(*)"
+    - "Write(*)"

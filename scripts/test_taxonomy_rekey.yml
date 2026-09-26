@@ -12,12 +12,12 @@
   tasks:
     - name: Load distribution taxonomy
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../collections/ansible_collections/b08x/rhel_builder/vars/packages/{{ ansible_distribution }}.yml"
+        file: "{{ playbook_dir }}/../vars/packages/{{ ansible_distribution }}.yml"
       when: ansible_distribution in ['Fedora', 'AlmaLinux']
 
     - name: Load role defaults (component defs reference the taxonomy)
       ansible.builtin.include_vars:
-        file: "{{ playbook_dir }}/../collections/ansible_collections/b08x/rhel_builder/roles/osbuild/defaults/main.yml"
+        file: "{{ playbook_dir }}/../roles/osbuild/defaults/main.yml"
         name: osbuild_defaults
 
     - name: Show resolved taxonomy categories

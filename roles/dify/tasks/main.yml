@@ -1,0 +1,185 @@
+---
+# tasks file for b08x.llmops.dify
+
+- name: Starting dify tasks
+  ansible.builtin.debug:
+    msg: "Starting dify tasks"
+  tags: ["dify", "always"]
+
+- name: Verify container runtime is available
+  ansible.builtin.command:
+    cmd: "{{ dify_container_runtime }} --version"
+  changed_when: false
+  failed_when: false
+  register: dify_runtime_check
+  tags: ["dify", "always"]
+
+- name: Fail if container runtime is not available
+  ansible.builtin.fail:
+    msg: >-
+      Container runtime '{{ dify_container_runtime }}' is not available
+      on this host. Install it or set dify_container_runtime to a
+      runtime that is installed.
+  when: dify_runtime_check.rc != 0
+  tags: ["dify", "always"]
+
+- name: Create Dify deployment directory
+  ansible.builtin.file:
+    path: "{{ dify_deploy_dir }}"
+    state: directory
+    mode: "0755"
+  tags: ["dify", "config"]
+
+- name: Create Dify data subdirectories
+  ansible.builtin.file:
+    path: "{{ dify_deploy_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - volumes/app/storage
+    - volumes/db/data
+    - volumes/redis/data
+    - volumes/sandbox/dependencies
+    - volumes/sandbox/conf
+    - volumes/plugin_daemon
+    - volumes/weaviate
+    - volumes/pgvector/data
+    - volumes/certbot/conf
+    - volumes/certbot/www
+  tags: ["dify", "config"]
+
+- name: Deploy sandbox config
+  ansible.builtin.copy:
+    src: sandbox/config.yaml
+    dest: "{{ dify_deploy_dir }}/volumes/sandbox/conf/config.yaml"
+    mode: "0644"
+    backup: true
+  notify: Restart Dify stack
+  tags: ["dify", "config"]
+
+- name: Deploy environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ dify_env_file }}"
+    mode: "0600"
+    backup: true
+  notify: Restart Dify stack
+  tags: ["dify", "config"]
+
+- name: Create SSRF proxy config directory
+  ansible.builtin.file:
+    path: "{{ dify_deploy_dir }}/ssrf_proxy"
+    state: directory
+    mode: "0755"
+  become: true
+  tags: ["dify", "config"]
+
+- name: Create Nginx config directories
+  ansible.builtin.file:
+    path: "{{ dify_deploy_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - nginx
+    - nginx/conf.d
+    - nginx/ssl
+  become: true
+  tags: ["dify", "config"]
+
+- name: Remove Docker-created directory stubs at file paths
+  ansible.builtin.file:
+    path: "{{ dify_deploy_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - ssrf_proxy/docker-entrypoint.sh
+    - ssrf_proxy/docker-agent-entrypoint.sh
+    - ssrf_proxy/squid.conf.template
+    - ssrf_proxy/squid-agent.conf.template
+    - ssrf_proxy/squid-common.conf.template
+    - nginx/docker-entrypoint.sh
+    - nginx/nginx.conf.template
+    - nginx/proxy.conf.template
+    - nginx/https.conf.template
+  become: true
+  changed_when: false
+  tags: ["dify", "config"]
+
+- name: Deploy SSRF proxy config files
+  ansible.builtin.copy:
+    src: "ssrf_proxy/{{ item.src }}"
+    dest: "{{ dify_deploy_dir }}/ssrf_proxy/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    backup: true
+  loop:
+    - src: docker-entrypoint.sh
+      dest: docker-entrypoint.sh
+      mode: "0755"
+    - src: docker-agent-entrypoint.sh
+      dest: docker-agent-entrypoint.sh
+      mode: "0755"
+    - src: squid.conf.template
+      dest: squid.conf.template
+      mode: "0644"
+    - src: squid-agent.conf.template
+      dest: squid-agent.conf.template
+      mode: "0644"
+    - src: squid-common.conf.template
+      dest: squid-common.conf.template
+      mode: "0644"
+  become: true
+  notify: Restart Dify stack
+  tags: ["dify", "config"]
+
+- name: Deploy Nginx config files
+  ansible.builtin.copy:
+    src: "nginx/{{ item.src }}"
+    dest: "{{ dify_deploy_dir }}/nginx/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+    backup: true
+  loop:
+    - src: docker-entrypoint.sh
+      dest: docker-entrypoint.sh
+      mode: "0755"
+    - src: nginx.conf.template
+      dest: nginx.conf.template
+      mode: "0644"
+    - src: proxy.conf.template
+      dest: proxy.conf.template
+      mode: "0644"
+    - src: https.conf.template
+      dest: https.conf.template
+      mode: "0644"
+    - src: conf.d/default.conf.template
+      dest: conf.d/default.conf.template
+      mode: "0644"
+  become: true
+  notify: Restart Dify stack
+  tags: ["dify", "config"]
+
+- name: Deploy Dify via Docker Compose
+  ansible.builtin.include_tasks: docker.yml
+  when: dify_container_runtime == "docker"
+  tags: ["dify", "docker"]
+
+- name: Deploy Dify via Podman
+  ansible.builtin.include_tasks: podman.yml
+  when: dify_container_runtime == "podman"
+  tags: ["dify", "podman"]
+
+- name: Open firewall ports for Dify
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  loop: "{{ dify_firewall_ports }}"
+  when:
+    - dify_firewall_ports | length > 0
+    - not (dify_bind_localhost | bool)
+  become: true
+  tags: ["dify", "firewall"]
+
+- name: Backup or restore Dify PostgreSQL database
+  ansible.builtin.include_tasks: backup.yml
+  when: dify_backup_action != "none"
+  tags: ["dify", "backup"]

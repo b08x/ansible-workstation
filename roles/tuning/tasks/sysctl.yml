@@ -1,0 +1,39 @@
+---
+# Rather than suppressing sysctl failures, skip the hardware-dependent keys the
+# host genuinely lacks: /proc/sys/<key with dots as slashes> exists only where
+# the knob does. Everything left is applied without a failure mask, so a
+# misspelled or unsupported key still fails the run.
+- name: Check which optional sysctl keys this host supports
+  ansible.builtin.stat:
+    path: "/proc/sys/{{ item | replace('.', '/') }}"
+  loop: "{{ tuning_sysctl_optional }}"
+  register: tuning_sysctl_optional_stat
+  changed_when: false
+
+- name: Collect optional sysctl keys this host does not support
+  ansible.builtin.set_fact:
+    tuning_sysctl_unsupported: >-
+      {{ tuning_sysctl_optional_stat.results
+         | rejectattr('stat.exists')
+         | map(attribute='item')
+         | list }}
+
+- name: Report optional sysctl keys skipped on this host
+  ansible.builtin.debug:
+    msg: >-
+      Skipping optional sysctl keys unsupported on {{ inventory_hostname }}:
+      {{ tuning_sysctl_unsupported | join(', ') }}
+  when: tuning_sysctl_unsupported | length > 0
+
+- name: Set sysctl parameters
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop: >-
+    {{ tuning_sysctl | dict2items
+       | rejectattr('key', 'in', tuning_sysctl_unsupported)
+       | list }}
+  loop_control:
+    label: "{{ item.key }}"

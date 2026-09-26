@@ -59,7 +59,7 @@ module Inventory
 
   # Scan available Ansible roles from the collection structure.
   #
-  # Walks the collections/ansible_collections/b08x/*/roles/ directory tree
+  # Walks the roles/ directory tree
   # and extracts role metadata from meta/main.yml files.
   # Filters roles to only those compatible with the local OS.
   #
@@ -71,7 +71,7 @@ module Inventory
   def self.scan_roles
     roles = []
     # Find all role directories in the b08x collections
-    Dir.glob("collections/ansible_collections/b08x/*/roles/*/").each do |dir|
+    Dir.glob("roles/*/").each do |dir|
       # Extract the role name from the directory path
       name = dir.split("/")[-1]
       meta_file = File.join(dir, "meta", "main.yml")

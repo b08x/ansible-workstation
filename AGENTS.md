@@ -7,21 +7,7 @@ are followed.
 
 ## Project Structure
 
-Four Ansible Collections under `collections/ansible_collections/b08x/`, each a git submodule:
-- **devworkstation** — base, user, desktop (incl. VS Code and the Antigravity Hub/IDE), libvirt, networking, containerd, tuning, run, coding_agents (antigravity CLI, claude, crush, opencode, vibe, skills)
-- **llmops** — run, ollama, hermes, dify, langfuse, tts
-- **rhel_builder** — composer_cli, osbuild, rpm_dev, run
-- **context** — run, plus plugins (action, cache, filter, inventory, lookup, modules, test)
-
-Submodules must be initialized before a first run:
-
-```bash
-git submodule update --init --recursive
-```
-
-`.gitignore` ignores `collections/ansible_collections/b08x/*` and re-includes each
-collection explicitly. Adding a fifth collection requires a matching `!` negation
-line there as well as a `.gitmodules` entry — otherwise it is silently untracked.
+All Ansible roles are located directly in `roles/`. The project has been consolidated into a single monolithic repository.
 
 All playbooks live in `playbooks/`, not at the repo root:
 
@@ -94,11 +80,11 @@ Repo root (`.pre-commit-config.yaml`):
 - **prettier** (YAML/TOML formatting)
 - **ansible-lint** (Ansible best practices)
 
-Each of the four collections carries its own config with a larger shared set:
+The repository uses a unified pre-commit config.
 `update-docs`, `check-merge-conflict`, `check-symlinks`, `debug-statements`,
 `end-of-file-fixer`, `no-commit-to-branch`, `trailing-whitespace`,
 `add-trailing-comma`, `prettier`, `isort`, `black`, `flake`. Note these do
-*not* include `ansible-lint` — run it separately from the collection dir.
+*not* include `ansible-lint` — run it from the repo root.
 
 ## Conventions
 

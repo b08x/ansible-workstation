@@ -1,0 +1,87 @@
+---
+# defaults file for b08x.llmops.langfuse
+
+# Container runtime: "docker" for Docker Compose, "podman" for containers.podman modules
+langfuse_container_runtime: docker
+
+# Deployment directory for compose files and data
+langfuse_deploy_dir: "{{ user.home | default('/opt') }}/langfuse"
+
+# Docker Compose project name (also used as pod name for podman)
+langfuse_project_name: langfuse
+
+# Image tags
+langfuse_image_tag: "latest"
+langfuse_clickhouse_image_tag: "25.12"
+langfuse_postgres_version: "17"
+
+# Network ports (host bindings)
+langfuse_web_port: 3000
+langfuse_worker_port: 3030
+langfuse_minio_api_port: 9090
+langfuse_minio_console_port: 9091
+
+# Whether to bind infrastructure ports to localhost only
+langfuse_bind_localhost: true
+
+# Firewall ports to open (empty list skips firewall management)
+# Only web, worker, and MinIO ports are exposed; infrastructure ports
+# (5432, 8123, 9000, 6379) stay localhost-bound even when bind_localhost is false
+langfuse_firewall_ports:
+  - "{{ langfuse_web_port }}/tcp"
+  - "{{ langfuse_worker_port }}/tcp"
+  - "{{ langfuse_minio_api_port }}/tcp"
+  - "{{ langfuse_minio_console_port }}/tcp"
+
+# Force podman container recreation (useful after image tag bumps or
+# when the shared pod network namespace needs full reset)
+langfuse_force_recreate: false
+
+# Telemetry and feature flags
+langfuse_telemetry_enabled: true
+langfuse_enable_experimental_features: false
+
+# NextAuth configuration
+langfuse_nextauth_url: "http://localhost:3000"
+langfuse_nextauth_secret: "mysecret"
+langfuse_salt: "mysalt"
+# Generate via: openssl rand -hex 32
+langfuse_encryption_key: "0000000000000000000000000000000000000000000000000000000000000000"
+
+# PostgreSQL configuration
+langfuse_postgres_user: postgres
+langfuse_postgres_password: postgres
+langfuse_postgres_db: postgres
+
+# ClickHouse configuration
+langfuse_clickhouse_user: clickhouse
+langfuse_clickhouse_password: clickhouse
+
+# Redis configuration
+langfuse_redis_auth: myredissecret
+
+# MinIO (S3-compatible storage) configuration
+langfuse_minio_root_user: minio
+langfuse_minio_root_password: miniosecret
+
+# S3 bucket names
+langfuse_s3_event_upload_bucket: langfuse
+langfuse_s3_media_upload_bucket: langfuse
+langfuse_s3_batch_export_bucket: langfuse
+
+# ClickHouse cluster settings
+langfuse_clickhouse_cluster_enabled: false
+langfuse_clickhouse_cluster_name: default
+
+# Backup/restore configuration
+# Set langfuse_backup_action to "backup" or "restore" to trigger those operations
+langfuse_backup_action: "none"
+langfuse_backup_dir: "{{ langfuse_deploy_dir }}/backups"
+# For restore: absolute path to the .dump file to restore from
+langfuse_backup_file: ""
+# pg_dump format: "custom" (-Fc, compressed, pg_restore) or "plain" (-Fp, SQL text, psql)
+langfuse_backup_format: "custom"
+# Compression level 0-9 (only used with custom format)
+langfuse_backup_compression: 6
+# Number of days to retain backups (older files are pruned during backup)
+langfuse_backup_retention_days: 7

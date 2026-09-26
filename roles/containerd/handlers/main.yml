@@ -1,0 +1,11 @@
+---
+# handlers file for containerd
+
+- name: Restart Docker
+  ansible.builtin.service:
+    name: "{{ containerd_docker_service_name }}"
+    state: restarted
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

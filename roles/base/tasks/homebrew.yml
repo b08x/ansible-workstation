@@ -1,0 +1,82 @@
+---
+- name: Prepare Homebrew environment
+  tags: ["homebrew", "base"]
+  block:
+    - name: Ensure linuxbrew group exists
+      ansible.builtin.group:
+        name: linuxbrew
+        state: present
+
+    - name: Ensure /home/linuxbrew exists
+      ansible.builtin.file:
+        path: /home/linuxbrew
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Setup isolated Homebrew prefix
+      ansible.builtin.file:
+        path: /home/linuxbrew/.linuxbrew
+        state: directory
+        owner: "{{ user.name }}"
+        group: linuxbrew
+        mode: "0775"
+
+- name: Install Homebrew
+  tags: ["homebrew", "base"]
+  become: false
+  block:
+    - name: Check if Homebrew is already installed
+      ansible.builtin.stat:
+        path: /home/linuxbrew/.linuxbrew/bin/brew
+      register: base_brew_stat
+
+    - name: Download and run the official Homebrew installer
+      ansible.builtin.shell: |
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      when: not base_brew_stat.stat.exists
+      changed_when: true
+
+- name: Configure Homebrew user shell environment
+  tags: ["homebrew", "base"]
+  block:
+    - name: Deploy curl_wrapper.sh for Homebrew
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          # Wrapper to fix GNU mirror hangs for Homebrew
+          exec /usr/bin/curl --connect-timeout 15 --max-time 60 "$@"
+        dest: "{{ user.home | default('/home/' + user.name) }}/curl_wrapper.sh"
+        owner: "{{ user.name }}"
+        group: "{{ user.name }}"
+        mode: "0755"
+        backup: true
+
+    - name: Configure resource-limited alias for brew
+      ansible.builtin.lineinfile:
+        path: "{{ user.home | default('/home/' + user.name) }}/{{ item }}"
+        line: 'alias brew="HOMEBREW_CURL_PATH={{ user.home | default(''/home/'' + user.name) }}/curl_wrapper.sh nice -n 19 ionice -c 3 taskset -c 0-3 brew"'
+        regexp: "^alias brew="
+        owner: "{{ user.name }}"
+        group: "{{ user.name }}"
+        mode: "0644"
+        create: true
+        backup: true
+      loop:
+        - .bashrc
+        - .zshrc
+
+    - name: Add Homebrew to user environment shell RC
+      ansible.builtin.lineinfile:
+        path: "{{ user.home | default('/home/' + user.name) }}/{{ item }}"
+        line: 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"'
+        create: true
+        state: present
+        backup: true
+        owner: "{{ user.name }}"
+        group: "{{ user.name }}"
+        mode: "0644"
+      loop:
+        - .bashrc
+        - .zshrc

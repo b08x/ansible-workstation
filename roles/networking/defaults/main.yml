@@ -1,0 +1,6 @@
+---
+# defaults file for b08x.devworkstation.networking
+
+# Variable that will be displayed in debug output
+# This demonstrates proper role variable naming with the 'run_' prefix
+networking_my_variable: "default_value"

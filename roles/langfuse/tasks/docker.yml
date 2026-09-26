@@ -1,0 +1,27 @@
+---
+# Docker Compose deployment tasks for b08x.llmops.langfuse
+
+- name: Deploy Docker Compose configuration
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ langfuse_compose_file }}"
+    mode: "0644"
+    backup: true
+  notify: Restart Langfuse stack
+  tags: ["langfuse", "config"]
+
+- name: Pull Langfuse container images
+  ansible.builtin.command:
+    cmd: "docker compose -f {{ langfuse_compose_file }} --env-file {{ langfuse_env_file }} pull"
+  changed_when: false
+  tags: ["langfuse", "images"]
+
+- name: Start Langfuse Docker Compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ langfuse_deploy_dir }}"
+    project_name: "{{ langfuse_project_name }}"
+    env_files:
+      - ".env"
+    state: present
+    pull: always
+  tags: ["langfuse", "services"]

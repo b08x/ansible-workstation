@@ -1,0 +1,33 @@
+# RPM macros configuration for {{ rpm_dev_user.name }}
+
+# Build directories
+%_topdir {{ rpm_build.build_dir }}
+%_sourcedir %{_topdir}/SOURCES
+%_specdir %{_topdir}/SPECS
+%_builddir %{_topdir}/BUILD
+%_srcrpmdir %{_topdir}/SRPMS
+%_rpmdir %{_topdir}/RPMS
+
+# Packager information
+%packager {{ rpm_dev_user.name }} <{{ rpm_dev_user.name }}@{{ ansible_fqdn }}>
+
+# Distribution specific macros
+{% if ansible_distribution == 'Fedora' %}
+%dist .fc{{ ansible_distribution_major_version }}
+%fedora {{ ansible_distribution_major_version }}
+{% else %}
+%dist .el{{ ansible_distribution_major_version }}
+{% endif %}
+
+# Build options
+%_smp_mflags -j%(nproc)
+%__make make %{_smp_mflags}
+
+# Debug package settings
+%debug_package %{nil}
+
+# GPG signature settings (uncomment and configure as needed)
+# %_signature gpg
+# %_gpg_path ~/.gnupg
+# %_gpg_name {{ rpm_dev_user.name }}
+# %_gpgbin /usr/bin/gpg2

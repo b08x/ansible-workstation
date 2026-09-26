@@ -1,0 +1,6 @@
+---
+- name: Enable tuned service
+  ansible.builtin.systemd:
+    name: tuned
+    enabled: "{{ tuning_tuned_enabled }}"
+  ignore_errors: "{{ ansible_check_mode }}"

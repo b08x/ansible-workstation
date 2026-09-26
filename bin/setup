@@ -1,2 +1,302 @@
 #!/usr/bin/env bash
+# =============================================================================
+# Workstation Bootstrap Orchestrator
+# A wonderfully warm, colorful TUI for provisioning your development environment
+# =============================================================================
 
+set -euo pipefail
+
+if [[ $EUID -eq 0 ]]; then
+  echo "This script should be run as your normal user. It will ask for sudo when needed." >&2
+  exit 1
+fi
+
+# -----------------------------------------------------------------------------
+# Configuration & State
+# -----------------------------------------------------------------------------
+
+SCRIPT_NAME="$(basename "$0")"
+LOG_FILE="/tmp/${SCRIPT_NAME%.*}.log"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Color palette - warm, inviting colors
+declare -A COLORS=(
+  [primary]="#FA8072"
+  [secondary]="#FFD700"
+  [success]="#90EE90"
+  [error]="#FF6B6B"
+  [warning]="#FFA07A"
+  [info]="#87CEFA"
+  [muted]="#D3D3D3"
+  [border]="#FFE4B5"
+)
+
+# -----------------------------------------------------------------------------
+# Utility Functions
+# -----------------------------------------------------------------------------
+
+wipe() {
+  tput -S <<!
+clear
+cup 1
+!
+}
+
+typewriter() {
+  local in_esc=0
+  while IFS= read -r -N1 char; do
+    if [[ "$char" == $'\e' ]]; then
+      in_esc=1
+    fi
+    echo -n "$char"
+    if [[ $in_esc -eq 1 ]]; then
+      if [[ "$char" == "m" || "$char" == "K" || "$char" == "H" || "$char" == "J" ]]; then
+        in_esc=0
+      fi
+    else
+      sleep 0.001 2>/dev/null || true
+    fi
+  done
+  echo
+}
+
+log() {
+  local level="$1"
+  local message="$2"
+  local timestamp
+  timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+  
+  case "$level" in
+    info)
+      echo "[$timestamp] INFO: $message" >> "$LOG_FILE"
+      echo "$message" | gum style --foreground "${COLORS[info]}" --padding "0 1" | typewriter
+      ;;
+    success)
+      echo "[$timestamp] SUCCESS: $message" >> "$LOG_FILE"
+      echo "$message" | gum style --foreground "${COLORS[success]}" --padding "0 1" | typewriter
+      ;;
+    warning)
+      echo "[$timestamp] WARNING: $message" >> "$LOG_FILE"
+      echo "$message" | gum style --foreground "${COLORS[warning]}" --padding "0 1" | typewriter
+      ;;
+    error)
+      echo "[$timestamp] ERROR: $message" >> "$LOG_FILE"
+      echo "$message" | gum style --foreground "${COLORS[error]}" --padding "0 1" | typewriter
+      ;;
+    *)
+      echo "[$timestamp] $level: $message" >> "$LOG_FILE"
+      echo "$message" | gum style --foreground "${COLORS[muted]}" --padding "0 1" | typewriter
+      ;;
+  esac
+}
+
+section_header() {
+  local title="$1"
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 80)
+  echo ""
+  echo "$title" | gum style \
+    --foreground "${COLORS[primary]}" \
+    --border double \
+    --border-foreground "${COLORS[border]}" \
+    --padding "1 2" \
+    --align center \
+    --width "$term_width" \
+    --bold
+}
+
+with_spinner() {
+  local description="$1"
+  shift
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 80)
+  local pad_len=$(( (term_width - ${#description} - 4) / 2 ))
+  local padding=""
+  for ((i=0; i<pad_len; i++)); do padding="$padding "; done
+  gum spin --spinner dot --title "${padding}${description}" -- "$@"
+  
+  while read -r -t 0.1 -n 10000; do :; done || true
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+# -----------------------------------------------------------------------------
+# Bootstrap Phases
+# -----------------------------------------------------------------------------
+
+ensure_prereqs() {
+  section_header "Checking Prerequisites"
+  
+  local to_install=()
+  
+  for cmd in git ansible-playbook; do
+    if ! command_exists "$cmd"; then
+      to_install+=("$cmd")
+    fi
+  done
+  
+  if [ ${#to_install[@]} -gt 0 ]; then
+    log info "Installing missing prerequisites: ${to_install[*]}"
+    sudo dnf install -y "${to_install[@]}"
+  else
+    log success "All system prerequisites met (git, ansible)."
+  fi
+  
+  if ! command_exists gum; then
+    log info "Installing Gum (TUI Toolkit)..."
+    sudo dnf install -y https://github.com/charmbracelet/gum/releases/download/v2.0.0/gum-2.0.0-1.x86_64.rpm
+  fi
+}
+
+check_gpg_key() {
+  section_header "Checking GPG Key"
+  
+  if ! command_exists gpg; then
+    log warning "GPG is not installed. You will not be able to decrypt yadm secrets."
+    return 0
+  fi
+  
+  if ! gpg --list-secret-keys | grep -q 'sec'; then
+    log warning "No GPG secret key found! You need one to decrypt yadm secrets."
+    log info "If you are migrating an existing key, please import it now."
+    if gum confirm --affirmative "Continue Anyway" --negative "Exit" \
+      "Do you want to continue without a GPG key? (yadm decrypt will fail)"; then
+      log info "Continuing without GPG key..."
+    else
+      log error "Exiting to allow GPG key setup. Run 'gpg --import' and try again."
+      exit 1
+    fi
+  else
+    log success "GPG secret key found."
+  fi
+}
+
+run_ansible() {
+  section_header "System Provisioning (Ansible)"
+  log info "Running playbook: playbooks/site.yml"
+  
+  cd "$REPO_ROOT"
+  
+  if gum confirm --affirmative "Run Provisioning" --negative "Skip" \
+    "Would you like to run the Ansible system provisioning now?"; then
+    
+    # Run ansible directly so user sees the output and can enter sudo password
+    ansible-playbook playbooks/site.yml -K
+    
+    if [ $? -eq 0 ]; then
+      log success "Ansible provisioning completed successfully."
+    else
+      log error "Ansible provisioning failed."
+      exit 1
+    fi
+  else
+    log info "Skipping Ansible provisioning."
+  fi
+}
+
+install_yadm() {
+  section_header "Installing YADM (Dotfile Manager)"
+  if command_exists yadm; then
+    log success "YADM is already installed: $(yadm --version | head -n 1)"
+    return 0
+  fi
+  
+  if with_spinner "Downloading and installing YADM..." \
+    sudo curl -fLo /usr/local/bin/yadm https://github.com/yadm-dev/yadm/raw/master/yadm \
+    && sudo chmod a+x /usr/local/bin/yadm; then
+    log success "YADM installed to /usr/local/bin/yadm"
+  else
+    log error "Failed to install YADM"
+    exit 1
+  fi
+}
+
+setup_yadm() {
+  section_header "Setting up User Dotfiles (YADM)"
+  
+  if [ -d "$HOME/.local/share/yadm/repo.git" ]; then
+    log info "YADM repository already cloned."
+  else
+    local repo_url
+    repo_url=$(gum input --placeholder "Enter YADM repository URL (e.g. git@github.com:user/dotfiles.git)" --prompt "URL: ")
+    
+    if [ -n "$repo_url" ]; then
+      log info "Cloning YADM repository..."
+      if yadm clone "$repo_url"; then
+        log success "YADM repository cloned successfully."
+      else
+        log error "Failed to clone YADM repository. Check your SSH keys or URL."
+        log info "If you need SSH keys, you may need to copy them manually first."
+        exit 1
+      fi
+    else
+      log warning "No URL provided. Skipping YADM clone."
+      return 0
+    fi
+  fi
+  
+  if gum confirm "Decrypt YADM secrets? (requires GPG key)"; then
+    if yadm decrypt; then
+      log success "Secrets decrypted successfully."
+    else
+      log error "Failed to decrypt secrets."
+    fi
+  fi
+  
+  if gum confirm "Run YADM bootstrap script?"; then
+    if [ -x "$HOME/.config/yadm/bootstrap" ]; then
+      yadm bootstrap
+    else
+      log warning "No executable bootstrap script found at ~/.config/yadm/bootstrap"
+    fi
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Main Execution
+# -----------------------------------------------------------------------------
+
+main() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Bootstrap script started" > "$LOG_FILE"
+  
+  ensure_prereqs
+  wipe
+  
+  local term_width
+  term_width=$(tput cols 2>/dev/null || echo 80)
+  echo "" | gum style \
+    --foreground "${COLORS[primary]}" \
+    --border double \
+    --border-foreground "${COLORS[border]}" \
+    --padding "2 4" \
+    --align center \
+    --width "$term_width" \
+    "Welcome to Workstation Bootstrap Orchestrator"
+  echo "" | gum style \
+    --foreground "${COLORS[secondary]}" \
+    --padding "0 2" \
+    --align center \
+    --width "$term_width" \
+    "A wonderfully warm, colorful TUI for provisioning your development environment"
+  sleep 2
+
+  check_gpg_key
+  wipe
+  
+  run_ansible
+  wipe
+  
+  install_yadm
+  wipe
+  
+  setup_yadm
+  wipe
+  
+  section_header "Bootstrap Complete"
+  echo "" | gum style --foreground "${COLORS[success]}" --padding "0 1" \
+    "Your workstation bootstrap has completed!" | typewriter
+}
+
+main "$@"

@@ -14,15 +14,12 @@ except ImportError:
     print("SKIP: jinja2 not available")
     sys.exit(0)
 
-TPL = (
-    "collections/ansible_collections/b08x/rhel_builder/roles/"
-    "osbuild/templates/fedora-workstation.toml.j2"
-)
+TPL = "roles/" "osbuild/templates/fedora-workstation.toml.j2"
 
 ctx = {
-    "blueprint_name": "pin-test",
-    "blueprint_description": "pin render test",
-    "blueprint_version": "1.0.0",
+    "osbuild_blueprint_name": "pin-test",
+    "osbuild_blueprint_description": "pin render test",
+    "osbuild_blueprint_version": "1.0.0",
     "osbuild_distro": "fedora-43",
     "osbuild_components": ["base", "nvidia"],
     "osbuild_component_defs": {
@@ -49,7 +46,7 @@ ctx = {
 
 env = Environment(
     loader=FileSystemLoader(
-        "collections/ansible_collections/b08x/rhel_builder/"
+        "./"
         "roles/osbuild/templates"  # noqa: E501
     ),
     undefined=StrictUndefined,

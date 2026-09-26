@@ -1,0 +1,13 @@
+---
+# Per-agent settings for Claude Code
+# Config file: ~/.claude/settings.json (JSON)
+# MCP config: ~/.claude/.mcp.json (separate file, env vars use ${VAR} syntax)
+
+coding_agents_claude_settings:
+  permissions:
+    ask:
+      - "Bash(*)"
+  sandbox:
+    enabled: false
+  alwaysThinkingEnabled: false
+  showThinkingSummaries: false

@@ -77,7 +77,7 @@ Vagrant.configure("2") do |config|
 
     # Run Ansible playbook for testing
     almalinux.vm.provision "ansible" do |ansible|
-      ansible.playbook = "playbooks/containerd.yml"
+      ansible.playbook = "playbooks/site.yml"
       ansible.groups = {
         "workstations" => ["almalinux"],
       }

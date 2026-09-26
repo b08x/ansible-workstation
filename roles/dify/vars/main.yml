@@ -1,0 +1,21 @@
+---
+# vars file for b08x.llmops.dify
+
+# Internal image references
+dify_api_image: "langgenius/dify-api:{{ dify_image_tag }}"
+dify_web_image: "langgenius/dify-web:{{ dify_image_tag }}"
+dify_sandbox_image: "langgenius/dify-sandbox:{{ dify_sandbox_image_tag }}"
+dify_plugin_daemon_image: "langgenius/dify-plugin-daemon:{{ dify_plugin_daemon_image_tag }}"
+dify_agent_backend_image: "langgenius/dify-agent-backend:{{ dify_image_tag }}"
+dify_agent_local_sandbox_image: "langgenius/dify-agent-local-sandbox:{{ dify_image_tag }}"
+dify_postgres_image: "docker.io/postgres:{{ dify_postgres_version }}"
+dify_redis_image: "docker.io/redis:{{ dify_redis_version }}"
+dify_nginx_image: "docker.io/nginx:latest"
+dify_squid_image: "docker.io/ubuntu/squid:latest"
+dify_weaviate_image: "cr.weaviate.io/semitechnologies/weaviate:{{ dify_weaviate_image_tag }}"
+dify_pgvector_image: "pgvector/pgvector:{{ dify_pgvector_image_tag }}"
+dify_busybox_image: "docker.io/busybox:latest"
+
+# Compose file paths
+dify_compose_file: "{{ dify_deploy_dir }}/docker-compose.yml"
+dify_env_file: "{{ dify_deploy_dir }}/.env"

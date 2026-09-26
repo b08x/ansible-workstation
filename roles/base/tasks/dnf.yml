@@ -1,0 +1,40 @@
+---
+- name: Configure DNF and fastestmirror
+  when: ansible_os_family == 'RedHat'
+  tags: ["mirrors", "repo"]
+  block:
+    - name: Ensure dnf-plugins-core is installed
+      ansible.builtin.dnf:
+        name: dnf-plugins-core
+        state: present
+
+    - name: Enable fastestmirror in DNF configuration
+      community.general.ini_file:
+        path: /etc/dnf/dnf.conf
+        section: main
+        option: fastestmirror
+        value: "True"
+        no_extra_spaces: true
+        mode: "0644"
+      register: base_enable_fastestmirror
+
+    - name: Configure fastestmirror plugin
+      ansible.builtin.copy:
+        content: |
+          [main]
+          enabled=1
+          verbose=true
+          socket_timeout=3
+          hostfilepath=timedhosts.txt
+          maxhostfileage=10
+          maxthreads=15
+        dest: /etc/dnf/plugins/fastestmirror.conf
+        mode: "0644"
+        backup: true
+      register: base_configure_fastestmirror
+
+    - name: Force refresh DNF metadata cache
+      ansible.builtin.command:
+        cmd: dnf makecache
+      changed_when: true
+      when: base_enable_fastestmirror.changed or base_configure_fastestmirror.changed

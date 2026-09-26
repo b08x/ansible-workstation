@@ -1,0 +1,36 @@
+---
+- name: Install cpupower defaults
+  ansible.builtin.template:
+    src: etc/default/cpupower.j2
+    dest: /etc/default/cpupower
+    mode: "0644"
+    backup: true
+  when: tuning_cpupower_enabled
+  tags: ["cpupower"]
+
+- name: Install cpupower systemd unit
+  ansible.builtin.template:
+    src: usr/lib/systemd/system/cpupower.service.j2
+    dest: /usr/lib/systemd/system/cpupower.service
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+  when: tuning_cpupower_enabled
+  tags: ["cpupower"]
+
+- name: Enable cpupower service
+  ansible.builtin.service:
+    name: cpupower
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
+  when: tuning_cpupower_enabled
+  tags: ["cpupower"]
+
+- name: Disable irqbalance service
+  ansible.builtin.service:
+    name: irqbalance
+    enabled: "{{ tuning_irqbalance_enabled }}"
+  register: tuning_irqbalance_service
+  failed_when:
+    - tuning_irqbalance_service.failed
+    - "'Could not find the requested service' not in (tuning_irqbalance_service.msg | default(''))"

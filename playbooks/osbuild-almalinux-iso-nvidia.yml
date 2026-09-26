@@ -26,15 +26,15 @@
     osbuild_distro: "almalinux-10.2"
     osbuild_arch: "x86_64"
 
-    blueprint_name: "almalinux-10-3-workstation-nvidia"
-    blueprint_version: "1.0.0"
-    blueprint_description: "AlmaLinux Workstation 10.3 (NVIDIA)"
+    osbuild_blueprint_name: "almalinux-10-3-workstation-nvidia"
+    osbuild_blueprint_version: "1.0.0"
+    osbuild_blueprint_description: "AlmaLinux Workstation 10.3 (NVIDIA)"
 
     # Static blueprint, not the Jinja2 template — the file already has its
     # full package list, NVIDIA packages, kernel args, CDI service, and
     # repository entries baked in.
-    use_blueprint_template: false
-    static_blueprint_path: "files/almalinux/10/x86_64/workstation/almalinux-10-3-workstation-nvidia.toml"
+    osbuild_use_blueprint_template: false
+    osbuild_static_blueprint_path: "files/almalinux/10/x86_64/workstation/almalinux-10-3-workstation-nvidia.toml"
 
     # Build mode: traditional ISO, not bootc, not generate-only.
     # "minimal-installer" is Fedora-only in image-builder; AlmaLinux only
@@ -88,4 +88,4 @@
         success_msg: "Target distribution '{{ ansible_distribution }} {{ ansible_distribution_version }}' is supported."
 
   roles:
-    - role: b08x.rhel_builder.osbuild
+    - role: osbuild

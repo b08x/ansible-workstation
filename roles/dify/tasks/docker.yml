@@ -1,0 +1,27 @@
+---
+# Docker Compose deployment tasks for b08x.llmops.dify
+
+- name: Deploy Docker Compose configuration
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ dify_compose_file }}"
+    mode: "0644"
+    backup: true
+  notify: Restart Dify stack
+  tags: ["dify", "config"]
+
+- name: Pull Dify container images
+  ansible.builtin.command:
+    cmd: "docker compose -f {{ dify_compose_file }} --env-file {{ dify_env_file }} pull"
+  changed_when: false
+  tags: ["dify", "images"]
+
+- name: Start Dify Docker Compose stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ dify_deploy_dir }}"
+    project_name: "{{ dify_project_name }}"
+    env_files:
+      - ".env"
+    state: present
+    pull: always
+  tags: ["dify", "services"]

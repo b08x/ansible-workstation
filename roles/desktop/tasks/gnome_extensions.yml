@@ -1,0 +1,84 @@
+---
+# tasks file for GNOME Shell Extensions management
+
+- name: Install system GNOME Shell extensions via dnf
+  ansible.builtin.dnf:
+    name: "{{ desktop_gnome_extensions | default([]) }}"
+    state: present
+  when: desktop_gnome_extensions | default([])
+  tags: ["gnome", "extensions", "packages"]
+
+- name: Convert system extension package names to extension IDs
+  ansible.builtin.set_fact:
+    desktop_system_extension_ids: "{{ desktop_gnome_extensions | default([]) |
+      select('in', desktop_package_to_id_map) |
+      map('extract', desktop_package_to_id_map) | list }}"
+  tags: ["gnome", "extensions"]
+
+- name: Manage and enable GNOME extensions
+  become: true
+  become_user: "{{ user.name }}"
+  tags: ["gnome", "extensions"]
+  block:
+    - name: Find installed system extensions
+      ansible.builtin.find:
+        paths: /usr/share/gnome-shell/extensions
+        file_type: directory
+      register: desktop_system_ext_dirs
+
+    - name: Find installed user extensions
+      ansible.builtin.find:
+        paths: "~/.local/share/gnome-shell/extensions"
+        file_type: directory
+      register: desktop_user_ext_dirs
+
+    - name: Set fact for installed extensions list
+      ansible.builtin.set_fact:
+        desktop_installed_extensions_list: "{{ (desktop_system_ext_dirs.files + desktop_user_ext_dirs.files) |
+          map(attribute='path') | map('basename') | list }}"
+
+    - name: Read currently enabled extensions via gsettings
+      ansible.builtin.command: gsettings get org.gnome.shell enabled-extensions
+      register: gsettings_enabled_exts
+      changed_when: false
+
+    - name: Parse enabled extensions
+      ansible.builtin.set_fact:
+        desktop_enabled_extensions_list: "{{ gsettings_enabled_exts.stdout |
+          regex_replace('^\\[(.*)\\]$', '\\1') | replace(\"'\", '') | split(', ') | select() | list }}"
+
+    - name: Enable installed GNOME extensions via dconf
+      community.general.dconf:
+        key: "/org/gnome/shell/enabled-extensions"
+        value: "{{ desktop_enabled_extensions_list | union(desktop_system_extension_ids) |
+          union(desktop_gnome_user_extensions | default([])) |
+          intersect(desktop_installed_extensions_list) | unique | to_json }}"
+      tags: ["enable"]
+
+    - name: Report missing system extensions
+      ansible.builtin.debug:
+        msg: >-
+          The following system extensions are not installed: {{
+            desktop_system_extension_ids | default([]) |
+            difference(desktop_installed_extensions_list | default([])) |
+            list
+          }}.
+          These will be installed via dnf in the next run.
+      when:
+        - desktop_system_extension_ids | default([])
+        - (desktop_system_extension_ids | difference(desktop_installed_extensions_list | default([]))) | length > 0
+      tags: ["warning"]
+
+    - name: Report missing user extensions
+      ansible.builtin.debug:
+        msg: >-
+          The following user extensions are not installed: {{
+            desktop_gnome_user_extensions | default([]) |
+            difference(desktop_installed_extensions_list | default([])) |
+            list
+          }}.
+          These need to be installed manually from https://extensions.gnome.org or via browser.
+      when:
+        - desktop_gnome_user_extensions | default([])
+        - (desktop_gnome_user_extensions | difference(desktop_installed_extensions_list | default([]))) | length > 0
+      tags: ["warning"]

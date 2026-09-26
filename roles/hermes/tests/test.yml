@@ -1,0 +1,45 @@
+---
+# Integration test playbook for b08x.llmops.hermes
+# Run with: ansible-playbook tests/test.yml
+
+- name: Hermes Role Integration Tests
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  vars:
+    # Test configuration - can be overridden via extra vars
+    hermes_container_runtime: podman
+    hermes_install_user: root
+    hermes_system_service: true
+    hermes_selinux_enforcing: true
+    hermes_firewall_enabled: true
+    hermes_bind_localhost: true
+
+  tasks:
+    - name: Include Hermes role
+      ansible.builtin.include_role:
+        name: b08x.llmops.hermes
+      tags: ["test", "hermes"]
+
+    - name: Include validation tasks
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate.yml"
+      tags: ["test", "hermes", "validation"]
+
+    - name: Display test results
+      ansible.builtin.debug:
+        msg: "Hermes role integration tests completed successfully"
+      tags: ["test", "hermes", "always"]
+# Usage examples:
+#
+# Basic test (all defaults):
+#   ansible-playbook tests/test.yml
+#
+# Test with Docker backend:
+#   ansible-playbook tests/test.yml -e "hermes_container_runtime=docker"
+#
+# Test without firewall:
+#   ansible-playbook tests/test.yml -e "hermes_firewall_enabled=false"
+#
+# Test user service (not system):
+#   ansible-playbook tests/test.yml -e "hermes_system_service=false"

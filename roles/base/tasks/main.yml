@@ -1,0 +1,114 @@
+---
+# tasks file for b08x.devworkstation.base
+
+- name: Starting base tasks
+  ansible.builtin.debug:
+    msg: "Starting base tasks"
+  tags: ["base", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["packages", "distro"]
+
+# ----------------------------------------------------------------------------
+# DNF Performance Optimization
+# ----------------------------------------------------------------------------
+
+- name: Include DNF configuration tasks
+  ansible.builtin.include_tasks: dnf.yml
+  tags: ["dnf", "base", "repos"]
+
+# ----------------------------------------------------------------------------
+# Repository Configuration
+# ----------------------------------------------------------------------------
+
+- name: Include Distribution Specific Repository Tasks
+  ansible.builtin.include_tasks: "distro/{{ ansible_distribution }}.yml"
+  when:
+    - enable_third_party_repos | default(true) | bool
+  tags: ["repos", "base"]
+
+- name: Install Base packages
+  tags: ["packages", "base"]
+  block:
+    - name: Install Base packages
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+        allowerasing: true
+      with_items:
+        - "{{ base_packages }}"
+
+  rescue:
+    # Shape 1 (add context, then re-raise): base packages are this role's core
+    # contract, so a failure must fail the play rather than report green.
+    - name: Report base package installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install one or more packages from base_packages.
+          Re-run with -vv to see which package and why; a missing package
+          usually means a repository in tasks/distro/ was never enabled.
+
+    - name: Fail the play on base package installation failure
+      ansible.builtin.fail:
+        msg: "Base package installation failed - see the preceding task output."
+
+- name: Enable and Start ssh service
+  ansible.builtin.systemd:
+    name: sshd
+    enabled: true
+    state: restarted
+
+- name: Configure zram-generator
+  ansible.builtin.copy:
+    content: |
+      [zram0]
+      zram-size = {{ (ansible_memtotal_mb | int) // 2 }}
+      compression-algorithm = zstd
+      swap-priority = 100
+    dest: /etc/systemd/zram-generator.conf
+    mode: "0644"
+    backup: true
+  notify:
+    - Restart zram service
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Flush handlers meow
+  ansible.builtin.meta: flush_handlers
+
+- name: Include Intel installation tasks
+  ansible.builtin.include_tasks: intel.yml
+  tags: ["intel", "base"]
+
+- name: Include gitflow installation tasks
+  ansible.builtin.include_tasks: gitflow.yml
+  tags: ["gitflow", "base"]
+
+- name: Include Go installation tasks
+  ansible.builtin.include_tasks: go.yml
+  when: base_install_go | default(true) | bool
+  tags: ["go", "base"]
+
+- name: Include fzf installation tasks
+  ansible.builtin.include_tasks: fzf.yml
+  tags: ["fzf", "base"]
+
+- name: Include inxi installation tasks
+  ansible.builtin.include_tasks: inxi.yml
+  tags: ["inxi", "base"]
+
+- name: Include Homebrew configuration tasks
+  ansible.builtin.include_tasks: homebrew.yml
+  when: ansible_distribution == 'Fedora'
+  tags: ["homebrew", "base"]
+
+- name: Include Zsh installation tasks
+  ansible.builtin.include_tasks: zsh.yml
+  tags: ["zsh", "base"]
+
+- name: Include yadm installation tasks
+  ansible.builtin.include_tasks: yadm.yml
+  tags: ["yadm", "base"]

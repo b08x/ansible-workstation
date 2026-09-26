@@ -1,0 +1,14 @@
+include('almalinux-{{ ansible_distribution_major_version }}-{{ target_arch }}')
+
+config_opts['root'] = 'almalinux+epel-{{ ansible_distribution_major_version }}-{{ target_arch }}'
+config_opts['description'] = 'AlmaLinux {{ ansible_distribution_major_version }} + EPEL'
+
+# Enable EPEL repository for additional packages
+config_opts['dnf.conf'] += """
+[epel]
+name=AlmaLinux $releasever - EPEL
+baseurl=https://dl.fedoraproject.org/pub/epel/el$releasever/BaseOS/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=file:///usr/share/distribution-gpg-keys/epel/RPM-GPG-KEY-EPEL-$releasever
+"""

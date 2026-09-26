@@ -1,0 +1,3 @@
+---
+# Default distribution tasks — no distro-specific repository setup
+# Falls through silently for distributions without custom repo requirements.

@@ -1,0 +1,15 @@
+---
+# Per-agent settings for Vibe (Mistral)
+# Config file: ~/.vibe/config.toml (TOML)
+# MCP config: embedded in config.toml via [[mcp_servers]] array of tables
+
+coding_agents_vibe_settings:
+  active_model: "mistral-large-2"
+  enabled_tools:
+    - "bash"
+    - "edit"
+    - "read"
+  disabled_tools: []
+  skill_paths:
+    - "{{ ansible_user_dir }}/.agents/skills"
+    - "{{ ansible_user_dir }}/.vibe/skills"

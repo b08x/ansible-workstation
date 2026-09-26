@@ -1,0 +1,21 @@
+---
+# defaults file for libvirt
+
+# Name of the libvirt service.
+libvirt_service: "libvirtd.service"
+
+# Whether to enable and start the libvirt service.
+libvirt_service_enabled: true
+
+# List of users to add to the 'libvirt' group for passwordless access.
+libvirt_users:
+  - "{{ user.name }}"
+
+# Configuration for /etc/libvirt/libvirtd.conf
+libvirt_unix_sock_group: "libvirt"
+libvirt_unix_sock_rw_perms: "0770"
+libvirt_auth_unix_rw: "none"
+
+# Whether to disable lvmetad in /etc/lvm/lvm.conf for better
+# integration with libvirt storage pools.
+libvirt_configure_lvm: true

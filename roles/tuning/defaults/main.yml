@@ -1,0 +1,45 @@
+---
+# System tuning defaults - override in role vars or inventory
+
+# User groups to add the user to
+tuning_groups:
+  - audio
+
+# Sysctl parameters
+
+# Sysctl keys allowed to fail when the host lacks the underlying hardware.
+tuning_sysctl_optional:
+  - dev.hpet.max-user-freq
+
+tuning_sysctl:
+  vm.swappiness: 10
+  vm.dirty_background_bytes: 100000000
+  fs.inotify.max_user_watches: 524288
+  dev.hpet.max-user-freq: 3072
+
+# Security limits (group -> limits)
+tuning_limits:
+  audio:
+    rtprio: 98
+    memlock: unlimited
+    nice: -20
+
+# Udev timer permissions
+tuning_udev_timers:
+  - rtc0
+  - hpet
+
+# Tuned
+tuning_tuned_enabled: true
+tuning_tuned_profile: throughput-performance
+
+# RTKit
+tuning_rtirq_enabled: true
+tuning_rtkit_enabled: true
+
+# CPU power
+tuning_cpupower_enabled: true
+tuning_cpupower_governor: powersave
+tuning_cpupower_min_freq: # or "600MHz"
+tuning_cpupower_max_freq: # or "3800MHz"
+tuning_irqbalance_enabled: false

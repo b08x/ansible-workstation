@@ -1,0 +1,72 @@
+---
+# firewall.yml - Firewall configuration for b08x.llmops.hermes
+
+- name: Check if firewall management is enabled
+  ansible.builtin.set_fact:
+    hermes_manage_firewall: "{{ hermes_firewall_enabled | bool and hermes_firewall_ports | length > 0 and not hermes_bind_localhost | bool }}"
+  tags: ["hermes", "firewall", "config"]
+
+- name: Verify firewalld is installed and running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+  become: true
+  when: hermes_manage_firewall
+  tags: ["hermes", "firewall", "service"]
+
+- name: Open Hermes gateway ports in firewalld (IPv4)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+  loop: "{{ hermes_firewall_ports }}"
+  become: true
+  when: hermes_manage_firewall
+  tags: ["hermes", "firewall", "ports"]
+
+- name: Open Hermes gateway ports in firewalld (IPv6)
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: true
+    zone: "{{ hermes_firewall_zone }}"
+    family: ipv6
+  loop: "{{ hermes_firewall_ports }}"
+  become: true
+  when:
+    - hermes_manage_firewall
+    - ansible_facts.ipv6 is defined and ansible_facts.ipv6 | length > 0
+  tags: ["hermes", "firewall", "ipv6"]
+
+- name: Reload firewalld to apply changes
+  ansible.builtin.service:
+    name: firewalld
+    state: reloaded
+  become: true
+  when: hermes_manage_firewall
+  tags: ["hermes", "firewall", "reload"]
+
+- name: Verify firewall ports are open
+  ansible.posix.firewalld_info:
+  register: hermes_firewall_facts
+  become: true
+  when: hermes_manage_firewall
+  tags: ["hermes", "firewall", "verify"]
+
+- name: Display firewall configuration summary
+  ansible.builtin.debug:
+    msg: >-
+      Firewall Configuration Summary:
+      - Firewall Enabled: {{ hermes_firewall_enabled | bool | ternary('Yes', 'No') }}
+      - Firewall Management Active: {{ hermes_manage_firewall | bool | ternary('Yes', 'No') }}
+      - Ports to Open: {{ hermes_firewall_ports | default([]) | join(', ') | default('None') }}
+      - Bind Localhost: {{ hermes_bind_localhost | bool | ternary('Yes (firewall skipped)', 'No') }}
+      - firewalld Service: {{ ansible_facts.services['firewalld.service'].state | default('unknown') }}
+      {% if hermes_manage_firewall and 'firewalld_info' in hermes_firewall_facts %}
+      - Permanent Ports: {{ hermes_firewall_facts.firewalld_info.public.ports | default(hermes_firewall_facts.firewalld_info.zone_internal.ports | default('Not checked'))
+      }}
+      {% endif %}
+  tags: ["hermes", "firewall", "summary", "always"]

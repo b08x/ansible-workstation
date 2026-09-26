@@ -24,9 +24,7 @@ from llm_style import analyze_style, to_snake_case
 __metaclass__ = type
 
 
-def generate_structured_suggestions(
-    yaml_content: str, file_path: str = "ansible_file.yml"
-) -> str:
+def generate_structured_suggestions(yaml_content: str, file_path: str = "ansible_file.yml") -> str:
     """Generate structured suggestions for LLM processing in DSPy format.
 
     Args:
@@ -92,9 +90,7 @@ def _violation_to_suggestion(
     return suggestion
 
 
-def _generate_variable_naming_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_variable_naming_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for variable naming violations."""
     old_text = line_content.strip()
     new_text = old_text
@@ -106,9 +102,7 @@ def _generate_variable_naming_fix(
         if match:
             camel_var = match.group(1)
             snake_var = to_snake_case(camel_var)
-            new_text = old_text.replace(
-                f"{{{{ {camel_var} }}}}", f"{{{{ {snake_var} }}}}"
-            )
+            new_text = old_text.replace(f"{{{{ {camel_var} }}}}", f"{{{{ {snake_var} }}}}")
 
     # Fix variables in vars sections
     elif "role prefix" in violation["message"]:
@@ -122,9 +116,7 @@ def _generate_variable_naming_fix(
     return {"old_text": old_text, "new_text": new_text}
 
 
-def _generate_tag_naming_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_tag_naming_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for tag naming violations."""
     old_text = line_content.strip()
     new_text = old_text
@@ -139,9 +131,7 @@ def _generate_tag_naming_fix(
                 # Convert to snake_case if needed
                 if re.match(r"[A-Z][a-zA-Z]*[A-Z][a-zA-Z]*", tag_value):
                     tag_value = to_snake_case(tag_value)
-                new_text = re.sub(
-                    r"tags:\s*[^\s#]+", f'tags: ["{tag_value}"]', old_text
-                )
+                new_text = re.sub(r"tags:\s*[^\s#]+", f'tags: ["{tag_value}"]', old_text)
 
     # Fix camelCase tags in arrays
     elif "snake_case" in violation["message"]:
@@ -153,9 +143,7 @@ def _generate_tag_naming_fix(
     return {"old_text": old_text, "new_text": new_text}
 
 
-def _generate_task_structure_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_task_structure_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for task structure violations."""
     return {
         "old_text": line_content.strip(),
@@ -164,9 +152,7 @@ def _generate_task_structure_fix(
     }
 
 
-def _generate_ansible_way_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_ansible_way_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for Ansible Way principle violations."""
     msg = violation.get("message", "")
     old_text = line_content.strip()
@@ -219,9 +205,7 @@ def _generate_ansible_way_fix(
     }
 
 
-def _generate_role_design_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_role_design_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for Role Design principle violations."""
     msg = violation.get("message", "")
     old_text = line_content.strip()
@@ -255,9 +239,7 @@ def _generate_role_design_fix(
     }
 
 
-def _generate_module_design_fix(
-    line_content: str, violation: dict[str, Any]
-) -> dict[str, str]:
+def _generate_module_design_fix(line_content: str, violation: dict[str, Any]) -> dict[str, str]:
     """Generate fix for Module Design principle violations."""
     msg = violation.get("message", "")
     old_text = line_content.strip()

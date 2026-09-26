@@ -1,0 +1,7 @@
+---
+# handlers file for b08x.devworkstation.desktop
+
+- name: Daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: "Daemon reload"

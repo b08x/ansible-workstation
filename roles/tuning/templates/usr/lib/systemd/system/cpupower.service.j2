@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2012-2020, Sébastien Luttringer
+# Copyright (C) 2024-2025, Francesco Poli <invernomuto@paranoici.org>
+
+[Unit]
+Description=Apply cpupower configuration
+ConditionVirtualization=!container
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/cpupower.conf
+{% if ansible_distribution == "Fedora" %}
+ExecStart=/usr/libexec/cpupower
+{% endif %}
+{% if ansible_distribution == "AlmaLinux" %}
+ExecStart=/usr/bin/cpupower
+{% endif %}
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

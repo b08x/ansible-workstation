@@ -1,0 +1,146 @@
+---
+- name: Install Intel Graphics Drivers
+  tags: ["intel"]
+  block:
+    - name: Install Intel Graphics Drivers packages
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - intel-audio-firmware
+        - intel-gmmlib
+        - intel-gpu-firmware
+        - intel-media-driver
+        - intel-vpl-gpu-rt
+        - intel-vsc-firmware
+        - libva-intel-driver
+
+  rescue:
+    # Shape 3 (optional): this block runs unconditionally but only applies to
+    # Intel graphics hardware. Set base_intel_graphics_required=true on Intel
+    # hosts to turn a failure into a play failure.
+    - name: Report Intel Graphics Drivers failure
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: failed to install the Intel graphics driver packages.
+          Expected on non-Intel hardware; otherwise check repository availability.
+
+    - name: Fail the play when Intel Graphics Drivers are required
+      ansible.builtin.fail:
+        msg: "Intel graphics driver installation failed and base_intel_graphics_required is true."
+      when: base_intel_graphics_required | bool
+
+- name: Install Intel oneAPI Toolkit
+  when: intel_oneapi_install | default(false) | bool
+  tags: ["intel_oneapi"]
+  block:
+    - name: Import Intel oneAPI GPG Key
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        validate_certs: true
+
+    - name: Add Intel openAPI Repository
+      ansible.builtin.yum_repository:
+        name: oneAPI
+        description: "Intel® oneAPI repository"
+        baseurl: https://yum.repos.intel.com/oneapi
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+
+    - name: Update Package Cache
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Install Intel oneAPI MKL
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - intel-oneapi-common-licensing-2025.3
+        - intel-oneapi-common-licensing-2026.0
+        - intel-oneapi-common-oneapi-vars-2025.3
+        - intel-oneapi-common-oneapi-vars-2026.0
+        - intel-oneapi-common-vars
+        - intel-oneapi-compiler-cpp-eclipse-cfg-2026.1
+        - intel-oneapi-compiler-dpcpp-cpp
+        - intel-oneapi-compiler-dpcpp-cpp-2026.1
+        - intel-oneapi-compiler-dpcpp-cpp-common-2026.1
+        - intel-oneapi-compiler-dpcpp-cpp-runtime-2026.1
+        - intel-oneapi-compiler-dpcpp-eclipse-cfg-2026.1
+        - intel-oneapi-compiler-shared-2026.1
+        - intel-oneapi-compiler-shared-common-2026.1
+        - intel-oneapi-compiler-shared-runtime-2026.1
+        - intel-oneapi-dev-utilities-2026.0
+        - intel-oneapi-dev-utilities-eclipse-cfg-2026.0
+        - intel-oneapi-dpcpp-cpp-2026.1
+        - intel-oneapi-dpcpp-ct
+        - intel-oneapi-dpcpp-ct-2025.3
+        - intel-oneapi-dpcpp-ct-eclipse-cfg-2025.3
+        - intel-oneapi-dpcpp-debugger-2026.1
+        - intel-oneapi-icc-eclipse-plugin-cpp-2026.1
+        - intel-oneapi-libdpstd-devel-2022.13
+        - intel-oneapi-mkl-classic-devel-2026.1
+        - intel-oneapi-mkl-classic-include-2026.1
+        - intel-oneapi-mkl-cluster-2026.1
+        - intel-oneapi-mkl-cluster-devel-2026.1
+        - intel-oneapi-mkl-core-2026.1
+        - intel-oneapi-mkl-core-devel-2026.1
+        - intel-oneapi-mkl-devel
+        - intel-oneapi-mkl-devel-2026.1
+        - intel-oneapi-mkl-sycl-2026.1
+        - intel-oneapi-mkl-sycl-blas-2026.1
+        - intel-oneapi-mkl-sycl-data-fitting-2026.1
+        - intel-oneapi-mkl-sycl-devel-2026.1
+        - intel-oneapi-mkl-sycl-dft-2026.1
+        - intel-oneapi-mkl-sycl-include-2026.1
+        - intel-oneapi-mkl-sycl-lapack-2026.1
+        - intel-oneapi-mkl-sycl-rng-2026.1
+        - intel-oneapi-mkl-sycl-sparse-2026.1
+        - intel-oneapi-mkl-sycl-stats-2026.1
+        - intel-oneapi-mkl-sycl-vm-2026.1
+        - intel-oneapi-openmp-2026.1
+        - intel-oneapi-openmp-common-2026.1
+        - intel-oneapi-runtime-compilers
+        - intel-oneapi-runtime-compilers-common
+        - intel-oneapi-runtime-dpcpp-sycl-core
+        - intel-oneapi-runtime-dpcpp-sycl-core
+        - intel-oneapi-runtime-dpcpp-sycl-opencl-cpu
+        - intel-oneapi-runtime-opencl
+        - intel-oneapi-runtime-openmp
+        - intel-oneapi-runtime-tbb
+        - intel-oneapi-runtime-tcm
+        - intel-oneapi-tbb-2023.1
+        - intel-oneapi-tbb-devel-2023.1
+        - intel-oneapi-tcm-1.5
+        - intel-oneapi-umf-1.1
+
+    - name: Create oneAPI Environment Profile Script
+      ansible.builtin.copy:
+        dest: /etc/profile.d/intel-oneapi.sh
+        content: |
+          #!/bin/bash
+          # Initialize Intel oneAPI environment variables on login
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh --force > /dev/null 2>&1
+          fi
+        mode: "0755"
+        owner: root
+        group: root
+        backup: true
+
+  rescue:
+    # Shape 1 (add context, then re-raise): this block only runs when the
+    # operator sets intel_oneapi_install, so exiting green contradicts an
+    # explicit request.
+    - name: Report Intel oneAPI setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to set up the Intel oneAPI toolkit. The pinned package versions
+          in this task are the usual cause - check that yum.repos.intel.com still
+          carries them.
+
+    - name: Fail the play on Intel oneAPI setup failure
+      ansible.builtin.fail:
+        msg: "Intel oneAPI installation failed - see the preceding task output."

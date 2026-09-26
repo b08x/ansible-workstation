@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  author: b08x
+  description: Deploy Hermes Agent as root on RHEL with Podman backend and SELinux enforcing
+  company: b08x
+
+  license: GPL-2.0-or-later
+
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "8"
+
+  galaxy_tags:
+    - llm
+    - hermes
+    - agent
+    - podman
+    - selinux
+    - rhel
+
+dependencies: []

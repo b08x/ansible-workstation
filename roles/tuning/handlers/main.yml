@@ -1,0 +1,19 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart rtirq
+  ansible.builtin.systemd:
+    name: rtirq
+    state: restarted
+    enabled: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart rtkit
+  ansible.builtin.systemd:
+    name: rtkit-daemon
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

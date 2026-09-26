@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import yaml
+
 from ansible.plugins.callback import CallbackBase
 
 __metaclass__ = type
@@ -427,9 +428,7 @@ class CallbackModule(CallbackBase):
             }
             try:
                 if getattr(task, "args", None):
-                    args_data = (
-                        dict(task.args) if hasattr(task.args, "items") else task.args
-                    )
+                    args_data = dict(task.args) if hasattr(task.args, "items") else task.args
                     json.dumps(args_data)
                     task_dict.update(args_data)
             except (TypeError, ValueError, AttributeError):
@@ -468,6 +467,4 @@ class CallbackModule(CallbackBase):
     ):
         """Save structured suggestions for LLM processing."""
         count = self.task_count if analysis_type == "task" else self.play_count
-        return save_suggestions(
-            self.analysis_dir, suggestions, analysis_type, name, count=count
-        )
+        return save_suggestions(self.analysis_dir, suggestions, analysis_type, name, count=count)

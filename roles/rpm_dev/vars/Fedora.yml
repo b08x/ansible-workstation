@@ -1,0 +1,48 @@
+---
+packages__rpm_dev:
+  - "@development-tools"
+  - createrepo_c
+  - curl
+  - diffutils
+  - fedora-packager
+  - fedpkg
+  - git
+  - gnupg2
+  - koji
+  - mock
+  - patch
+  - python3-pip
+  - python3-setuptools
+  - redhat-rpm-config
+  - rpm-build
+  - rpm-sign
+  - rpmdevtools
+  - rpmlint
+  - rpmspectool
+  - wget
+
+packages__mock_deps:
+  - systemd-container
+  - dnf
+  - dnf-plugins-core
+  - usermode
+
+packages__dev_tools:
+  - vim-enhanced
+  - nano
+  - tree
+  - less
+
+packages:
+  rpm_dev: "{{ packages__rpm_dev + packages__mock_deps + packages__dev_tools }}"
+
+mock_configs:
+  - src: "custom-fedora-{{ ansible_distribution_major_version }}.cfg.j2"
+    dest: "custom-fedora-{{ ansible_distribution_major_version }}-{{ ansible_architecture }}.cfg"
+
+mock_templates:
+  - "custom-fedora-branched.tpl"
+
+_mock_targets:
+  - "fedora-{{ ansible_distribution_major_version }}-x86_64"
+  - "fedora-{{ ansible_distribution_major_version }}-aarch64"

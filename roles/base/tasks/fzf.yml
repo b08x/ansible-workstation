@@ -1,0 +1,67 @@
+---
+- name: Check whether fzf is available in dnf
+  ansible.builtin.command:
+    cmd: dnf --quiet list --available fzf
+  register: base_fzf_dnf_check
+  changed_when: false
+  failed_when: false
+  tags: ["fzf", "base"]
+
+- name: Install fzf from dnf
+  ansible.builtin.dnf:
+    name: fzf
+    state: present
+  when: base_fzf_dnf_check.rc == 0
+  tags: ["fzf", "base"]
+
+- name: Check if fzf is installed from source
+  ansible.builtin.stat:
+    path: /usr/local/bin/fzf
+  register: base_fzf_bin
+  when: base_fzf_dnf_check.rc != 0
+  tags: ["fzf", "base"]
+
+- name: Build and install fzf from source
+  tags: ["fzf", "base"]
+  when:
+    - base_fzf_dnf_check.rc != 0
+    - not base_fzf_bin.stat.exists | default(false)
+  vars:
+    path:
+      - "{{ ansible_user_dir }}/.local/bin"
+      - "{{ ansible_user_dir }}/.cargo/bin"
+      - "/usr/local/go/bin"
+      - "$(go env GOPATH)/bin"
+  environment:
+    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
+  block:
+    - name: Ensure clean state for fzf clone
+      ansible.builtin.file:
+        path: /tmp/fzf
+        state: absent
+
+    - name: Clone fzf repository
+      ansible.builtin.git:
+        repo: "https://github.com/junegunn/fzf.git"
+        dest: /tmp/fzf
+        clone: true
+        update: true
+        version: master
+
+    - name: Install fzf via make
+      ansible.builtin.command:
+        cmd: make install
+        chdir: /tmp/fzf
+
+    - name: Copy fzf binaries to /usr/local/bin
+      ansible.builtin.copy:
+        src: /tmp/fzf/bin/
+        dest: /usr/local/bin/
+        remote_src: true
+        mode: "0755"
+        backup: true
+
+    - name: Clean up fzf clone
+      ansible.builtin.file:
+        path: /tmp/fzf
+        state: absent

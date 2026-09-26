@@ -1,0 +1,46 @@
+# Master libvirt daemon configuration file managed by Ansible.
+#
+# For the full list of options, see the original libvirtd.conf file
+# or the libvirt documentation.
+
+#################################################################
+# UNIX socket access controls
+#################################################################
+
+# Set the UNIX domain socket group ownership. This can be used to
+# allow a 'trusted' set of users access to management capabilities
+# without becoming root.
+#
+# This is restricted to 'root' by default.
+unix_sock_group = "{{ libvirt_unix_sock_group }}"
+
+# Set the UNIX socket permissions for the R/O socket. This is used
+# for monitoring VM status only. Default allows any user.
+unix_sock_ro_perms = "0777"
+
+# Set the UNIX socket permissions for the R/W socket. This is used
+# for full management of VMs.
+unix_sock_rw_perms = "{{ libvirt_unix_sock_rw_perms }}"
+
+#################################################################
+# Authentication.
+#################################################################
+
+# Set an authentication scheme for UNIX read-write sockets.
+#
+# If libvirt was compiled with support for 'polkit', then
+# the systemd .socket files will use SocketMode=0666 which
+# allows any user to connect and 'auth_unix_rw' will default
+# to 'polkit'.
+#
+# Setting this to "none" allows users in the 'unix_sock_group'
+# to manage VMs without needing to authenticate.
+auth_unix_rw = "{{ libvirt_auth_unix_rw }}"
+
+###################################################################
+# Keepalive protocol:
+###################################################################
+# This allows libvirtd to detect broken client connections or even
+# dead clients.
+keepalive_interval = 5
+keepalive_count = 5

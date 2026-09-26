@@ -15,40 +15,37 @@ stack — from a single inventory.
 
 </div>
 
+## Preface
+
+This is the terminal stage of compounding illusions. 
+
+A sentence is typed, a model predicts the statistically likeliest string of tokens in response, and somewhere down the stack, a system state actually changes. So many translation layers have been built between intent and execution that the observer's link to the underlying mechanics is completely severed. Machines are no longer provisioned directly; an abstraction layer is utilized to translate linguistic inputs into infrastructure.
+
+This collection of Ansible roles isn't some precarious house of cards, nor is it a game to be won. It is simply a lifelong exercise in the breakdown of meaning and the loss of grounded perspective, mirroring the somewhat arbitrary process of assigning weight to objects. It is the cheerful observation of linguistic outputs dictating the bare metal. Make yourself comfortable.
+
 ## Why This Exists
 
-The repository itself is the artifact. The process of building it — forcing LLM
-agents to respect Ansible idempotency rather than hallucinating bash scripts —
-is the practice.
+This repository is the byproduct of an iterative refactoring spanning several years—a transformation of daily work perception that occasionally wanders into vaguely meaningless semantic loops. 
 
-Three things are being worked out here simultaneously:
+While on the surface it is an Ansible control repository for provisioning Fedora and AlmaLinux workstations, the repository itself is merely the artifact. The true practice lies in calculating the most probable tokens alongside a continuous refinement of objective functions and educational protocols. The goal? To decouple linguistic fluency from subjectivity. 
 
-- **Configuration management as discipline.** Every role is written to be
-  re-runnable: idempotent tasks, distribution asserts before damage, explicit
-  variable tiers, and firewall rules co-located with the service that owns them.
-  The conventions documented below exist because agents (and humans) drift
-  without them.
-- **Technical debt bankruptcy.** The repo was restructured wholesale — roles
-  promoted into purpose-built collections, defaults/vars inversions fixed,
-  dead handlers and ad-hoc shell migrations audited away — rather than
-  incrementally patched. The sub-module layout makes that bankruptcy
-  repeatable: each collection gets a clean history instead of inheriting the
-  control repo's.
-- **Agentic coding workflows.** The `llm_analyzer` callback and its JSONL
-  trace store record what models actually do against real playbooks;
-  `scripts/llm_trainset.py` turns those traces into DSPy trainsets. The
-  playbooks, their committed graphs under `docs/graphs/`, and the lint and
-  test surface are the guardrails that make agent-driven change safe.
+A deliberate semiotic decoupling takes place, so as to *not* disrupt anthropomorphic projection. This maintains a hyper-isomorphic register matching for enjoyable in-context learning, where the lexical field, tone, and complexity reflect what could otherwise be considered sequence loss minimization, or the over-optimization of predictive loops.
 
-If you came here for the workstation plumbing, read straight down. If you came
-for the meta-practice, the LLM Analyzer and Playbook Graphs sections are the
-interesting parts.
+Three strange loops intertwine here simultaneously:
+
+- **Configuration Management as Context-Dependent Interpretation**: Every role is written to be re-runnable: idempotent tasks, explicit variable tiers, and firewall rules co-located with their services. Models (and humans) drift without grounding; establishing these conventions anchors the semantic environment so outputs can be effectively constrained.
+- **Technical Debt Bankruptcy via Reductionism & Holism**: The repo was restructured wholesale—collapsing into a monolithic architecture by pulling all roles natively into `roles/` and severing git submodules. Complex, fragmented hierarchies were destroyed to rebuild a unified whole, minimizing sequence loss across architectural thought patterns.
+- **Agentic Self-Reference**: The `llm_analyzer` callback and its JSONL trace store record what models actually do against real playbooks, feeding `scripts/llm_trainset.py` to turn those traces into DSPy trainsets. The system is programmed, and then watched as it successfully completes the intended automation.
+
+If you came here for the workstation plumbing, read straight down. If you came to observe the hyper-isomorphic register matching of predictive loops being deliberately optimized—that's here too.
+
+...but for fun.
 
 ## Iterations
 
-This repository has gone through configuration-management iterations, and it is
-entering another: a retooling pass that treats the workstation itself as the
-test bed for agentic coding workflows.
+This repository has gone through configuration-management iterations, and it is entering another: a retooling pass that treats the workstation itself as the test bed for agentic coding workflows.
+
+This is probably the most convoluted collection to be refactored quite yet. The complexity has certainly been a challenge to fabricate.
 
 > **TODO — narrative for the current iteration.** Provisioning retools around
 > devcontainers and atomic (bootc) hosts alongside the traditional dnf path, and
@@ -65,23 +62,17 @@ hosts need SSH and a `dnf`-based distribution; several roles assume Fedora or
 AlmaLinux specifically and assert as much before doing damage.
 
 <details>
-<summary><b>Fedora — bootstrap script (recommended)</b></summary>
+<summary><b>Bootstrap script (recommended)</b></summary>
 
-`bootstrap.sh` prepares a bare Fedora install to act as its own control node. It
-installs `ansible-core`, the `posix` and `utils` collections, build tooling,
-`yadm` for dotfiles, and wires up Flathub. Root is required, since the whole
-script is `dnf` work.
+`bin/setup` is a robust TUI orchestrator powered by Gum that prepares a bare Fedora install to act as its own control node. It checks prerequisites, optionally runs Ansible system provisioning, and handles user dotfiles via yadm. Ensure you run this script as your normal user; it will prompt for sudo when needed.
 
 ```bash
-git clone --recurse-submodules https://github.com/b08x/ansible-playbooks-workstation.git
+git clone https://github.com/b08x/ansible-playbooks-workstation.git
 cd ansible-playbooks-workstation
-sudo ./bootstrap.sh
+./bin/setup
 ```
 
-The script installs [gum](https://github.com/charmbracelet/gum) first and drives
-the rest of the run through it; interrupts and command failures both prompt
-rather than abort, so a single failed `dnf` transaction does not discard the
-whole session.
+The script is driven through a TUI; it gracefully handles interrupts and command failures, prompting rather than aborting.
 
 </details>
 
@@ -91,13 +82,9 @@ whole session.
 ```bash
 git clone https://github.com/b08x/ansible-playbooks-workstation.git
 cd ansible-playbooks-workstation
-git submodule update --init --recursive
 ```
 
-The submodule step is not optional. The collections live under
-`collections/ansible_collections/b08x/` and every playbook resolves roles
-through them; skipping it produces role-not-found errors rather than anything
-that names the real cause.
+Roles are located natively in the `roles/` directory, following a monolithic architecture. All playbooks will resolve roles natively without needing extra collections initialization.
 
 </details>
 
@@ -164,7 +151,7 @@ Playbooks that target the `workstations` group can run any single role
 independently — each carries the full variable surface from `group_vars` and
 role defaults, so overrides are always explicit.
 
-**devworkstation collection**
+**Development Workstation Roles**
 
 Privileged playbooks (run with `become: true`):
 
@@ -184,7 +171,7 @@ Unprivileged playbooks (run without `become`):
 | `playbooks/user.yml` | user | user, system |
 | `playbooks/coding_agents.yml` | coding_agents | coding_agents, system |
 
-**llmops collection**
+**LLM Ops Roles**
 
 | Playbook | Role | Host | Runtime |
 | ---------- | ------ | ------ | --------- |
@@ -194,7 +181,7 @@ Unprivileged playbooks (run without `become`):
 | `playbooks/hermes.yml` | hermes | workstations | — |
 | `playbooks/tts.yml` | tts | workstations | — |
 
-**rhel_builder collection**
+**RHEL Builder Roles**
 
 | Playbook | Role | Host |
 | ---------- | ------ | ------ |
@@ -256,8 +243,8 @@ ansible-playbook playbooks/base.yml --check --diff
 # Virtualisation stack on the builder hosts
 ansible-playbook playbooks/containerd.yml --limit builder
 
-# Lint a collection
-cd collections/ansible_collections/b08x/devworkstation && ansible-lint
+# Lint all roles
+ansible-lint
 ```
 
 ## Configuration
@@ -333,7 +320,7 @@ python scripts/llm_trainset.py evaluate
 
 ## Image Building
 
-The `rhel_builder` collection wraps the unified `image-builder` CLI and osbuild.
+The `rhel_builder` roles wrap the unified `image-builder` CLI and osbuild.
 Targets are Fedora and AlmaLinux; the playbook asserts the distribution up front
 so an unsupported host fails immediately rather than midway through a compose.
 
@@ -361,7 +348,7 @@ plays, and therefore the only artifact showing the full provisioning shape. See
 ## Testing
 
 ```bash
-# Lint (from a collection directory)
+# Lint natively
 ansible-lint
 
 # Molecule scenario
@@ -371,26 +358,19 @@ molecule test
 pytest -vvv -n 2
 ```
 
-Two pre-commit configurations exist and they are not interchangeable. The root
-config runs black, isort, flake8, prettier and ansible-lint; each collection
-carries its own with a broader hook set that notably excludes ansible-lint. A
-`pre-commit run --all-files` from the repository root does not apply collection
-hooks, so collection work wants a run from inside the collection.
+The root `pre-commit` config runs black, isort, flake8, prettier, and ansible-lint
+across the monolithic repository. Run `pre-commit run --all-files` from the repository root
+to validate all roles and playbooks.
 
 ## Contributing
 
 Issues and pull requests are welcome. The same constraints that make the
 repository the artifact apply to contributions: idempotent tasks, the documented
-variable tiers, and collection changes committed in their own repository before
-the pointer bump here. Roles follow the standard layout, with
+variable tiers. Roles follow the standard layout natively in the repository, with
 distribution-specific tasks under `tasks/distro/{{ ansible_distribution }}.yml`,
 and firewall rules co-located in the role that opens the port rather than
 centralised — services stay self-contained that way.
 
-The collections are submodules: changes there are committed and pushed in the
-collection repository first, then the pointer bump follows in this one.
-
 ## License
 
-GNU General Public License v3.0 or later. Each collection carries the full text
-in its own `LICENSE`.
+GNU General Public License v3.0 or later.

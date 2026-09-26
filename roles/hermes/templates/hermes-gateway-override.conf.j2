@@ -1,0 +1,12 @@
+# Hermes Gateway Service - Environment Override
+# This file is managed by Ansible - DO NOT EDIT MANUALLY
+
+[Service]
+# Override container runtime to Podman
+Environment="HERMES_DOCKER_BINARY=podman"
+Environment="PATH={{ hermes_venv_bin }}:{{ hermes_install_dir }}/hermes-agent/venv/bin:/usr/local/bin:/usr/bin:/bin"
+WorkingDirectory={{ hermes_agent_dir }}
+
+# Ensure proper environment for container operations
+Environment="XDG_RUNTIME_DIR=/run/{{ hermes_install_user }}"
+Environment="HOME={{ hermes_home_dir }}"

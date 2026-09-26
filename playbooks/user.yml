@@ -15,5 +15,5 @@
       ansible.builtin.setup:
       tags: ["always"]
   roles:
-    - role: b08x.devworkstation.user
+    - role: user
       tags: ["user", "system"]

@@ -1,0 +1,95 @@
+---
+# tasks file for b08x.devworkstation.desktop
+
+- name: Starting desktop tasks
+  ansible.builtin.debug:
+    msg: "Starting desktop tasks"
+  tags: ["desktop", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["desktop", "distro"]
+
+- name: Report qt/gtk package keys missing for this distribution
+  ansible.builtin.debug:
+    msg: >-
+      desktop_packages has no {{ item }} key for {{ ansible_distribution }};
+      skipping those packages.
+  loop: "{{ ['qt', 'gtk'] | reject('in', desktop_packages | default({})) | list }}"
+  tags: ["packages", "desktop"]
+
+- name: Install qt and gtk packages
+  ansible.builtin.dnf:
+    name: "{{ (desktop_packages.qt | default([])) + (desktop_packages.gtk | default([])) }}"
+    state: present
+  when: (desktop_packages.qt | default([])) or (desktop_packages.gtk | default([]))
+  tags: ["packages", "desktop"]
+
+- name: Include GNOME desktop installation tasks
+  ansible.builtin.include_tasks: gnome.yml
+  when: desktop_environment | default('gnome') == 'gnome'
+  tags: ["gnome"]
+
+- name: Include GNOME extensions tasks
+  ansible.builtin.include_tasks: gnome_extensions.yml
+  when: desktop_environment | default('gnome') == 'gnome'
+  tags: ["gnome", "extensions"]
+
+- name: Include theme installation tasks
+  ansible.builtin.include_tasks: theme.yml
+  tags: ["theme"]
+
+- name: Ensure Flathub remote repository is present
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: system
+    state: present
+  tags: ["flathub"]
+
+- name: Include VS Code installation tasks
+  ansible.builtin.include_tasks: vscode.yml
+  tags: ["vscode", "desktop"]
+
+- name: Include Antigravity Hub and IDE installation tasks
+  ansible.builtin.include_tasks: antigravity.yml
+  tags: ["antigravity", "desktop"]
+
+- name: Include input-remapper tasks
+  ansible.builtin.include_tasks: input-remapper.yml
+  tags: ["input-remapper"]
+
+- name: Install Flatpak applications
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+    remote: flathub
+  loop:
+    - com.google.Chrome
+    - io.github.vikdevelop.SaveDesktop
+    - com.mattjakeman.ExtensionManager
+    - com.ranfdev.DistroShelf
+    - io.github.input_leap.input-leap
+    - io.podman_desktop.PodmanDesktop
+    - page.tesk.Refine
+    - org.gnome.DejaDup
+    - io.github.flattool.Ignition
+    - md.obsidian.Obsidian
+    - io.github.getnf.embellish
+  tags: ["flatpaks"]
+
+- name: Install Additional Flatpak applications
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+    remote: flathub
+  loop:
+    - org.pipewire.Helvum
+    - org.darktable.Darktable
+    - io.github.mhogomchungu.media-downloader
+    - io.github.ltiber.Pwall
+    - io.dbeaver.DBeaverCommunity
+    - com.discordapp.Discord
+  tags: ["flatpaks"]

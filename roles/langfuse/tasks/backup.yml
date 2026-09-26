@@ -1,0 +1,114 @@
+---
+# Backup/restore tasks for b08x.llmops.langfuse PostgreSQL database
+# Uses the container CLI (docker or podman) to exec pg_dump/pg_restore
+# inside the postgres container — no host-side postgresql-client required.
+
+# Container CLI and name are runtime-dependent but the container name
+# is made consistent via container_name in compose and explicit naming in podman.
+- name: Set container CLI for backup operations
+  ansible.builtin.set_fact:
+    langfuse_backup_cli: "{{ 'docker' if langfuse_container_runtime == 'docker' else 'podman' }}"
+    langfuse_backup_container: "{{ langfuse_project_name }}-postgres"
+  tags: ["langfuse", "backup"]
+
+# -- Backup --
+
+- name: Backup Langfuse PostgreSQL
+  when: langfuse_backup_action == "backup"
+  tags: ["langfuse", "backup"]
+  block:
+    - name: Create backup directory
+      ansible.builtin.file:
+        path: "{{ langfuse_backup_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Set backup filename with timestamp
+      ansible.builtin.set_fact:
+        langfuse_backup_filename: >-
+          {{ langfuse_postgres_db }}_{{ ansible_date_time.iso8601_basic_short }}.{{ 'dump' if langfuse_backup_format == 'custom' else 'sql' }}
+
+    - name: Backup PostgreSQL database (custom format)
+      ansible.builtin.shell: |
+        {{ langfuse_backup_cli }} exec {{ langfuse_backup_container }} \
+          pg_dump -U {{ langfuse_postgres_user }} -d {{ langfuse_postgres_db }} \
+          -Fc -Z{{ langfuse_backup_compression }} > {{ langfuse_backup_dir }}/{{ langfuse_backup_filename }}
+      args:
+        creates: "{{ langfuse_backup_dir }}/{{ langfuse_backup_filename }}"
+      register: langfuse_backup_result
+      when: langfuse_backup_format == "custom"
+
+    - name: Backup PostgreSQL database (plain SQL)
+      ansible.builtin.shell: |
+        {{ langfuse_backup_cli }} exec {{ langfuse_backup_container }} \
+          pg_dump -U {{ langfuse_postgres_user }} -d {{ langfuse_postgres_db }} \
+          -Fp > {{ langfuse_backup_dir }}/{{ langfuse_backup_filename }}
+      args:
+        creates: "{{ langfuse_backup_dir }}/{{ langfuse_backup_filename }}"
+      register: langfuse_backup_result
+      when: langfuse_backup_format == "plain"
+
+    - name: Display backup result
+      ansible.builtin.debug:
+        msg: "Backup written to {{ langfuse_backup_dir }}/{{ langfuse_backup_filename }}"
+      when: langfuse_backup_result is defined and langfuse_backup_result.changed
+
+    - name: Prune old backups
+      ansible.builtin.find:
+        paths: "{{ langfuse_backup_dir }}"
+        patterns: "{{ langfuse_postgres_db }}_*.{dump,sql}"
+        age: "{{ langfuse_backup_retention_days }}d"
+      register: langfuse_old_backups
+      changed_when: false
+
+    - name: Remove old backups
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ langfuse_old_backups.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      when: langfuse_old_backups.files | length > 0
+
+# -- Restore --
+
+- name: Restore Langfuse PostgreSQL
+  when: langfuse_backup_action == "restore"
+  tags: ["langfuse", "backup"]
+  block:
+    - name: Verify restore file exists
+      ansible.builtin.stat:
+        path: "{{ langfuse_backup_file }}"
+      register: langfuse_restore_file_stat
+
+    - name: Fail if restore file is missing
+      ansible.builtin.fail:
+        msg: "Restore file not found: {{ langfuse_backup_file }}"
+      when: not langfuse_restore_file_stat.stat.exists
+
+    - name: Restore PostgreSQL database (custom format)
+      ansible.builtin.shell: |
+        {{ langfuse_backup_cli }} exec -i {{ langfuse_backup_container }} \
+          pg_restore -U {{ langfuse_postgres_user }} -d {{ langfuse_postgres_db }} \
+          --clean --if-exists < {{ langfuse_backup_file }}
+      register: langfuse_restore_result
+      changed_when: false
+      when:
+        - langfuse_restore_file_stat.stat.exists
+        - langfuse_backup_file | regex_search('\.dump$')
+
+    - name: Restore PostgreSQL database (plain SQL)
+      ansible.builtin.shell: |
+        {{ langfuse_backup_cli }} exec -i {{ langfuse_backup_container }} \
+          psql -U {{ langfuse_postgres_user }} -d {{ langfuse_postgres_db }} \
+          < {{ langfuse_backup_file }}
+      register: langfuse_restore_result
+      changed_when: false
+      when:
+        - langfuse_restore_file_stat.stat.exists
+        - langfuse_backup_file | regex_search('\.sql$')
+
+    - name: Display restore result
+      ansible.builtin.debug:
+        msg: "Restored from {{ langfuse_backup_file }}"
+      when: langfuse_restore_result is defined and langfuse_restore_result.changed
