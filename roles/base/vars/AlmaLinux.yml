@@ -15,10 +15,12 @@ base_packages:
   - flatpak
   - gettext
   - gmp-devel
+  - gobject-introspection-devel
   - gtksourceview4
   - highlight
   - htop
   - jq
+  - just
   - kernel-devel
   - kernel-headers
   - kernel-modules
@@ -60,6 +62,9 @@ base_packages:
   - ruby-build
   - sqlite
   - uv
+  - vala
+  - wayland-devel
+  - wayland-protocols-devel
   - wireplumber
   - zlib-devel
   - zram-generator
