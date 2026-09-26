@@ -1,5 +1,5 @@
 goals/
-wiki.json
+#wiki.json
 .codemap/
 *.code-workspace
 .vagrant/machines/

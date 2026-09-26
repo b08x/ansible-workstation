@@ -1,0 +1,163 @@
+{
+  "id": "2026-09-25-171236",
+  "generated_at": "2026-09-25T21:12:36.010716709Z",
+  "language": "en",
+  "pages": [
+    {
+      "slug": "1-overview-the-b08x-devworkstation-base-role",
+      "title": "Overview: The b08x.devworkstation Base Role",
+      "file": "1-overview-the-b08x-devworkstation-base-role.md",
+      "section": "Get Started",
+      "level": "Beginner"
+    },
+    {
+      "slug": "2-quick-start-requirements-variables-and-first-run",
+      "title": "Quick Start: Requirements, Variables, and First Run",
+      "file": "2-quick-start-requirements-variables-and-first-run.md",
+      "section": "Get Started",
+      "level": "Beginner"
+    },
+    {
+      "slug": "3-role-directory-anatomy-ansible-standard-layout",
+      "title": "Role Directory Anatomy: Ansible Standard Layout",
+      "file": "3-role-directory-anatomy-ansible-standard-layout.md",
+      "section": "Get Started",
+      "level": "Beginner"
+    },
+    {
+      "slug": "4-supported-platforms-fedora-and-almalinux-targets",
+      "title": "Supported Platforms: Fedora and AlmaLinux Targets",
+      "file": "4-supported-platforms-fedora-and-almalinux-targets.md",
+      "section": "Get Started",
+      "level": "Beginner"
+    },
+    {
+      "slug": "5-defaults-and-overridable-variables-defaults-main-yml",
+      "title": "Defaults and Overridable Variables (defaults/main.yml)",
+      "file": "5-defaults-and-overridable-variables-defaults-main-yml.md",
+      "section": "Deep Dive",
+      "group": "Configuration Surface",
+      "level": "Beginner"
+    },
+    {
+      "slug": "6-input-validation-with-argument_specs-yml",
+      "title": "Input Validation with argument_specs.yml",
+      "file": "6-input-validation-with-argument_specs-yml.md",
+      "section": "Deep Dive",
+      "group": "Configuration Surface",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "7-distro-specific-variables-vars-fedora-yml-and-vars-almalinux-yml",
+      "title": "Distro-Specific Variables: vars/Fedora.yml and vars/AlmaLinux.yml",
+      "file": "7-distro-specific-variables-vars-fedora-yml-and-vars-almalinux-yml.md",
+      "section": "Deep Dive",
+      "group": "Configuration Surface",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "8-dnf-tuning-fastestmirror-and-dnf-plugins-core",
+      "title": "DNF Tuning: fastestmirror and dnf-plugins-core",
+      "file": "8-dnf-tuning-fastestmirror-and-dnf-plugins-core.md",
+      "section": "Deep Dive",
+      "group": "Package Management \u0026 Repositories",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "9-third-party-repositories-epel-and-rpm-fusion-setup",
+      "title": "Third-Party Repositories: EPEL and RPM Fusion Setup",
+      "file": "9-third-party-repositories-epel-and-rpm-fusion-setup.md",
+      "section": "Deep Dive",
+      "group": "Package Management \u0026 Repositories",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "10-fedora-copr-repositories-and-package-priority-management",
+      "title": "Fedora COPR Repositories and Package Priority Management",
+      "file": "10-fedora-copr-repositories-and-package-priority-management.md",
+      "section": "Deep Dive",
+      "group": "Package Management \u0026 Repositories",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "11-metadata-cache-refresh-strategy-and-change-detection",
+      "title": "Metadata Cache Refresh Strategy and Change Detection",
+      "file": "11-metadata-cache-refresh-strategy-and-change-detection.md",
+      "section": "Deep Dive",
+      "group": "Package Management \u0026 Repositories",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "12-task-orchestration-how-tasks-main-yml-wires-everything",
+      "title": "Task Orchestration: How tasks/main.yml Wires Everything",
+      "file": "12-task-orchestration-how-tasks-main-yml-wires-everything.md",
+      "section": "Deep Dive",
+      "group": "Development Toolchain Tasks",
+      "level": "Beginner"
+    },
+    {
+      "slug": "13-zsh-shell-stack-oh-my-zsh-and-zoxide-installation",
+      "title": "Zsh Shell Stack: Oh-My-Zsh and Zoxide Installation",
+      "file": "13-zsh-shell-stack-oh-my-zsh-and-zoxide-installation.md",
+      "section": "Deep Dive",
+      "group": "Development Toolchain Tasks",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "14-optional-tooling-fzf-inxi-gitflow-go-and-yadm",
+      "title": "Optional Tooling: fzf, inxi, gitflow, Go, and yadm",
+      "file": "14-optional-tooling-fzf-inxi-gitflow-go-and-yadm.md",
+      "section": "Deep Dive",
+      "group": "Development Toolchain Tasks",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "15-homebrew-on-linux-and-intel-hardware-support",
+      "title": "Homebrew on Linux and Intel Hardware Support",
+      "file": "15-homebrew-on-linux-and-intel-hardware-support.md",
+      "section": "Deep Dive",
+      "group": "Development Toolchain Tasks",
+      "level": "Advanced"
+    },
+    {
+      "slug": "16-idempotency-stat-checks-and-creates-guards-for-installers",
+      "title": "Idempotency: stat Checks and creates Guards for Installers",
+      "file": "16-idempotency-stat-checks-and-creates-guards-for-installers.md",
+      "section": "Deep Dive",
+      "group": "Reliability Patterns",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "17-failure-shape-patterns-context-re-raise-and-soft-fail-base_zoxide_required",
+      "title": "Failure Shape Patterns: Context, Re-Raise, and Soft-Fail (base_zoxide_required)",
+      "file": "17-failure-shape-patterns-context-re-raise-and-soft-fail-base_zoxide_required.md",
+      "section": "Deep Dive",
+      "group": "Reliability Patterns",
+      "level": "Advanced"
+    },
+    {
+      "slug": "18-handlers-and-conditional-reconfiguration-flow",
+      "title": "Handlers and Conditional Reconfiguration Flow",
+      "file": "18-handlers-and-conditional-reconfiguration-flow.md",
+      "section": "Deep Dive",
+      "group": "Reliability Patterns",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "19-test-inventory-and-local-playbook-verification",
+      "title": "Test Inventory and Local Playbook Verification",
+      "file": "19-test-inventory-and-local-playbook-verification.md",
+      "section": "Deep Dive",
+      "group": "Testing \u0026 Extending",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "20-adding-a-new-optional-tool-task-and-argument-spec-checklist",
+      "title": "Adding a New Optional Tool: Task and Argument Spec Checklist",
+      "file": "20-adding-a-new-optional-tool-task-and-argument-spec-checklist.md",
+      "section": "Deep Dive",
+      "group": "Testing \u0026 Extending",
+      "level": "Advanced"
+    }
+  ]
+}
