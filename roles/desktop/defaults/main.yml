@@ -16,6 +16,30 @@ desktop_antigravity_ide_url: >-
   {{ 'https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/' ~
      '2.5.5-4923483625488384/linux-x64/Antigravity%20IDE.tar.gz' }}
 
+# GNOME Shell Extensions to ensure are installed and enabled
+desktop_gnome_extensions:
+  # System extensions (available via dnf)
+  - gnome-shell-extension-appindicator
+  - gnome-shell-extension-apps-menu
+  - gnome-shell-extension-auto-move-windows
+  - gnome-shell-extension-dash-to-dock
+  - gnome-shell-extension-places-menu
+  - gnome-shell-extension-user-theme
+  - gnome-shell-extension-window-list
+  - gnome-shell-extension-launch-new-instance
+  - gnome-shell-extension-workspace-indicator
+  # User extensions (installed to ~/.local/share/gnome-shell/extensions/)
+  # These need to be installed separately (e.g., from extensions.gnome.org)
+  # and will be enabled if present
+desktop_gnome_user_extensions:
+  # - hyprwhspr-waveform@ninyawee.github.io
+  - notification-timeout@chlumskyvaclav.gmail.com
+  - notification-configurator@exposedcat
+  - junk-notification-cleaner@murar8.github.com
+  - kando-integration@kando-menu.github.io
+  # - omega13@b08x.github.io
+  # - paperwm@paperwm.github.io
+
 desktop_vscode_extensions:
   - ahmadawais.shades-of-purple
   - anseki.vscode-color

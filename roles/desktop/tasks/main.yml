@@ -30,6 +30,11 @@
   when: desktop_environment | default('gnome') == 'gnome'
   tags: ["gnome"]
 
+- name: Include GNOME extensions tasks
+  ansible.builtin.include_tasks: gnome_extensions.yml
+  when: desktop_environment | default('gnome') == 'gnome'
+  tags: ["gnome", "extensions"]
+
 - name: Include theme installation tasks
   ansible.builtin.include_tasks: theme.yml
   tags: ["theme"]
