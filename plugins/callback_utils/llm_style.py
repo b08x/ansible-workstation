@@ -97,9 +97,7 @@ def _check_task_structure(lines: list[str]) -> list[dict[str, Any]]:
         if re.match(r"^\s*-\s+\w+:", line):
             if in_task and task_attributes:
                 # Check previous task structure
-                violations.extend(
-                    _validate_task_attribute_order(task_attributes, task_start_line)
-                )
+                violations.extend(_validate_task_attribute_order(task_attributes, task_start_line))
 
             in_task = True
             task_start_line = line_num
@@ -122,24 +120,18 @@ def _check_task_structure(lines: list[str]) -> list[dict[str, Any]]:
         # End of task detection (empty line or new task/block)
         elif in_task and (line.strip() == "" or re.match(r"^\s*-|^\w+:", line)):
             if task_attributes:
-                violations.extend(
-                    _validate_task_attribute_order(task_attributes, task_start_line)
-                )
+                violations.extend(_validate_task_attribute_order(task_attributes, task_start_line))
             in_task = False
             task_attributes = []
 
     # Check last task if file ends while in task
     if in_task and task_attributes:
-        violations.extend(
-            _validate_task_attribute_order(task_attributes, task_start_line)
-        )
+        violations.extend(_validate_task_attribute_order(task_attributes, task_start_line))
 
     return violations
 
 
-def _validate_task_attribute_order(
-    attributes: list[str], start_line: int
-) -> list[dict[str, Any]]:
+def _validate_task_attribute_order(attributes: list[str], start_line: int) -> list[dict[str, Any]]:
     """Validate the order of task attributes against the style guide."""
     violations = []
     expected_order = ["name", "become", "loop", "when", "tags", "notify"]
@@ -359,9 +351,7 @@ def _check_role_design_violations(lines: list[str]) -> list[dict[str, Any]]:
     return violations
 
 
-def _check_module_design_violations(
-    yaml_content: str, lines: list[str]
-) -> list[dict[str, Any]]:
+def _check_module_design_violations(yaml_content: str, lines: list[str]) -> list[dict[str, Any]]:
     """Check for violations of Module Design Principles.
 
     Reference: ansible-best-practices-roles-modules skill - ch03

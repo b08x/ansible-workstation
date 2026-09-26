@@ -82,7 +82,6 @@ class AnsibleAnalyzer:
             raise ValueError(f"API key not provided for {self.provider}")
 
         import dspy  # deferred: see class docstring
-
         from llm_signatures import SIGNATURE_VERSION, build
 
         env_var = PROVIDER_ENV_VARS.get(self.provider)
@@ -167,11 +166,7 @@ class AnsibleAnalyzer:
         """Name the failure so the message points at the thing to change."""
         name = type(exc).__name__
         text = str(exc).lower()
-        if (
-            "notfound" in name.lower()
-            or "404" in text
-            or ("model" in text and "exist" in text)
-        ):
+        if "notfound" in name.lower() or "404" in text or ("model" in text and "exist" in text):
             return "model not found (check the model slug)"
         if "authentication" in name.lower() or "401" in text or "api key" in text:
             return "authentication rejected (check the API key)"
@@ -194,9 +189,7 @@ class AnsibleAnalyzer:
             return ""
         lines = []
         for v in style_violations:
-            entry = "- Line {} ({}): {}".format(
-                v.get("line"), v.get("type"), v.get("message")
-            )
+            entry = "- Line {} ({}): {}".format(v.get("line"), v.get("type"), v.get("message"))
             ref = v.get("reference", "")
             if ref:
                 entry += f" [{ref}]"

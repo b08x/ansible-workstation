@@ -66,6 +66,7 @@
       - Bind Localhost: {{ hermes_bind_localhost | bool | ternary('Yes (firewall skipped)', 'No') }}
       - firewalld Service: {{ ansible_facts.services['firewalld.service'].state | default('unknown') }}
       {% if hermes_manage_firewall and 'firewalld_info' in hermes_firewall_facts %}
-      - Permanent Ports: {{ hermes_firewall_facts.firewalld_info.public.ports | default(hermes_firewall_facts.firewalld_info.zone_internal.ports | default('Not checked')) }}
+      - Permanent Ports: {{ hermes_firewall_facts.firewalld_info.public.ports | default(hermes_firewall_facts.firewalld_info.zone_internal.ports | default('Not checked'))
+      }}
       {% endif %}
   tags: ["hermes", "firewall", "summary", "always"]

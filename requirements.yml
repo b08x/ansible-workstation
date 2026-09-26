@@ -12,8 +12,8 @@ collections:
 
   - name: cisco.ios
 
-#  - name: https://github.com/redhat-cop/network.backup
-#    type: git
+  #  - name: https://github.com/redhat-cop/network.backup
+  #    type: git
 
   - name: containers.podman
     version: 1.20.2

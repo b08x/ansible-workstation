@@ -14,7 +14,6 @@ base_enable_rpmfusion: true
 # COPR repositories to enable. Each entry is an "owner/project" pair,
 # e.g. "atim/starship".
 base_copr_repos: []
-
 # Rescue strictness. The Intel graphics, zoxide and DNF-priority blocks are
 # optional: they report a warning and continue when they fail, because the role
 # still meets its contract without them. Set one to true to turn its failure

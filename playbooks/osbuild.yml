@@ -14,7 +14,6 @@
       {{ 'fedora-' + ansible_distribution_major_version if ansible_distribution == 'Fedora'
          else 'almalinux-' + ansible_distribution_major_version }}
     osbuild_arch: "x86_64"
-
     # Blueprint
     osbuild_blueprint_name: "workstation"
     osbuild_blueprint_version: "1.0.0"

@@ -4,7 +4,6 @@
 # whisper_my_variable say whisper. Settle on one — rename the directory, or
 # rename the vars and argument_specs to tts_*.
 
-
 - name: Starting tts tasks
   ansible.builtin.debug:
     msg: "Starting tts tasks"

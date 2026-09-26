@@ -158,7 +158,7 @@
           MINIO_ROOT_PASSWORD: "{{ langfuse_minio_root_password }}"
         volumes:
           - "{{ langfuse_project_name }}_minio_data:/data"
-        healthcheck: "sh -c 'mc alias set local http://localhost:9100 {{ langfuse_minio_root_user }} {{ langfuse_minio_root_password }} 2>/dev/null; mc ready local'"  # noqa: yaml[line-length]
+        healthcheck: "sh -c 'mc alias set local http://localhost:9100 {{ langfuse_minio_root_user }} {{ langfuse_minio_root_password }} 2>/dev/null; mc ready local'" # noqa: yaml[line-length]
         healthcheck_interval: 1s
         healthcheck_timeout: 5s
         healthcheck_retries: 5

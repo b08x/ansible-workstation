@@ -1,7 +1,6 @@
 ---
 # tasks file for b08x.rhel_builder.composer_cli
 
-
 - name: Starting composer_cli tasks
   ansible.builtin.debug:
     msg: "Starting composer_cli tasks"

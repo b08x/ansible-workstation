@@ -655,7 +655,8 @@ osbuild_locale: "en_US.UTF-8"
 # distribution file. Component definitions reference system_packages.* directly.
 
 # Additional packages to include beyond component defaults
-osbuild_extra_packages: []
+osbuild_extra_packages:
+  []
   # - vim-enhanced
   # - tmux
   # - htop

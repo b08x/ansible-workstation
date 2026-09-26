@@ -56,9 +56,7 @@ def render_task_markdown(outputs: dict[str, Any]) -> str:
             "- **Conditions**: {}".format(outputs.get("conditions", "")),
             "- **Delegation**: {}".format(outputs.get("delegation", "")),
             "- **Loop**: {}".format(outputs.get("loop", "")),
-            "- **Privilege Escalation**: {}".format(
-                outputs.get("privilege_escalation", "")
-            ),
+            "- **Privilege Escalation**: {}".format(outputs.get("privilege_escalation", "")),
             "- **Error Handling**: {}".format(outputs.get("error_handling", "")),
         ]
     )
@@ -72,9 +70,7 @@ def render_play_markdown(outputs: dict[str, Any]) -> str:
         [
             "### Target Hosts",
             "- **Hosts**: {}".format(outputs.get("hosts", "")),
-            "- **Gather Facts**: {}".format(
-                "Yes" if outputs.get("gather_facts") else "No"
-            ),
+            "- **Gather Facts**: {}".format("Yes" if outputs.get("gather_facts") else "No"),
             "",
             "### Variable & Role Scoping",
             str(outputs.get("variable_sources", "")),
@@ -85,9 +81,7 @@ def render_play_markdown(outputs: dict[str, Any]) -> str:
             "### Handler Coordination",
             "- **Handlers Defined**: {}".format(outputs.get("handlers_defined", "")),
             "- **Notify Sources**: {}".format(outputs.get("notify_sources", "")),
-            "- **Unreachable Handlers**: {}".format(
-                outputs.get("unreachable_handlers", "")
-            ),
+            "- **Unreachable Handlers**: {}".format(outputs.get("unreachable_handlers", "")),
             "",
             "### Execution Flow",
             "- **Strategy**: {}".format(outputs.get("strategy", "")),

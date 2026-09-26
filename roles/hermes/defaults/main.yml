@@ -30,7 +30,7 @@ hermes_bind_localhost: true
 # System service configuration
 # When true, installs as systemd system service (requires root)
 hermes_system_service: true
-hermes_service_type: system  # system or user
+hermes_service_type: system # system or user
 hermes_service_name: hermes-gateway
 
 # Firewall configuration

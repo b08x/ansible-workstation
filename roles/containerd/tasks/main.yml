@@ -1,7 +1,6 @@
 ---
 # tasks file for containerd
 
-
 - name: Starting containerd tasks
   ansible.builtin.debug:
     msg: "Starting containerd tasks"

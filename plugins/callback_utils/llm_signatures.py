@@ -35,9 +35,7 @@ def build():
     class TaskParameter(BaseModel):
         name: str = Field(description="Parameter name as written in the task")
         value: str = Field(description="Value as written, templates left verbatim")
-        purpose: str = Field(
-            description="Factual description of the parameter's effect"
-        )
+        purpose: str = Field(description="Factual description of the parameter's effect")
 
     class AnalyzeAnsibleTask(dspy.Signature):
         """Document an Ansible task as a non-evaluative systems auditor.
@@ -72,15 +70,11 @@ def build():
         idempotency_mechanism: str = dspy.OutputField(
             desc="How idempotency is achieved, or why it is not"
         )
-        change_detection: str = dspy.OutputField(
-            desc="register/changed_when usage, or 'Default'"
-        )
+        change_detection: str = dspy.OutputField(desc="register/changed_when usage, or 'Default'")
         conditions: str = dspy.OutputField(desc="when conditionals, or 'None'")
         delegation: str = dspy.OutputField(desc="delegate_to value, or 'None'")
         loop: str = dspy.OutputField(desc="loop/with_items usage, or 'None'")
-        privilege_escalation: str = dspy.OutputField(
-            desc="become user/group details, or 'None'"
-        )
+        privilege_escalation: str = dspy.OutputField(desc="become user/group details, or 'None'")
         error_handling: str = dspy.OutputField(
             desc="ignore_errors/rescue/failed_when behaviour, or 'None'"
         )
@@ -102,8 +96,7 @@ def build():
             desc="Markdown table: Source | Key | Value or Notes"
         )
         precedence_risks: str = dspy.OutputField(
-            desc="Variable names likely to conflict across scopes, or "
-            "'None observed'"
+            desc="Variable names likely to conflict across scopes, or " "'None observed'"
         )
         handlers_defined: str = dspy.OutputField(desc="Handler names, or 'None'")
         notify_sources: str = dspy.OutputField(desc="Which tasks notify which handlers")
@@ -118,12 +111,8 @@ def build():
         failure_tolerance: str = dspy.OutputField(
             desc="max_fail_percentage / any_errors_fatal, or 'Default'"
         )
-        recovery_patterns: str = dspy.OutputField(
-            desc="block/rescue/always usage, or 'None'"
-        )
-        error_propagation: str = dspy.OutputField(
-            desc="ignore_errors locations, or 'None'"
-        )
+        recovery_patterns: str = dspy.OutputField(desc="block/rescue/always usage, or 'None'")
+        error_propagation: str = dspy.OutputField(desc="ignore_errors locations, or 'None'")
 
     return AnalyzeAnsibleTask, AnalyzeAnsiblePlay
 
@@ -151,9 +140,7 @@ def build_judge():
         task_yaml: str = dspy.InputField(desc="The task that was analysed")
         goal: str = dspy.InputField(desc="The analysis's stated goal")
         role_in_play: str = dspy.InputField(desc="The analysis's stated role")
-        idempotency_mechanism: str = dspy.InputField(
-            desc="The analysis's idempotency explanation"
-        )
+        idempotency_mechanism: str = dspy.InputField(desc="The analysis's idempotency explanation")
 
         grounded: Literal["yes", "partly", "no"] = dspy.OutputField(
             desc="yes if every claim is supported by the task YAML"

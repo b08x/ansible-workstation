@@ -130,7 +130,7 @@
   tags: ["hermes", "prerequisites", "packages", "install"]
 
 - name: Install missing prerequisites (YUM fallback)
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     name: "{{ hermes_missing_prerequisites }}"
     state: present
     update_cache: true

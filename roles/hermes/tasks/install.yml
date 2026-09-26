@@ -50,7 +50,7 @@
       Expected CLI at: {{ hermes_cli }}
       Installer output: {{ hermes_install_result.stdout | default('No output') }}
       Installer error: {{ hermes_install_result.stderr | default('No error') }}
-      
+
       Troubleshooting:
       - Check internet connectivity (curl requires access to hermes-agent.nousresearch.com)
       - Verify prerequisites are installed (git, curl, xz-utils)

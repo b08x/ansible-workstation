@@ -38,9 +38,7 @@ packages:
 # AlmaLinux ships stock mock configs in /etc/mock/ for x86_64 and aarch64.
 # No custom templates needed — reference them directly by name.
 mock_configs: []
-
 mock_templates: []
-
 # AlmaLinux stock mock targets — ships in /etc/mock/ with almalinux-release
 _mock_targets:
   - "almalinux-{{ ansible_distribution_major_version }}-x86_64"

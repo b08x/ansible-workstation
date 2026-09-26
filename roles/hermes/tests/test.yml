@@ -15,7 +15,7 @@
     hermes_selinux_enforcing: true
     hermes_firewall_enabled: true
     hermes_bind_localhost: true
-  
+
   tasks:
     - name: Include Hermes role
       ansible.builtin.include_role:
@@ -30,9 +30,8 @@
       ansible.builtin.debug:
         msg: "Hermes role integration tests completed successfully"
       tags: ["test", "hermes", "always"]
-
 # Usage examples:
-# 
+#
 # Basic test (all defaults):
 #   ansible-playbook tests/test.yml
 #

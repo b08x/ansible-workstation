@@ -14,10 +14,7 @@ except ImportError:
     print("SKIP: jinja2 not available")
     sys.exit(0)
 
-TPL = (
-    "roles/"
-    "osbuild/templates/fedora-workstation.toml.j2"
-)
+TPL = "roles/" "osbuild/templates/fedora-workstation.toml.j2"
 
 ctx = {
     "osbuild_blueprint_name": "pin-test",

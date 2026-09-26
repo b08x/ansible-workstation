@@ -30,7 +30,7 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
       loop:
         - /usr/lib/systemd/system
         - /usr/lib/systemd/user
@@ -40,7 +40,7 @@
       ansible.builtin.template:
         src: systemd/nvidia-cdi-refresh.service.j2
         dest: /usr/lib/systemd/system/nvidia-cdi-refresh.service
-        mode: '0644'
+        mode: "0644"
         backup: true
       when: "'nvidia' in osbuild_components"
 
@@ -55,7 +55,7 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        mode: '0755'
+        mode: "0755"
       loop:
         - /usr/etc
         - /usr/etc/kernel
@@ -66,7 +66,7 @@
       ansible.builtin.template:
         src: usr/etc/hostname.j2
         dest: /usr/etc/hostname
-        mode: '0644'
+        mode: "0644"
         backup: true
       vars:
         distro: "{{ ansible_distribution | lower }}"
@@ -78,7 +78,7 @@
       ansible.builtin.template:
         src: usr/etc/os-release.j2
         dest: /usr/etc/os-release
-        mode: '0644'
+        mode: "0644"
         backup: true
       vars:
         distro: "fedora-{{ ansible_distribution_version }}"
@@ -89,7 +89,7 @@
       ansible.builtin.template:
         src: usr/etc/fstab.j2
         dest: /usr/etc/fstab
-        mode: '0644'
+        mode: "0644"
         backup: true
       vars:
         distro: "fedora-{{ ansible_distribution_version }}"
@@ -106,7 +106,7 @@
       ansible.builtin.template:
         src: usr/etc/kernel/cmdline.d/{{ item.name }}.conf.j2
         dest: /usr/etc/kernel/cmdline.d/{{ item.name }}.conf
-        mode: '0644'
+        mode: "0644"
         backup: true
       loop: "{{ osbuild_kernel_cmdline_snippets | default([]) }}"
       when: osbuild_kernel_cmdline_snippets is defined
@@ -117,7 +117,7 @@
         dest: /usr/etc/kernel/cmdline.d/10-nvidia.conf
         content: |
           rd.driver.blacklist=nouveau modprobe.blacklist=nouveau nvidia-drm.modeset=1
-        mode: '0644'
+        mode: "0644"
         backup: true
       when: "'nvidia' in osbuild_components"
 

@@ -111,9 +111,7 @@ def _task_keywords() -> set:
     try:
         from ansible.playbook.task import Task
 
-        attrs = getattr(Task, "fattributes", None) or getattr(
-            Task, "_valid_attrs", None
-        )
+        attrs = getattr(Task, "fattributes", None) or getattr(Task, "_valid_attrs", None)
         if attrs:
             return set(attrs)
     except Exception:
@@ -328,11 +326,7 @@ def score_task(gold: dict[str, Any], pred: Any) -> dict[str, Any]:
 
 def _gold_from(example: Any) -> dict[str, Any]:
     """Prefer gold already attached to the example; else derive it from YAML."""
-    get = (
-        example.get
-        if isinstance(example, dict)
-        else lambda k, d=None: getattr(example, k, d)
-    )
+    get = example.get if isinstance(example, dict) else lambda k, d=None: getattr(example, k, d)
     if get("module", None) is not None and get("parameters", None) is not None:
         return {
             k: get(k, None)
@@ -396,9 +390,7 @@ def task_feedback_metric(
                 notes.append("parameters: omitted {}".format(info["missed"]))
         else:
             notes.append(
-                "{}: reported {!r} but the task shows {!r}".format(
-                    name, info["pred"], info["gold"]
-                )
+                "{}: reported {!r} but the task shows {!r}".format(name, info["pred"], info["gold"])
             )
     return {
         "score": result["score"],
@@ -417,14 +409,9 @@ def judge_metric(example: Any, pred: Any, trace: Optional[Any] = None) -> float:
     them into a single number would hide which half moved.
     """
     import dspy
-
     from llm_signatures import build_judge
 
-    get = (
-        example.get
-        if isinstance(example, dict)
-        else lambda k, d=None: getattr(example, k, d)
-    )
+    get = example.get if isinstance(example, dict) else lambda k, d=None: getattr(example, k, d)
     pget = pred.get if isinstance(pred, dict) else lambda k, d=None: getattr(pred, k, d)
     judge = dspy.Predict(build_judge())
     try:

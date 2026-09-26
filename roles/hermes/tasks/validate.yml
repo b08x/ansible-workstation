@@ -112,30 +112,31 @@
   ansible.builtin.debug:
     msg: >-
       === HERMES ROLE VALIDATION SUMMARY ===
-      
+
       Installation:
       - Hermes CLI Available: {{ hermes_cli_validate.stat.exists | ternary('✓ YES', '✗ NO') }}
       - Hermes CLI Version: {{ hermes_version_validate.stdout | default('Not checked') | trim }}
-      
+
       Service:
       - Systemd Service File: {{ hermes_service_validate.stat.exists | default(false) | ternary('✓ EXISTS', '✗ NOT FOUND') }}
       - Service Active: {{ ansible_facts.services['hermes-gateway.service'].state | default('unknown') }}
       - Gateway Status: {{ hermes_gateway_validate.stdout | default('Not checked') | trim }}
-      
+
       Backend:
       - Terminal Backend: {{ hermes_backend_validate.stdout | default('Not checked') | trim }}
       - HERMES_DOCKER_BINARY: {{ hermes_docker_binary_validate.rc == 0 | ternary('✓ CONFIGURED', '✗ NOT FOUND') }}
-      
+
       SELinux:
       - SELinux Mode: {{ hermes_selinux_validate.stdout | default('Not checked') | trim }}
       - Contexts Correct: {{ hermes_selinux_context_validate.rc == 0 | ternary('✓ YES', '✗ CHECK') }}
-      
+
       Firewall:
       - Firewall Enabled: {{ hermes_firewall_enabled | bool | ternary('Yes', 'No') }}
       - Ports Open: {{ hermes_firewall_validate.rc == 0 | ternary('✓ CONFIGURED', '✗ NOT FOUND') }}
-      
+
       API Test:
       - API Accessible: {{ hermes_api_validate.status | default(-1) == 200 | ternary('✓ YES', '✗ NO') }}
-      
-      Overall Status: {{ (hermes_cli_validate.stat.exists and (not hermes_system_service or hermes_service_validate.stat.exists) and (not hermes_selinux_enforcing or hermes_selinux_validate.rc == 0)) | ternary('✓ PASS', '✗ FAIL') }}
+
+      Overall Status: {{ (hermes_cli_validate.stat.exists and (not hermes_system_service or hermes_service_validate.stat.exists) and (not hermes_selinux_enforcing
+      or hermes_selinux_validate.rc == 0)) | ternary('✓ PASS', '✗ FAIL') }}
   tags: ["hermes", "validation", "summary", "always"]

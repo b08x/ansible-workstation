@@ -110,7 +110,7 @@
         msg: "Database backup written to {{ dify_backup_dir }}/{{ dify_backup_filename }}"
       when: dify_backup_db_result is defined and dify_backup_db_result.changed
 
-    - name: Backup volume data and configs  # noqa: command-instead-of-module
+    - name: Backup volume data and configs # noqa: command-instead-of-module
       ansible.builtin.shell: |
         tar -czf {{ dify_backup_dir }}/{{ dify_backup_volume_filename }} \
           {% for path in dify_backup_volume_paths %}-C {{ dify_deploy_dir }} {{ path }} {% endfor %}\
@@ -200,7 +200,7 @@
         - dify_backup_volume_file | length > 0
         - dify_restore_volume_stat.stat.exists
 
-    - name: Restore volume data and configs  # noqa: command-instead-of-module
+    - name: Restore volume data and configs # noqa: command-instead-of-module
       ansible.builtin.shell: |
         tar -xzf {{ dify_backup_volume_file }} -C {{ dify_deploy_dir }}
       register: dify_restore_volume_result
