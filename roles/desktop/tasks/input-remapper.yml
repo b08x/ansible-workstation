@@ -49,6 +49,7 @@
           ansible.builtin.command:
             cmd: python3 -m install --root /
             chdir: /tmp/input-remapper
+            creates: /etc/systemd/system/input-remapper.service
           notify: Daemon reload
 
         - name: Clean up input-remapper clone
