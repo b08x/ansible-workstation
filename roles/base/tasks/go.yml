@@ -10,6 +10,7 @@
   when: >
     base_go_version_check.rc != 0 or
     ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout
+  ignore_errors: "{{ ansible_check_mode }}"
   block:
     - name: Download Go tarball
       ansible.builtin.get_url:
