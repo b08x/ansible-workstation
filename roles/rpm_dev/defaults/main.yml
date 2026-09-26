@@ -3,7 +3,7 @@
 
 # User configuration for RPM development
 rpm_dev_user:
-  name: "{{ ansible_user_id }}"
+  name: "{{ user.name }}"
   groups: ["mock"]
   create_home: true
 
@@ -23,7 +23,7 @@ mock_config:
 rpm_build:
   create_directories: true
   setup_macros: true
-  home_dir: "{{ ansible_user_dir }}"
+  home_dir: "{{ user.home }}"
   build_dir: "{{ user.home }}/rpmbuild"
   directories:
     - BUILD
