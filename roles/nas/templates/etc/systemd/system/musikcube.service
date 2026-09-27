@@ -1,0 +1,20 @@
+[Install]
+WantedBy=network-online.target
+
+[Unit]
+Description=musikcube Audio Streaming Server
+Before=multi-user.target
+Before=graphical.target
+Before=shutdown.target
+After=local-fs.target
+After=remote-fs.target
+After=network-online.target
+After=nss-lookup.target
+Wants=network-online.target
+Conflicts=shutdown.target
+
+[Service]
+Type=forking
+User={{ user.name }}
+ExecStart=/usr/bin/musikcubed --start
+ExecStop=/usr/bin/musikcubed --stop

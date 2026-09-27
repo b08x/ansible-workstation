@@ -1,0 +1,36 @@
+# Rsync Daemon Configuration
+# Managed by Ansible - NAS Role
+
+# Global Settings
+uid = {{ nas_rsync_user }}
+gid = {{ nas_rsync_group }}
+use chroot = {{ nas_rsync_use_chroot | string | lower }}
+max connections = {{ nas_rsync_max_connections }}
+syslog facility = {{ nas_rsync_syslog_facility }}
+pid file = /run/rsyncd.pid
+
+# Rsync Modules (Shares)
+{% for module in nas_rsync_modules %}
+[{{ module.name }}]
+  path = {{ module.path }}
+{%   if module.comment is defined %}
+  comment = {{ module.comment }}
+{%   endif %}
+  read only = {{ module.read_only | default(false) | string | lower }}
+{%   if module.list is defined %}
+  list = {{ module.list | string | lower }}
+{%   endif %}
+{%   if module.uid is defined %}
+  uid = {{ module.uid }}
+{%   endif %}
+{%   if module.gid is defined %}
+  gid = {{ module.gid }}
+{%   endif %}
+{%   if module.hosts_allow is defined and module.hosts_allow | length > 0 %}
+  hosts allow = {{ module.hosts_allow | join(' ') }}
+{%   endif %}
+{%   if module.hosts_deny is defined and module.hosts_deny | length > 0 %}
+  hosts deny = {{ module.hosts_deny | join(' ') }}
+{%   endif %}
+
+{% endfor %}

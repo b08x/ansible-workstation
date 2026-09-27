@@ -1,0 +1,14 @@
+---
+# NFS server configuration orchestration
+
+- name: Deploy NFS configuration files
+  ansible.builtin.include_tasks: config.yml
+
+- name: Configure NFS exports
+  ansible.builtin.include_tasks: exports.yml
+
+- name: Configure NFS firewall rules
+  ansible.builtin.include_tasks: firewall.yml
+
+- name: Manage NFS services
+  ansible.builtin.include_tasks: services.yml

@@ -1,0 +1,46 @@
+---
+# Main orchestration for NAS role
+# Supports: RedHat family only (Fedora, Rocky Linux 9, RHEL)
+
+# =============================================================================
+# Package Installation
+# =============================================================================
+
+- name: Install NAS packages
+  ansible.builtin.include_tasks: packages.yml
+  tags: ["nas", "nas_packages"]
+
+# =============================================================================
+# User and Group Management
+# =============================================================================
+
+- name: Create NAS users and groups
+  ansible.builtin.include_tasks: users.yml
+  tags: ["nas", "nas_users"]
+
+# =============================================================================
+# NFS Server Configuration
+# =============================================================================
+
+- name: Configure NFS server
+  ansible.builtin.include_tasks: nfs/main.yml
+  when: nas_enable_nfs | default(true)
+  tags: ["nas", "nas_nfs"]
+
+# =============================================================================
+# Samba/SMB Server Configuration
+# =============================================================================
+
+- name: Configure Samba server
+  ansible.builtin.include_tasks: samba/main.yml
+  when: nas_enable_samba | default(false)
+  tags: ["nas", "nas_samba"]
+
+# =============================================================================
+# Rsync Daemon Configuration
+# =============================================================================
+
+- name: Configure Rsync daemon
+  ansible.builtin.include_tasks: rsync/main.yml
+  when: nas_enable_rsync | default(false)
+  tags: ["nas", "nas_rsync"]

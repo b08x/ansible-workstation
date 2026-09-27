@@ -1,0 +1,20 @@
+---
+# NFS service management
+
+- name: Enable and start rpcbind service
+  ansible.builtin.service:
+    name: "{{ nas_service_rpcbind }}"
+    state: started
+    enabled: true
+
+- name: Enable and start NFS server
+  ansible.builtin.service:
+    name: "{{ nas_service_nfs }}"
+    state: started
+    enabled: true
+
+- name: Enable and start NFS idmapd service
+  ansible.builtin.service:
+    name: "{{ nas_service_nfs_idmapd }}"
+    state: started
+    enabled: true

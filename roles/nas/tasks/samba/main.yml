@@ -1,0 +1,11 @@
+---
+# Samba/SMB server configuration orchestration
+
+- name: Deploy Samba configuration files
+  ansible.builtin.include_tasks: config.yml
+
+- name: Configure Samba firewall rules
+  ansible.builtin.include_tasks: firewall.yml
+
+- name: Manage Samba services
+  ansible.builtin.include_tasks: services.yml

@@ -1,0 +1,130 @@
+---
+# Package installation for NAS role
+# Supports: Fedora, Rocky Linux 9 (RedHat family only)
+
+- name: Assert RedHat OS family
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+    fail_msg: "This role only supports RedHat family distributions (Fedora, Rocky Linux, RHEL)"
+    success_msg: "RedHat family detected: {{ ansible_distribution }}"
+
+- name: Load distribution-specific variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+
+# =============================================================================
+# Package State Detection
+# =============================================================================
+# Performance Optimization: Gather package facts once to avoid repeated
+# DNF queries. This significantly speeds up playbook runs when packages
+# are already installed by skipping unnecessary package manager operations.
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+    manager: auto
+  tags: ["nas", "nas_packages"]
+
+# =============================================================================
+# NFS Package Management
+# =============================================================================
+
+- name: Check if all NFS packages are installed
+  ansible.builtin.set_fact:
+    all_nfs_packages_installed: >-
+      {{
+        nas_packages_nfs
+        | map('extract', ansible_facts.packages, [])
+        | select()
+        | list
+        | length == nas_packages_nfs | length
+      }}
+  when: nas_enable_nfs | default(true)
+  tags: ["nas", "nas_packages"]
+
+- name: Display NFS package installation status
+  ansible.builtin.debug:
+    msg: >-
+      NFS packages {{ 'already installed, skipping installation'
+      if all_nfs_packages_installed | default(false)
+      else 'not fully installed, proceeding with installation' }}
+  when: nas_enable_nfs | default(true)
+  tags: ["nas", "nas_packages"]
+
+- name: Install NFS server packages
+  ansible.builtin.dnf:
+    name: "{{ nas_packages_nfs }}"
+    state: present
+  when:
+    - nas_enable_nfs | default(true)
+    - not all_nfs_packages_installed | default(false)
+  tags: ["nas", "nas_packages"]
+
+# =============================================================================
+# Samba Package Management
+# =============================================================================
+
+- name: Check if all Samba packages are installed
+  ansible.builtin.set_fact:
+    all_samba_packages_installed: >-
+      {{
+        nas_packages_samba
+        | map('extract', ansible_facts.packages, [])
+        | select()
+        | list
+        | length == nas_packages_samba | length
+      }}
+  when: nas_enable_samba | default(false)
+  tags: ["nas", "nas_packages"]
+
+- name: Display Samba package installation status
+  ansible.builtin.debug:
+    msg: >-
+      Samba packages {{ 'already installed, skipping installation'
+      if all_samba_packages_installed | default(false)
+      else 'not fully installed, proceeding with installation' }}
+  when: nas_enable_samba | default(false)
+  tags: ["nas", "nas_packages"]
+
+- name: Install Samba server packages
+  ansible.builtin.dnf:
+    name: "{{ nas_packages_samba }}"
+    state: present
+  when:
+    - nas_enable_samba | default(false)
+    - not all_samba_packages_installed | default(false)
+  tags: ["nas", "nas_packages"]
+
+# =============================================================================
+# Rsync Package Management
+# =============================================================================
+
+- name: Check if all Rsync packages are installed
+  ansible.builtin.set_fact:
+    all_rsync_packages_installed: >-
+      {{
+        nas_packages_rsync
+        | map('extract', ansible_facts.packages, [])
+        | select()
+        | list
+        | length == nas_packages_rsync | length
+      }}
+  when: nas_enable_rsync | default(false)
+  tags: ["nas", "nas_packages"]
+
+- name: Display Rsync package installation status
+  ansible.builtin.debug:
+    msg: >-
+      Rsync packages {{ 'already installed, skipping installation'
+      if all_rsync_packages_installed | default(false)
+      else 'not fully installed, proceeding with installation' }}
+  when: nas_enable_rsync | default(false)
+  tags: ["nas", "nas_packages"]
+
+- name: Install Rsync daemon packages
+  ansible.builtin.dnf:
+    name: "{{ nas_packages_rsync }}"
+    state: present
+  when:
+    - nas_enable_rsync | default(false)
+    - not all_rsync_packages_installed | default(false)
+  tags: ["nas", "nas_packages"]

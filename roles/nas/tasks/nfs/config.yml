@@ -1,0 +1,32 @@
+---
+# NFS configuration file deployment
+
+- name: Deploy NFS daemon configuration
+  ansible.builtin.template:
+    src: etc/nfs.conf.j2
+    dest: /etc/nfs.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart NFS server
+
+- name: Deploy NFSv4 ID mapping configuration
+  ansible.builtin.template:
+    src: etc/idmapd.conf.j2
+    dest: /etc/idmapd.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart NFS idmapd
+
+- name: Deploy NFS exports configuration
+  ansible.builtin.template:
+    src: etc/exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload NFS exports

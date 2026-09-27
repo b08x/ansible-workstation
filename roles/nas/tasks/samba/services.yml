@@ -1,0 +1,15 @@
+---
+# Samba service management
+
+- name: Enable and start Samba SMB service
+  ansible.builtin.service:
+    name: "{{ nas_service_samba }}"
+    state: started
+    enabled: true
+
+- name: Enable and start Samba NetBIOS service
+  ansible.builtin.service:
+    name: "{{ nas_service_nmb }}"
+    state: started
+    enabled: true
+  when: nas_samba_enable_nmb | default(true)

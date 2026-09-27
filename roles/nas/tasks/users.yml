@@ -1,0 +1,41 @@
+---
+# User and group creation for NAS services
+
+# NFS user/group (typically nobody:nobody for NFSv4)
+- name: Ensure NFS nobody group exists
+  ansible.builtin.group:
+    name: "{{ nas_nfs_user_group }}"
+    gid: "{{ nas_nfs_user_gid }}"
+    non_unique: true
+    system: true
+  when: nas_enable_nfs | default(true)
+
+- name: Ensure NFS nobody user exists
+  ansible.builtin.user:
+    name: "{{ nas_nfs_user_name }}"
+    uid: "{{ nas_nfs_user_uid }}"
+    group: "{{ nas_nfs_user_group }}"
+    system: true
+    state: present
+    shell: /sbin/nologin
+  when: nas_enable_nfs | default(true)
+
+# Samba user/group
+- name: Ensure Samba group exists
+  ansible.builtin.group:
+    name: "{{ nas_samba_group }}"
+    gid: "{{ nas_samba_gid | default(omit) }}"
+    system: "{{ nas_samba_group_system | default(false) }}"
+  when: nas_enable_samba | default(true)
+
+- name: Ensure Samba user exists
+  ansible.builtin.user:
+    name: "{{ nas_samba_user }}"
+    uid: "{{ nas_samba_uid | default(omit) }}"
+    group: "{{ nas_samba_group }}"
+    shell: /sbin/nologin
+    system: "{{ nas_samba_user_system | default(false) }}"
+    state: present
+  when:
+    - nas_enable_samba | default(true)
+    - nas_samba_user is defined

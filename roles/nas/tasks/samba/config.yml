@@ -1,0 +1,25 @@
+---
+# Samba configuration file deployment
+
+- name: Create Samba share directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default(nas_samba_group) }}"
+    mode: "{{ item.mode | default('0775') }}"
+  loop: "{{ nas_samba_shares }}"
+  when:
+    - nas_samba_shares is defined
+    - item.create_dir | default(false)
+
+- name: Deploy Samba server configuration
+  ansible.builtin.template:
+    src: etc/samba/smb.conf.j2
+    dest: /etc/samba/smb.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    validate: "testparm -s %s"
+  notify: Restart Samba
