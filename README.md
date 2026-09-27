@@ -115,11 +115,17 @@ is only the reason the plumbing looks like this.
 
 ## Lineage
 
-This repository is not the first body this exercise has worn. The archive has
-drifted across the entire distribution philosophy map, and the workload
-followed it the whole way:
+This repository is not the first body this exercise has worn. The archive
+began on the pragmatic ground, wandered upstream, and returned — the workload
+changing underneath it as it went:
 
-- **ArchLabs** — the upstream years. A complete Arch playbook with a dedicated
+- **fortyau (2014–2015)** — the origin: a Nashville startup's CI/CD pipeline on
+  CentOS 7. Twenty-one roles — Jenkins, GitLab, MariaDB master-slave with GTID,
+  Nginx, Redis, Graylog, HAProxy, CIS hardening, Azure provisioning, three
+  environments. The thesis is already whole in the notes from back then: no
+  one should ever have to log into these hosts — every change flows through
+  Ansible. The pragmatist ground was the starting point, not the destination.
+- **ArchLabs** — the upstream excursion. A complete Arch playbook with a dedicated
   audio role: JACK, PulseAudio, or PipeWire selection, realtime privileges,
   low-latency kernel and CPU tuning, archaudio and chaotic-aur repositories,
   hosts managing themselves through `ansible-pull`. `soundbot` enters the
@@ -127,13 +133,19 @@ followed it the whole way:
 - **pop!_OS** — the middle ground, visited. A collection scaffolded and barely
   begun; mostly evidence that the middle ground was tried and found to be
   someone else's philosophy.
-- **Fedora (Ansible_RAG)** — the turn toward the pragmatic side, before the
-  monolithic restructure.
+- **Fedora (Ansible_RAG)** — not a working collection but an archive: an rsync of
+  every Ansible tree from those years, duplicate role generations and all. The
+  `Ansible_RAG_Tasks` parse — 1,400+ task files across 68 module buckets — and
+  the `archive_tools` pipeline (extract, dedupe, merge, embed) are the first
+  pass at deciding which of those years of patterns become a retrievable corpus,
+  and which get discarded.
 
-The workload underneath never changed: realtime audio programming and
-production. And that workload is where the central tension of this whole
-exercise comes from — immutability versus drift. An artist's workstation is an
-instrument. It accumulates studio session configurations, custom patches,
+The workload changed — enterprise CI/CD first, realtime audio programming and
+production after — but the tension underneath did not, and the two workloads
+enforced opposite poles of it. fortyau is the immutability pole: cattle,
+hardened, no human hands on the machines. The audio workstation is the other
+pole. An artist's workstation is an instrument. It accumulates studio session
+configurations, custom patches,
 plugin collections, hand-tuned realtime settings, all of it edited live by the
 person mid-session, when re-rendering the machine from a declaration is the
 last thing anyone wants. Attempts to declare all of it fight the user. Attempts
