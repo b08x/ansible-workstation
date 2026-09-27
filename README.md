@@ -151,20 +151,28 @@ The repository has been through several configuration-management iterations,
 and it is entering another: a retooling pass that treats the workstation itself
 as the test bed for the two-speed split described above.
 
-What broke on the bare-metal path was predictable in hindsight. Agent tooling —
-hermes-agent, mistral vibe, antigravity CLI, claude code — churns on a weekly
-cadence that a dnf-managed host was never meant to absorb. Shared Python
-runtimes collide; a GPU driver update lands mid-pipeline and the compute layer
+What broke on the bare-metal path was predictable in hindsight. Agent tooling
+churns on a weekly cadence that a dnf-managed host was never meant to absorb.
+Shared Python runtimes collide; a GPU driver update lands mid-pipeline and the compute layer
 changes behavior underneath a non-deterministic application stack with no
 rollback and no way to bisect. None of it is a *bug* in the old approach. It is
 the old approach being asked to carry a load its philosophy was never aligned
 for.
 
-What the agents could be trusted to do — edit tasks, run linters, draft roles —
-stayed. What they could not be trusted to do was hold a system state: their
-outputs drift without grounding, so the grounding moved into the layer they
-operate on rather than their own judgment. The `coding_agents` role stops being
-a single point of trust and becomes the subject of its own provisioning loop.
+The agent layer turned out to resemble distro hopping more than a trust
+problem. The baseline functionality — edit tasks, run linters, draft roles —
+exists in all of them: antigravity-cli, claude-code, claude-desktop,
+hermes-agent, mistral-vibe, opencode. What differs is the quirks and niches:
+how each one handles context, tooling, and session state, and what each one
+believes work should look like. The last couple of years have been less about
+picking a winner than about surveying a field that reinvents itself weekly —
+exploration, experimentation, tracking, monitoring, observing, iterating. The
+`llm_analyzer` trace store is the other half of that apparatus: the agents are
+observed while they work, the same way the hosts are. Most of these tools will
+not be wanted a year from now, and that is fine — the point of a survey is
+knowing what to keep. The `coding_agents` role became its own provisioning loop
+for the same reason: the surveying is the workload, so it gets managed like
+one.
 
 What the container and atomic targets bought that bare metal could not:
 
