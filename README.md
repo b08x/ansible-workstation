@@ -2,8 +2,7 @@
 
 # Syncopated Workstation
 
-An exercise in configuration management, technical debt bankruptcy, and agentic
-coding workflows.
+A deliberately boring foundation under a fast-moving ecosystem.
 
 Ansible control repository for provisioning Fedora and AlmaLinux development
 workstations — desktop, virtualisation, container runtimes, and a local LLM ops
@@ -17,43 +16,169 @@ stack — from a single inventory.
 
 ## Preface
 
-This is the terminal stage of compounding illusions. 
+Every distribution family is a philosophy wearing a package manager.
 
-A sentence is typed, a model predicts the statistically likeliest string of tokens in response, and somewhere down the stack, a system state actually changes. So many translation layers have been built between intent and execution that the observer's link to the underlying mechanics is completely severed. Machines are no longer provisioned directly; an abstraction layer is utilized to translate linguistic inputs into infrastructure.
+The Enterprise Pragmatists — RHEL, Rocky, Alma — sell predictability. Software
+should not change for ten years; a bug that breaks a feature is bad, but an
+update that changes how a feature behaves is a catastrophe. The Upstream
+Innovators — Fedora, Arch, Tumbleweed — run the other way: standing still is
+falling behind, and Fedora exists to test what will land in RHEL five years
+from now. Choosing between them was never really a question of package
+managers. It is a question of alignment: does the worldview of the people
+building the operating system match the work you are trying to do on top of it.
 
-This collection of Ansible roles isn't some precarious house of cards, nor is it a game to be won. It is simply a lifelong exercise in the breakdown of meaning and the loss of grounded perspective, mirroring the somewhat arbitrary process of assigning weight to objects. It is the cheerful observation of linguistic outputs dictating the bare metal. Make yourself comfortable.
+Most of my career sat on the upstream side of that line, where the technical
+conversation is actively happening. This repository is the record of stepping
+across to the pragmatic ground. Not a rejection of the upstream mindset — a
+calculated structural alignment. Outsource the churn of the base operating
+system, and the creative bandwidth goes to what runs on top of it instead of
+to fighting the shifting sands underneath.
+
+Then the LLM ecosystem moved the spotlight onto exactly this choice. When the
+application layer stops executing predictable, hard-coded logic and starts
+running non-deterministic prompts, autonomous agent loops, and dynamic tool
+calls, the host operating system can no longer afford to be a moving target. A
+multi-agent system orchestrates file parsers, Python runtimes, and external
+APIs; if the base OS changes behavior under it during a routine update,
+debugging a rogue tool call becomes archaeology. Specialized compute is
+fragile enough on its own — CUDA toolkits and GPU drivers against kernel
+namespaces — without the floor moving too.
+
+So this repository runs at two speeds.
+
+The **slow layer** is deliberately boring: idempotent roles, explicit variable
+tiers, distributions asserted before anything touches the disk, firewall
+rules co-located with the services that need them. Ansible's whole job here is
+to keep this layer honest — a 2:00 AM automated update should be a non-event.
+
+The **fast layer** is everything that legitimately churns: language models,
+agent harnesses, RAG pipelines, tokenizers, the tooling that reinvents itself
+weekly. That layer lives in containers and disposable images, walled off from
+the host's ABI, free to be reckless precisely because the ground underneath it
+is not.
+
+Make yourself comfortable. The plumbing below is just the argument, load-bearing.
 
 ## Why This Exists
 
-This repository is the byproduct of an iterative refactoring spanning several years—a transformation of daily work perception that occasionally wanders into vaguely meaningless semantic loops. 
+Practically: this repository renders the workstations and servers in its
+inventory from a single declaration. But the machines are the current
+instantiation, not the point. The repository is an archive of blueprints —
+methods, patterns, known-good configurations — that can be picked up and
+pointed at any host list, not only mine.
 
-While on the surface it is an Ansible control repository for provisioning Fedora and AlmaLinux workstations, the repository itself is merely the artifact. The true practice lies in calculating the most probable tokens alongside a continuous refinement of objective functions and educational protocols. The goal? To decouple linguistic fluency from subjectivity. 
+Declaration is split across three layers, each with exactly one owner:
 
-A deliberate semiotic decoupling takes place, so as to *not* disrupt anthropomorphic projection. This maintains a hyper-isomorphic register matching for enjoyable in-context learning, where the lexical field, tone, and complexity reflect what could otherwise be considered sequence loss minimization, or the over-optimization of predictive loops.
+- **The image** (osbuild, bootc) — the floor: kernel, drivers, the base
+  package set. Built, never mutated in place. A change is a new artifact with
+  rollback, not a live edit to a running system.
+- **Ansible** — system state above the floor: repositories, services, container
+  runtimes, system-wide capability toggles.
+- **yadm** — the user: dotfiles, shell, per-user paths. The one layer a
+  re-image does not erase.
 
-Three strange loops intertwine here simultaneously:
+And one source of truth for how software arrives, in three tiers:
 
-- **Configuration Management as Context-Dependent Interpretation**: Every role is written to be re-runnable: idempotent tasks, explicit variable tiers, and firewall rules co-located with their services. Models (and humans) drift without grounding; establishing these conventions anchors the semantic environment so outputs can be effectively constrained.
-- **Technical Debt Bankruptcy via Reductionism & Holism**: The repo was restructured wholesale—collapsing into a monolithic architecture by pulling all roles natively into `roles/` and severing git submodules. Complex, fragmented hierarchies were destroyed to rebuild a unified whole, minimizing sequence loss across architectural thought patterns.
-- **Agentic Self-Reference**: The `llm_analyzer` callback and its JSONL trace store record what models actually do against real playbooks, feeding `scripts/llm_trainset.py` to turn those traces into DSPy trainsets. The system is programmed, and then watched as it successfully completes the intended automation.
+- **OS packages** — dnf, pacman, apt. Their versions are the distribution's
+  problem; that is the service being bought.
+- **Language ecosystems** — npm, uv, cargo, gem. These carry an explicit
+  version decision: pin to the system toolchain, or install a newer toolchain
+  in user space. A bleeding-edge crate on AlmaLinux 10.2 with its system Rust
+  either gets pinned to what the base supports, or brings its own Rust into
+  `~/.local`. Both are fine. Half of each is not. The same contract holds for
+  Go, and for every toolchain that moves faster than the base.
+- **OSS projects** — git clones and release tarballs, pinned by revision or
+  checksum, never by hope.
 
-If you came here for the workstation plumbing, read straight down. If you came to observe the hyper-isomorphic register matching of predictive loops being deliberately optimized—that's here too.
+The practice is deciding what belongs on which layer — and then holding the
+line when the next shiny thing arrives and demands to be installed directly
+onto the host.
 
-...but for fun.
+Three loops still intertwine, each re-grounded in that decision:
+
+- **Configuration management as anchoring.** Every role is written to be
+  re-runnable: idempotent tasks, explicit variable tiers, firewall rules
+  co-located with their services. Agents drift without grounding; humans do
+  too. These conventions are the grounding.
+- **Technical debt bankruptcy, one layer down.** The repository was restructured
+  wholesale into a monolith — roles pulled natively into `roles/`, git
+  submodules severed — because a fragmented control plane is its own kind of
+  moving target. The base layer's management should be as boring as the base.
+- **Agentic self-reference.** The `llm_analyzer` callback and its append-only
+  JSONL trace store record what models actually do against real playbooks, and
+  `scripts/llm_trainset.py` turns those traces into DSPy trainsets. Agents
+  provision the machines that watch agents provision machines. The loop is
+  permitted to exist because the layer beneath it does not move.
+
+If you came for the workstation plumbing, read straight down. The philosophy
+is only the reason the plumbing looks like this.
+
+## Lineage
+
+This repository is not the first body this exercise has worn. The archive has
+drifted across the entire distribution philosophy map, and the workload
+followed it the whole way:
+
+- **ArchLabs** — the upstream years. A complete Arch playbook with a dedicated
+  audio role: JACK, PulseAudio, or PipeWire selection, realtime privileges,
+  low-latency kernel and CPU tuning, archaudio and chaotic-aur repositories,
+  hosts managing themselves through `ansible-pull`. `soundbot` enters the
+  inventory here and has never left it.
+- **pop!_OS** — the middle ground, visited. A collection scaffolded and barely
+  begun; mostly evidence that the middle ground was tried and found to be
+  someone else's philosophy.
+- **Fedora (Ansible_RAG)** — the turn toward the pragmatic side, before the
+  monolithic restructure.
+
+The workload underneath never changed: realtime audio programming and
+production. And that workload is where the central tension of this whole
+exercise comes from — immutability versus drift. An artist's workstation is an
+instrument. It accumulates studio session configurations, custom patches,
+plugin collections, hand-tuned realtime settings, all of it edited live by the
+person mid-session, when re-rendering the machine from a declaration is the
+last thing anyone wants. Attempts to declare all of it fight the user. Attempts
+to declare none of it lose the machine.
+
+The layer split above is the settled compromise, learned across those years:
+make immutable what can be immutable (the image), manage what belongs to the
+system (Ansible), and let the rest drift — but drift under version control, in
+the yadm layer, where a change is at least recoverable and attributable. Drift
+with a changelog beats drift without one, and it beats enforced stasis too.
 
 ## Iterations
 
-This repository has gone through configuration-management iterations, and it is entering another: a retooling pass that treats the workstation itself as the test bed for agentic coding workflows.
+The repository has been through several configuration-management iterations,
+and it is entering another: a retooling pass that treats the workstation itself
+as the test bed for the two-speed split described above.
 
-This is probably the most convoluted collection to be refactored quite yet. The complexity has certainly been a challenge to fabricate.
+What broke on the bare-metal path was predictable in hindsight. Agent tooling —
+hermes-agent, mistral vibe, antigravity CLI, claude code — churns on a weekly
+cadence that a dnf-managed host was never meant to absorb. Shared Python
+runtimes collide; a GPU driver update lands mid-pipeline and the compute layer
+changes behavior underneath a non-deterministic application stack with no
+rollback and no way to bisect. None of it is a *bug* in the old approach. It is
+the old approach being asked to carry a load its philosophy was never aligned
+for.
 
-> **TODO — narrative for the current iteration.** Provisioning retools around
-> devcontainers and atomic (bootc) hosts alongside the traditional dnf path, and
-> the agent tooling — hermes-agent, mistral vibe, antigravity CLI, claude code —
-> moves from a single `coding_agents` role to the subject of its own
-> provisioning loop. The story to tell: what broke, what the agents could and
-> could not be trusted to do, and what the container/atomic targets bought that
-> bare-metal iteration could not.
+What the agents could be trusted to do — edit tasks, run linters, draft roles —
+stayed. What they could not be trusted to do was hold a system state: their
+outputs drift without grounding, so the grounding moved into the layer they
+operate on rather than their own judgment. The `coding_agents` role stops being
+a single point of trust and becomes the subject of its own provisioning loop.
+
+What the container and atomic targets bought that bare metal could not:
+
+- **Rollback.** A bootc/atomic host is an image transaction — failed retool is
+  a reboot into the previous deployment, not a weekend of manual repair.
+- **Reproducibility.** The base image is built by `osbuild` from declarative
+  inputs, so "which host am I on" has a checksum for an answer.
+- **Isolation of the churn.** Cutting-edge Python data pipelines, tokenizers,
+  and experimental LLM harnesses run inside container sandboxes with their own
+  dependency closure. The host's ABI stays untouched while the layer above it
+  reinvents itself.
+
+The traditional dnf path is retained, not deprecated: it remains the boring
+baseline the split is anchored to, and the path the pre-bootc hosts still walk.
 
 ## Installation
 
@@ -172,6 +297,9 @@ Unprivileged playbooks (run without `become`):
 | `playbooks/coding_agents.yml` | coding_agents | coding_agents, system |
 
 **LLM Ops Roles**
+
+The fast layer, deployed onto the boring base. Where a runtime is listed, the
+service runs containerized rather than on the host directly.
 
 | Playbook | Role | Host | Runtime |
 | ---------- | ------ | ------ | --------- |
@@ -324,6 +452,11 @@ The `rhel_builder` roles wrap the unified `image-builder` CLI and osbuild.
 Targets are Fedora and AlmaLinux; the playbook asserts the distribution up front
 so an unsupported host fails immediately rather than midway through a compose.
 
+This is the machinery of the slow layer: the base image becomes a declarative
+artifact — the same predictability the Enterprise Pragmatists sell, built
+locally instead of subscribed to. A bootc build produces an atomic host where
+updates and rollbacks are image transactions.
+
 ```bash
 ansible-playbook playbooks/osbuild.yml
 ansible-playbook playbooks/osbuild.yml -e "osbuild_build_bootc=true"
@@ -364,12 +497,14 @@ to validate all roles and playbooks.
 
 ## Contributing
 
-Issues and pull requests are welcome. The same constraints that make the
-repository the artifact apply to contributions: idempotent tasks, the documented
-variable tiers. Roles follow the standard layout natively in the repository, with
-distribution-specific tasks under `tasks/distro/{{ ansible_distribution }}.yml`,
-and firewall rules co-located in the role that opens the port rather than
-centralised — services stay self-contained that way.
+Issues and pull requests are welcome. The same constraints that shape the
+repository shape contributions: idempotent tasks, the documented variable
+tiers, and the layering rule — host-layer changes must be boring, and anything
+that churns belongs in a container, not on the base. Roles follow the standard
+layout natively in the repository, with distribution-specific tasks under
+`tasks/distro/{{ ansible_distribution }}.yml`, and firewall rules co-located in
+the role that opens the port rather than centralised — services stay
+self-contained that way.
 
 ## License
 
