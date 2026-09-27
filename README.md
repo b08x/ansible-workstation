@@ -325,6 +325,12 @@ service runs containerized rather than on the host directly.
 | `playbooks/composer_cli.yml` | composer_cli | builder |
 | `playbooks/rpm_dev.yml` | rpm_dev | builder |
 
+**Storage Services**
+
+| Playbook | Role | Tags |
+| ---------- | ------ | ------ |
+| `playbooks/nas.yml` | nas | nas |
+
 **Standalone deployments** (role defaults, can be overridden with `-e`)
 
 | Playbook | Role | Host | Runtime |
