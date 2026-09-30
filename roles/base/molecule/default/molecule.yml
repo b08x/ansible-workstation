@@ -1,5 +1,5 @@
 ---
-# Idempotence scenario for the base role: a Fedora 43 container with systemd
+# Idempotence scenario for the base role: Fedora 43 and AlmaLinux 10 containers with systemd
 # as PID 1, driven by rootless Podman through plain create/destroy playbooks.
 ansible:
   cfg:

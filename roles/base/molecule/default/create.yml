@@ -10,6 +10,7 @@
         mode: "0644"
       vars:
         container_base_image: "{{ hostvars[item].container_base_image }}"
+        container_bootstrap_packages: "{{ hostvars[item].container_bootstrap_packages }}"
       loop: "{{ groups['molecule'] }}"
 
     - name: Build systemd-enabled test image

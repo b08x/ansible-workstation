@@ -12,8 +12,11 @@
         base_verify_sshd.status.ActiveState != 'active' or
         base_verify_sshd.status.UnitFileState != 'enabled'
 
+    # Run as the connection user: EL's sudo secure_path omits /usr/local/bin,
+    # and these tools are used by the user, not through sudo.
     - name: Check that command-line tools are installed
       ansible.builtin.command: "{{ item }}"
+      become: false
       loop:
         - /usr/local/go/bin/go version
         - git flow version
