@@ -424,21 +424,26 @@ ansible-lint
 
 ## Configuration
 
-Inventory lives in `inventory/hosts.ini`. Groups are arranged so membership is
-declared once and reused: `workstations` collects `dev`, `builder`, `virt`,
-`langfuse`, and `dify`; `osbuild_targets` is a children-group of `builder` rather
-than a second copy of the same host list.
+Inventory lives in `inventory/hosts.yml`. Groups are arranged so membership is
+declared once and reused: `workstations` collects `dev`, `builder`, `virt`, and
+`langfuse`; `osbuild_targets` is a children-group of `builder` rather than a
+second copy of the same host list. `dify` is a top-level group so that
+`ninjabot` stays a headless server and is not targeted by `workstations`
+playbooks.
 
-```ini
-[workstations:children]
-dev
-builder
-virt
-langfuse
-dify
-
-[osbuild_targets:children]
-builder
+```yaml
+workstations:
+  children:
+    dev:
+    builder:
+    virt:
+    langfuse:
+osbuild_targets:
+  children:
+    builder:
+dify:
+  hosts:
+    ninjabot:
 ```
 
 Variables resolve in the usual order — role defaults, then `group_vars/`, then
