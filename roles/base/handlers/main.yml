@@ -10,4 +10,6 @@
   ansible.builtin.systemd:
     name: "systemd-zram-setup@zram0.service"
     state: restarted
+  # Containers have no zram device, so the unit cannot start there.
+  when: "'container' not in ansible_virtualization_tech_guest | default([])"
   listen: "Restart zram service"

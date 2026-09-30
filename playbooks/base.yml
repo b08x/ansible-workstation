@@ -2,13 +2,11 @@
 - name: System Provisioning and Base Configuration
   hosts: workstations
   become: true
-  gather_facts: false
+  # Facts are gathered as root so that virtualization and other privileged
+  # facts are complete. Tasks that need the connection user use ansible_user
+  # or user.home, not ansible_user_id or ansible_user_dir.
+  gather_facts: true
   pre_tasks:
-    - name: Gather facts as unprivileged connection user
-      ansible.builtin.setup:
-      become: false
-      tags: ["always"]
-
     # to allow for ansible pipelining functionality
     # https://docs.ansible.com/ansible/2.4/intro_configuration.html#pipelining
     # while this requirement was removed in RHEL, many other distros leave this option enabled
@@ -16,18 +14,18 @@
       ansible.builtin.lineinfile:
         dest: /etc/sudoers
         regexp: "^Defaults    requiretty"
-        line: "Defaults:{{ ansible_user_id }}    !requiretty"
+        line: "Defaults:{{ ansible_user }}    !requiretty"
         backrefs: false
         backup: false
         validate: "visudo -cf %s"
-      when: ansible_user_id != 'root'
+      when: ansible_user != 'root'
       tags: ["sudoers"]
 
     - name: Display ansible_distribution
       ansible.builtin.debug:
         msg: |
           The host {{ inventory_hostname }} has {{ ansible_distribution }} installed,
-          which belongs to the {{ ansible_os_family }} OS family. Run as {{ ansible_user_id }}
+          which belongs to the {{ ansible_os_family }} OS family. Connected as {{ ansible_user }}
       tags: ["always"]
 
     - name: Symlink /etc/os-release to /etc/system-release

@@ -57,7 +57,7 @@
   ansible.builtin.systemd:
     name: sshd
     enabled: true
-    state: restarted
+    state: started
 
 - name: Configure zram-generator
   ansible.builtin.copy:
@@ -92,17 +92,15 @@
   when: base_install_go | default(true) | bool
   tags: ["go", "base"]
 
-- name: Include fzf installation tasks
-  ansible.builtin.include_tasks: fzf.yml
-  tags: ["fzf", "base"]
-
 - name: Include inxi installation tasks
   ansible.builtin.include_tasks: inxi.yml
   tags: ["inxi", "base"]
 
 - name: Include Homebrew configuration tasks
   ansible.builtin.include_tasks: homebrew.yml
-  when: ansible_distribution == 'Fedora'
+  when:
+    - base_install_homebrew | bool
+    - ansible_distribution == 'Fedora'
   tags: ["homebrew", "base"]
 
 - name: Include Zsh installation tasks

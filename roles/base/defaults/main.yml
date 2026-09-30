@@ -14,6 +14,14 @@ base_enable_rpmfusion: true
 # COPR repositories to enable. Each entry is an "owner/project" pair,
 # e.g. "atim/starship".
 base_copr_repos: []
+
+# COPR that provides the gitflow package on Fedora (see tasks/gitflow.yml).
+base_gitflow_copr: elegos/gitflow
+
+# Homebrew is opt-in. When true, Fedora hosts get the official prefix
+# /home/linuxbrew/.linuxbrew (see tasks/homebrew.yml).
+base_install_homebrew: false
+
 # Rescue strictness. The Intel graphics, zoxide and DNF-priority blocks are
 # optional: they report a warning and continue when they fail, because the role
 # still meets its contract without them. Set one to true to turn its failure

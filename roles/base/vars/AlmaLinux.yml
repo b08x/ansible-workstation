@@ -13,7 +13,9 @@ base_packages:
   - ffmpeg
   - ffmpegthumbnailer
   - flatpak
+  - fzf
   - gettext
+  - git
   - gmp-devel
   - gobject-introspection-devel
   - gtksourceview4
@@ -36,6 +38,7 @@ base_packages:
   - lm_sensors-devel
   - lnav
   - lsb_release
+  - make
   - mediainfo
   - meson
   - micro
