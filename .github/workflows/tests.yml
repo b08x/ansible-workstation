@@ -16,3 +16,39 @@ on: # yamllint disable-line rule:truthy
 jobs:
   ansible-lint:
     uses: ansible/ansible-content-actions/.github/workflows/ansible_lint.yaml@main
+
+  molecule:
+    name: molecule (${{ matrix.role }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [base]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Versions match the control node the scenario was developed against.
+      - name: Install Ansible and Molecule
+        run: pip install "ansible-core==2.18.*" "molecule==26.8.*"
+
+      # Only the collections the scenario and the role call: containers.podman
+      # for create/destroy and the podman connection, community.general for copr.
+      - name: Install collections
+        run: ansible-galaxy collection install containers.podman:1.20.2 community.general
+
+      - name: Show Podman version
+        run: podman version
+
+      - name: Run Molecule
+        working-directory: roles/${{ matrix.role }}
+        run: molecule test
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
