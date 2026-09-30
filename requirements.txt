@@ -3,3 +3,4 @@
 # comes from the system package manager and stays outside the venv.
 PyYAML>=6.0
 dspy>=3.0
+duckdb>=1.1
