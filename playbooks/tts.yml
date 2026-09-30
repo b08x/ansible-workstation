@@ -2,9 +2,16 @@
 - name: Text-to-Speech (Whisper) Setup
   hosts: workstations
   become: false
-  gather_facts: true
+  gather_facts: false
   vars:
     whisper_my_variable: "default_value"
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # base.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
   roles:
     - role: tts
       tags: ["tts", "llmops"]

@@ -2,7 +2,7 @@
 - name: Deploy Langfuse (Podman)
   hosts: langfuse
   become: false
-  gather_facts: true
+  gather_facts: false
   vars:
     # Container runtime
     langfuse_container_runtime: podman
@@ -63,6 +63,13 @@
     langfuse_image_tag: "latest"
     langfuse_clickhouse_image_tag: "25.12"
     langfuse_postgres_version: "17"
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # base.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
   roles:
     - role: langfuse
       tags: ["langfuse", "llmops"]
