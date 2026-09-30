@@ -61,6 +61,14 @@ weekly. That layer lives in containers and disposable images, walled off from
 the host's ABI, free to be reckless precisely because the ground underneath it
 is not.
 
+The name is borrowed from music. Syncopation puts the accent where the meter
+does not expect it — between the beats, against the pulse — and it only works
+because the pulse holds. Nothing in this repository keeps the same time. The
+AlmaLinux base moves on a ten-year clock, Fedora on a thirteen-month one,
+Ansible whenever a playbook runs, the agent tooling on whatever upstream shipped
+this week. Syncopated is the practice of letting those disparate
+systems land on their own offbeats without losing the downbeat underneath them.
+
 Make yourself comfortable. The plumbing below is just the argument, load-bearing.
 
 ## Why This Exists
