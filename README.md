@@ -53,7 +53,8 @@ So this repository runs at two speeds.
 The **slow layer** is deliberately boring: idempotent roles, explicit variable
 tiers, distributions asserted before anything touches the disk, firewall
 rules co-located with the services that need them. Ansible's whole job here is
-to keep this layer honest — a 2:00 AM automated update should be a non-event.
+to keep this layer honest — re-running a playbook against a converged host
+should report zero changes.
 
 The **fast layer** is everything that legitimately churns: language models,
 agent harnesses, RAG pipelines, tokenizers, the tooling that reinvents itself
