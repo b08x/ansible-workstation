@@ -1,0 +1,29 @@
+---
+- name: Verify
+  hosts: molecule
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check that sshd is enabled and running
+      ansible.builtin.systemd:
+        name: sshd
+      register: base_verify_sshd
+      failed_when: >-
+        base_verify_sshd.status.ActiveState != 'active' or
+        base_verify_sshd.status.UnitFileState != 'enabled'
+
+    - name: Check that command-line tools are installed
+      ansible.builtin.command: "{{ item }}"
+      loop:
+        - /usr/local/go/bin/go version
+        - git flow version
+        - fzf --version
+        - inxi --version
+        - yadm version
+      changed_when: false
+
+    - name: Check that Homebrew was not installed by default
+      ansible.builtin.stat:
+        path: /home/linuxbrew/.linuxbrew/bin/brew
+      register: base_verify_brew
+      failed_when: base_verify_brew.stat.exists

@@ -545,12 +545,18 @@ plays, and therefore the only artifact showing the full provisioning shape. See
 # Lint natively
 ansible-lint
 
-# Molecule scenario
-molecule test
+# Molecule scenario for the base role (run from the role directory)
+cd roles/base && molecule test
 
 # Python tests, parallel
 pytest -vvv -n 2
 ```
+
+`base` is the only role with a Molecule scenario so far. It builds a Fedora 43
+container with systemd as PID 1 under rootless Podman, converges the role,
+converges it a second time and fails if any task reports a change, then checks
+that sshd is running and the command-line tools are installed. The scenario
+needs `podman` and the `containers.podman` collection on the control node.
 
 The root `pre-commit` config runs black, isort, flake8, prettier, and ansible-lint
 across the monolithic repository. Run `pre-commit run --all-files` from the repository root

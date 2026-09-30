@@ -1,0 +1,20 @@
+---
+# Idempotence scenario for the base role: a Fedora 43 container with systemd
+# as PID 1, driven by rootless Podman through plain create/destroy playbooks.
+ansible:
+  cfg:
+    defaults:
+      roles_path: ${MOLECULE_PROJECT_DIRECTORY}/..
+  executor:
+    args:
+      ansible_playbook:
+        - --inventory=${MOLECULE_SCENARIO_DIRECTORY}/inventory/
+
+scenario:
+  test_sequence:
+    - destroy
+    - create
+    - converge
+    - idempotence
+    - verify
+    - destroy

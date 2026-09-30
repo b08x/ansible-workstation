@@ -1,0 +1,5 @@
+FROM {{ container_base_image }}
+RUN dnf -y install systemd sudo python3 python3-libdnf5 && dnf clean all \
+ && useradd -m molecule \
+ && echo 'molecule ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/molecule
+CMD ["/sbin/init"]
