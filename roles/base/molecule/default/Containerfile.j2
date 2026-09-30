@@ -1,5 +1,10 @@
 FROM {{ container_base_image }}
+# !pam_acct_mgmt: on GitHub's Ubuntu runners, sudo's PAM account check fails
+# inside rootless Podman ("Authentication service cannot retrieve
+# authentication info") before NOPASSWD applies. Test image only.
 RUN dnf -y install {{ container_bootstrap_packages }} && dnf clean all \
  && useradd -m molecule \
- && echo 'molecule ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/molecule
+ && printf '%s\n' \
+      'molecule ALL=(ALL) NOPASSWD: ALL' \
+      'Defaults:molecule !pam_acct_mgmt' > /etc/sudoers.d/molecule
 CMD ["/sbin/init"]
