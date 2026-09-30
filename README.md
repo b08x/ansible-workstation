@@ -8,6 +8,10 @@ Ansible control repository for provisioning Fedora and AlmaLinux development
 workstations — desktop, virtualisation, container runtimes, and a local LLM ops
 stack — from a single inventory.
 
+Kept as a working notebook: the roles, playbooks, and notes are a running
+record of experiments, in the way a Jupyter notebook keeps code, output, and
+commentary together.
+
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15-black.svg)](https://docs.ansible.com/ansible-core/devel/)
 [![CI](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml/badge.svg)](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml)
@@ -60,6 +64,11 @@ is not.
 Make yourself comfortable. The plumbing below is just the argument, load-bearing.
 
 ## Why This Exists
+
+This repository is a notebook. I use it to test current tools and methods
+against real hosts and to keep a record of what I found. Nothing in it is
+finished. Each role or playbook is the current entry for an experiment, and the
+git history keeps the earlier entries.
 
 Practically: this repository renders the workstations and servers in its
 inventory from a single declaration. But the machines are the current
@@ -119,12 +128,18 @@ This repository is not the first body this exercise has worn. The archive
 began on the pragmatic ground, wandered upstream, and returned — the workload
 changing underneath it as it went:
 
-- **fortyau (2014–2015)** — the origin: a Nashville startup's CI/CD pipeline on
+- **Nashville (2014–2015)** — the origin: a startup's CI/CD pipeline on
   CentOS 7. Twenty-one roles — Jenkins, GitLab, MariaDB master-slave with GTID,
   Nginx, Redis, Graylog, HAProxy, CIS hardening, Azure provisioning, three
   environments. The thesis is already whole in the notes from back then: no
   one should ever have to log into these hosts — every change flows through
   Ansible. The pragmatist ground was the starting point, not the destination.
+- **Columbus (2016)** — the break. After several years in high-stress DevOps
+  work, I left my job in Nashville and moved to Columbus to recover from
+  burnout. There I started exploring the Linux audio ecosystem. At the same
+  time I kept refining the Ansible design patterns and methods from Nashville,
+  and I have kept an experimental collection of roles ever since. The entries
+  below come from that collection.
 - **ArchLabs** — the upstream excursion. A complete Arch playbook with a dedicated
   audio role: JACK, PulseAudio, or PipeWire selection, realtime privileges,
   low-latency kernel and CPU tuning, archaudio and chaotic-aur repositories,
@@ -140,9 +155,14 @@ changing underneath it as it went:
   pass at deciding which of those years of patterns become a retrievable corpus,
   and which get discarded.
 
+Reviewing this archive only became practical with large language model tools.
+Over the past two years I have built tooling around them, and I am now using it
+to go back over eight to ten years of this work and place each part in order
+and in context.
+
 The workload changed — enterprise CI/CD first, realtime audio programming and
 production after — but the tension underneath did not, and the two workloads
-enforced opposite poles of it. fortyau is the immutability pole: cattle,
+enforced opposite poles of it. The Nashville pipeline is the immutability pole: cattle,
 hardened, no human hands on the machines. The audio workstation is the other
 pole. An artist's workstation is an instrument. It accumulates studio session
 configurations, custom patches,
