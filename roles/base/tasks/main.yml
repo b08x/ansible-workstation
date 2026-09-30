@@ -31,13 +31,13 @@
 - name: Install Base packages
   tags: ["packages", "base"]
   block:
+    # One dnf transaction for the whole list; a loop runs one transaction per
+    # package. On failure, dnf's error names the packages it could not resolve.
     - name: Install Base packages
       ansible.builtin.dnf:
-        name: "{{ item }}"
+        name: "{{ base_packages }}"
         state: present
         allowerasing: true
-      with_items:
-        - "{{ base_packages }}"
 
   rescue:
     # Shape 1 (add context, then re-raise): base packages are this role's core

@@ -11,15 +11,23 @@
 - name: Configure RHEL family repositories
   tags: ["repositories"]
   block:
+    # epel-release goes first on its own: distribution-gpg-keys comes from
+    # EPEL, so it cannot resolve in the same transaction that adds EPEL.
     - name: Install EPEL repository
       ansible.builtin.dnf:
-        name: "{{ item }}"
+        name: epel-release
         state: present
-      loop:
-        - epel-release
-        - distribution-gpg-keys
-        - dnf-plugins-core
       register: base_epel_install
+      tags: ["epel"]
+
+    - name: Install repository prerequisites
+      ansible.builtin.dnf:
+        name:
+          - distribution-gpg-keys
+          - dnf-plugins-core
+          # rpm_key below needs gpg2 to import the RPM Fusion keys.
+          - gnupg2
+        state: present
       tags: ["epel"]
 
     - name: Replace stock EPEL repo with managed repo configuration
