@@ -482,7 +482,9 @@ osbuild_component_defs:
 
   audio:
     label: "Audio Production Tools"
-    packages: "{{ system_packages.AudioVideo.tuning + system_packages.AudioVideo.pipewire + system_packages.AudioVideo.applications + system_packages.AudioVideo.plugins }}"
+    packages: >-
+      {{ system_packages.AudioVideo.tuning + system_packages.AudioVideo.pipewire
+         + system_packages.AudioVideo.applications + system_packages.AudioVideo.plugins }}
     blueprint_groups: "{{ system_groups.audio }}"
     services: []
     kernel_args: []

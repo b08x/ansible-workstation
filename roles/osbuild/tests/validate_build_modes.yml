@@ -16,7 +16,7 @@
     osbuild_output_dir: /tmp/osbuild-test-out
   tasks:
     - name: Resolve build mode
-      include_tasks: ../../../tasks/select_build_mode.yml
+      ansible.builtin.include_tasks: ../../../tasks/select_build_mode.yml
       tags: always
     - name: Verify resolved mode
       ansible.builtin.assert:
@@ -35,7 +35,7 @@
     osbuild_output_dir: /tmp/osbuild-test-out
   tasks:
     - name: Resolve build mode
-      include_tasks: ../../../tasks/select_build_mode.yml
+      ansible.builtin.include_tasks: ../../../tasks/select_build_mode.yml
       tags: always
     - name: Verify resolved mode
       ansible.builtin.assert:
@@ -54,7 +54,7 @@
     osbuild_output_dir: /tmp/osbuild-test-out
   tasks:
     - name: Resolve build mode
-      include_tasks: ../../../tasks/select_build_mode.yml
+      ansible.builtin.include_tasks: ../../../tasks/select_build_mode.yml
       tags: always
     - name: Verify resolved mode
       ansible.builtin.assert:
@@ -73,7 +73,7 @@
     osbuild_output_dir: /tmp/osbuild-test-out
   tasks:
     - name: Resolve build mode
-      include_tasks: ../../../tasks/select_build_mode.yml
+      ansible.builtin.include_tasks: ../../../tasks/select_build_mode.yml
       tags: always
     - name: Trigger runtime assertion failure for unsupported mode
       block:
@@ -84,6 +84,6 @@
             fail_msg: "Unsupported build mode regression encountered."
       rescue:
         - name: Record failure summary
-          debug:
+          ansible.builtin.debug:
             msg: "Explicit failure triggered: expected path."
           tags: always

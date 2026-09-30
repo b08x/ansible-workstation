@@ -21,12 +21,23 @@
   become: "{{ hermes_install_user != ansible_user }}"
   tags: ["hermes", "install", "directory"]
 
-- name: Download and run Hermes installer
-  ansible.builtin.command: >-
-    curl -fsSL {{ hermes_installer_url }} | bash -s --
+# ansible.builtin.command does not run a shell, so the installer is
+# downloaded first and then run, rather than piped from curl to bash.
+- name: Download Hermes installer
+  ansible.builtin.get_url:
+    url: "{{ hermes_installer_url }}"
+    dest: /tmp/hermes-install.sh
+    mode: "0755"
+  become: true
+  become_user: "{{ hermes_install_user }}"
+  tags: ["hermes", "install", "installer"]
+
+- name: Run Hermes installer
+  ansible.builtin.command:
+    cmd: >-
+      bash /tmp/hermes-install.sh
       --skip-prompt
       --install-dir {{ hermes_agent_dir }}
-  args:
     creates: "{{ hermes_cli }}"
   environment:
     # Pass environment variables to installer
@@ -65,6 +76,7 @@
     regexp: '^export PATH="{{ hermes_venv_bin }}:.*"$'
     insertafter: EOF
     create: true
+    mode: "0644"
     backup: true
   become: true
   become_user: "{{ hermes_install_user }}"
@@ -78,6 +90,7 @@
     regexp: '^export PATH="{{ hermes_venv_bin }}:.*"$'
     insertafter: EOF
     create: true
+    mode: "0644"
     backup: true
   become: true
   when: hermes_install_user == 'root'

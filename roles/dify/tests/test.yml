@@ -6,4 +6,4 @@
     user:
       home: /tmp
   roles:
-    - role: b08x.llmops.dify
+    - role: dify

@@ -31,7 +31,7 @@
   tags: ["hermes", "selinux", "packages"]
 
 - name: Configure container_selinux boolean (allow containers to use SELinux)
-  ansible.posix.selinux:
+  ansible.posix.seboolean:
     name: container_selinux
     state: true
     persistent: true
@@ -42,7 +42,7 @@
   tags: ["hermes", "selinux", "containers"]
 
 - name: Configure container_manage_cgroup boolean (allow container runtime to manage cgroups)
-  ansible.posix.selinux:
+  ansible.posix.seboolean:
     name: container_manage_cgroup
     state: true
     persistent: true
@@ -77,8 +77,10 @@
   tags: ["hermes", "selinux", "context"]
 
 - name: Ensure Podman can access user home directories (SELinux)
-  ansible.builtin.command: >-
-    setsebool -P container_home_dirs_on 1
+  ansible.posix.seboolean:
+    name: container_home_dirs_on
+    state: true
+    persistent: true
   become: true
   when:
     - hermes_selinux_is_enabled
@@ -87,11 +89,14 @@
   tags: ["hermes", "selinux", "podman"]
 
 - name: Configure SELinux for installation directory
+  when: hermes_selinux_is_enabled
+  tags: ["hermes", "selinux", "install"]
   block:
     - name: Set context for installation directory
       ansible.builtin.file:
         path: "{{ hermes_install_dir }}"
         state: directory
+        mode: "0755"
         setype: user_home_t
         seuser: system_u
       become: true
@@ -105,8 +110,6 @@
       changed_when: false
       when: hermes_selinux_is_enabled
       tags: ["hermes", "selinux", "install"]
-  when: hermes_selinux_is_enabled
-  tags: ["hermes", "selinux", "install"]
 
 - name: Verify SELinux contexts are correct
   ansible.builtin.command: >-

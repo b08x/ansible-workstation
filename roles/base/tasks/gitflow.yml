@@ -46,6 +46,7 @@
       ansible.builtin.command:
         cmd: make install
         chdir: /tmp/gitflow-avh
+        creates: /usr/local/bin/git-flow
 
     - name: Clean up gitflow-avh clone
       ansible.builtin.file:

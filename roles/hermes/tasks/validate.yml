@@ -84,8 +84,11 @@
   tags: ["hermes", "validation", "selinux"]
 
 - name: Verify firewall ports are open
-  ansible.builtin.command: >-
-    firewall-cmd --list-ports --permanent | grep -E '{{ hermes_firewall_ports | map("regex_replace", "\\/", "\\\") | join("|") }}'
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail &&
+      firewall-cmd --list-ports --permanent | grep -E '{{ hermes_firewall_ports | join("|") }}'
+    executable: /bin/bash
   register: hermes_firewall_validate
   changed_when: false
   become: true
@@ -137,6 +140,8 @@
       API Test:
       - API Accessible: {{ hermes_api_validate.status | default(-1) == 200 | ternary('✓ YES', '✗ NO') }}
 
-      Overall Status: {{ (hermes_cli_validate.stat.exists and (not hermes_system_service or hermes_service_validate.stat.exists) and (not hermes_selinux_enforcing
-      or hermes_selinux_validate.rc == 0)) | ternary('✓ PASS', '✗ FAIL') }}
+      Overall Status: {{ (hermes_cli_validate.stat.exists
+        and (not hermes_system_service or hermes_service_validate.stat.exists)
+        and (not hermes_selinux_enforcing or hermes_selinux_validate.rc == 0))
+        | ternary('✓ PASS', '✗ FAIL') }}
   tags: ["hermes", "validation", "summary", "always"]

@@ -17,6 +17,9 @@ collections:
 
   - name: containers.podman
     version: 1.20.2
+
+  # docker_compose_v2 in the dify and langfuse Docker handlers.
+  - name: community.docker
   # TO-DO: User's own collections can also be specified as mention below.
   # - name: my_organization.my_collection
   #   version: 1.2.3

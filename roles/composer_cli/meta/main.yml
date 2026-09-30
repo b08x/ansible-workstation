@@ -22,7 +22,7 @@ galaxy_info:
   galaxy_tags:
     - osbuild
     - composer
-    - composer-cli
+    - composercli
     - image
 
 dependencies: []
