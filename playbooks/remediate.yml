@@ -1,0 +1,198 @@
+# noqa: internal-error
+---
+# The hosts pattern requires -e target=<host>. ansible-lint's internal
+# syntax-check cannot supply extra vars, so that one failure is ignored for
+# this file in .ansible-lint-ignore.
+#
+# LLM diagnose-and-remediate pipeline. The model diagnoses and drafts; this
+# playbook gates every execution behind explicit human approval and human
+# confirmation. Run it against the failing host:
+#
+#   ansible-playbook playbooks/remediate.yml -e target=tinybot
+#
+# Non-interactive runs must opt in explicitly:
+#
+#   -e remediation_approve=yes -e remediation_confirm=yes
+#
+# A host whose containers and pods are all running ends the run after the
+# gather, with no incident and no model call. To diagnose it anyway:
+#
+#   -e remediation_force=true
+#
+- name: Diagnose the failure and draft a remediation
+  hosts: "{{ target | mandatory }}"
+  gather_facts: false
+  become: false
+  vars:
+    remediation_inventory: "{{ playbook_dir }}/../inventory/hosts.yml"
+    # Set by the first task; guards below read it.
+    remediation_approved: "{{ remediation_approve | default('') == 'yes' }}"
+    remediation_confirmed: "{{ remediation_confirm | default('') == 'yes' }}"
+  tasks:
+    - name: Gather diagnostics and draft a remediation playbook
+      remediation_diagnose:
+        since: -1h
+        force: "{{ remediation_force | default(false) | bool }}"
+      register: remediation_diag
+      tags: ["always"]
+
+    - name: Report a healthy host
+      when: remediation_diag.status | default('') == 'healthy'
+      ansible.builtin.debug:
+        msg: "{{ remediation_diag.msg }}"
+
+    - name: End the run for a healthy host or a check-mode run
+      when: remediation_diag.status | default('') == 'healthy' or ansible_check_mode
+      ansible.builtin.meta: end_host
+
+    - name: Stop if the drafted playbook was rejected by the safety guard
+      ansible.builtin.fail:
+        msg: >-
+          The generated playbook was rejected and never offered for execution:
+          {{ remediation_diag.rejected_reasons | default([]) | join('; ') }}
+      when: remediation_diag.status == 'rejected'
+
+    - name: Show the drafted playbook and require approval
+      when: not (remediation_approved | bool)
+      ansible.builtin.pause:
+        prompt: |
+
+          Incident: {{ remediation_diag.incident_id }}
+          Tier: {{ remediation_diag.tier | default('llm') }}
+          Signature: {{ remediation_diag.error_signature }}
+          Service: {{ remediation_diag.service }}
+          Severity: {{ remediation_diag.severity }}
+
+          {{ remediation_diag.summary }}
+
+          {% for match in remediation_diag.matches %}
+          Similar past incident: {{ match.incident_id }}
+            score {{ match.score | round(3) }} on {{ match.host }}
+            signature {{ match.error_signature }}
+          {% endfor %}
+
+          Proposed remediation ({{ remediation_diag.playbook_path }}):
+
+          {{ remediation_diag.playbook_yaml }}
+
+          Type 'yes' to run this playbook against {{ inventory_hostname }},
+          anything else to abort:
+      register: remediation_pause_approval
+
+    - name: Record the approval decision
+      ansible.builtin.set_fact:
+        remediation_run: "{{ (remediation_approved | bool) or (remediation_pause_approval.user_input | default('') | lower == 'yes') }}"
+
+    - name: Abort without approval
+      ansible.builtin.fail:
+        msg: >-
+          Remediation playbook {{ remediation_diag.playbook_path }} was not
+          approved; nothing was executed on the host.
+      when: not (remediation_run | bool)
+
+    - name: Run the approved remediation playbook
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - --inventory
+          - "{{ remediation_inventory }}"
+          - --limit
+          - "{{ inventory_hostname }}"
+          - "{{ remediation_diag.playbook_path }}"
+      environment:
+        # The approved playbook lives in the incident store, outside this
+        # repo; role references inside it must still resolve to repo roles.
+        ANSIBLE_ROLES_PATH: "{{ playbook_dir }}/../roles"
+      delegate_to: localhost
+      changed_when: true
+
+    - name: Gather diagnostics again after the remediation
+      remediation_gather:
+        since: -1h
+      register: remediation_recheck
+
+    - name: Check that the original error signature is gone
+      remediation_verify:
+        diagnostics: "{{ remediation_recheck.diagnostics }}"
+        error_signature: "{{ remediation_diag.error_signature }}"
+      register: remediation_verification
+
+    - name: Record the signature verdict
+      ansible.builtin.set_fact:
+        remediation_signature_resolved: "{{ remediation_verification.resolved | bool }}"
+
+    - name: Run the generated health check (HTTP)
+      when:
+        - remediation_diag.health_check.kind == 'http'
+        - remediation_signature_resolved | bool
+      ansible.builtin.uri:
+        url: "{{ remediation_diag.health_check.target }}"
+        status_code: 200
+      register: remediation_health_http
+      ignore_errors: true
+
+    - name: Run the generated health check (podman)
+      when:
+        - remediation_diag.health_check.kind == 'podman'
+        - remediation_signature_resolved | bool
+      ansible.builtin.command:
+        cmd: podman healthcheck run {{ remediation_diag.health_check.target }}
+      register: remediation_health_podman
+      failed_when: false
+      changed_when: false
+
+    - name: Record the health-check verdict
+      ansible.builtin.set_fact:
+        remediation_health_ok: >-
+          {{ (remediation_diag.health_check.kind == 'http'
+              and remediation_health_http.status is defined
+              and remediation_health_http.status == 200)
+             or (remediation_diag.health_check.kind == 'podman'
+                 and remediation_health_podman.rc is defined
+                 and remediation_health_podman.rc == 0) }}
+
+    - name: Require human confirmation of the result
+      when: not (remediation_confirmed | bool)
+      ansible.builtin.pause:
+        prompt: |
+
+          Remediation ran for incident {{ remediation_diag.incident_id }}.
+          New signature: {{ remediation_verification.new_signature }}
+          Health check: {{ remediation_diag.health_check.kind }}
+            {{ remediation_diag.health_check.target }}
+            ({{ remediation_health_ok | bool }})
+
+          Type 'yes' to confirm the service is healthy and index this
+          remediation, anything else to record it unconfirmed:
+      register: remediation_pause_confirm
+
+    - name: Record the confirmation decision
+      ansible.builtin.set_fact:
+        remediation_confirmed_final: "{{ (remediation_confirmed | bool) or (remediation_pause_confirm.user_input | default('') | lower == 'yes') }}"
+
+    - name: Record success and index the remediation playbook
+      when:
+        - remediation_confirmed_final | bool
+        - remediation_signature_resolved | bool
+        - remediation_health_ok | bool
+      remediation_record:
+        incident_id: "{{ remediation_diag.incident_id }}"
+        playbook_path: "{{ remediation_diag.playbook_path }}"
+        result: success
+        confirmed_by: "{{ ansible_env.USER | default('human') }}"
+
+    - name: Record an unconfirmed remediation
+      when: not (remediation_confirmed_final | bool)
+      remediation_record:
+        incident_id: "{{ remediation_diag.incident_id }}"
+        playbook_path: "{{ remediation_diag.playbook_path }}"
+        result: unconfirmed
+
+    - name: Record a failed remediation
+      when:
+        - remediation_confirmed_final | bool
+        - not (remediation_signature_resolved | bool and remediation_health_ok | bool)
+      remediation_record:
+        incident_id: "{{ remediation_diag.incident_id }}"
+        playbook_path: "{{ remediation_diag.playbook_path }}"
+        result: failed
