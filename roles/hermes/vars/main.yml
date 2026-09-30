@@ -34,4 +34,4 @@ hermes_podman_prerequisites_dnf:
   - podman
 
 # Combined prerequisites
-hermes_all_prerequisites: "{{ hermes_prerequisites + hermes_podman_prerequisites | unique }}"
+hermes_all_prerequisites: "{{ (hermes_prerequisites + hermes_podman_prerequisites) | unique }}"

@@ -142,9 +142,8 @@
 
 - name: Verify all prerequisites are installed
   ansible.builtin.package:
-    name: "{{ item }}"
+    name: "{{ hermes_all_prerequisites }}"
     state: present
-  loop: "{{ hermes_all_prerequisites }}"
   become: true
   tags: ["hermes", "prerequisites", "packages", "verify"]
 
