@@ -1,0 +1,45 @@
+---
+packages__rpm_dev:
+  - createrepo_c
+  - curl
+  - diffutils
+  - fedora-packager
+  - fedpkg
+  - git
+  - gnupg2
+  - koji
+  - mock
+  - patch
+  - python3-pip
+  - python3-setuptools
+  - redhat-rpm-config
+  - rpm-build
+  - rpm-sign
+  - rpmdevtools
+  - rpmlint
+  - wget
+
+packages__mock_deps:
+  - epel-release
+  - systemd-container
+  - dnf
+  - dnf-plugins-core
+  - usermode
+
+packages__dev_tools:
+  - vim-enhanced
+  - nano
+  - tree
+  - less
+
+packages:
+  rpm_dev: "{{ packages__rpm_dev + packages__mock_deps + packages__dev_tools }}"
+
+# AlmaLinux ships stock mock configs in /etc/mock/ for x86_64 and aarch64.
+# No custom templates needed — reference them directly by name.
+mock_configs: []
+mock_templates: []
+# AlmaLinux stock mock targets — ships in /etc/mock/ with almalinux-release
+_mock_targets:
+  - "almalinux-{{ ansible_distribution_major_version }}-x86_64"
+  - "almalinux-{{ ansible_distribution_major_version }}-aarch64"

@@ -1,0 +1,11 @@
+---
+# tasks file for b08x.llmops.ollama
+
+- name: Starting ollama tasks
+  ansible.builtin.debug:
+    msg: "Starting ollama tasks"
+  tags: ["always"]
+
+- name: Display the value of ollama_my_variable
+  ansible.builtin.debug:
+    msg: "The value of ollama_my_variable is {{ ollama_my_variable }}"

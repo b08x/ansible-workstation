@@ -1,0 +1,22 @@
+---
+- name: OSbuild-Composer CLI Setup
+  hosts: builder
+  become: true
+  gather_facts: true
+  vars:
+    composer_cli_blueprint_name: "workstation"
+    composer_cli_blueprint_description: >-
+      Composer-cli workstation blueprint with desktop, GPU compute,
+      and container tooling
+    composer_cli_blueprint_version: "1.0.0"
+    composer_cli_blueprint_dir: "/etc/osbuild-composer/blueprints"
+    composer_cli_blueprint_path: "/etc/osbuild-composer/blueprints/workstation.toml"
+    composer_cli_compose_type: "qcow2"
+    composer_cli_compose_output_dir: "/var/lib/osbuild-composer/outputs"
+    composer_cli_start_compose: false
+    composer_cli_service_name: "osbuild-composer"
+    composer_cli_service_state: "started"
+    composer_cli_service_enabled: true
+  roles:
+    - role: composer_cli
+      tags: ["composer_cli", "builder"]

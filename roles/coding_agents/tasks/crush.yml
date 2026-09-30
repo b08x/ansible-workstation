@@ -1,0 +1,88 @@
+---
+# Crush — go install + config deployment (crushrc with embedded MCP)
+
+# -- Uninstall --
+- name: Uninstall Crush
+  when:
+    - coding_agents_crush_state == 'present'
+    - coding_agents_uninstall | default(false) | bool
+  tags: ["crush", "uninstall"]
+  block:
+    - name: Remove Crush CLI binary
+      ansible.builtin.file:
+        path: "{{ ansible_user_dir }}/go/bin/crush"
+        state: absent
+
+    - name: Remove Crush config directory
+      ansible.builtin.file:
+        path: "{{ coding_agents_crush_config_dir }}"
+        state: absent
+
+# -- Install --
+- name: Install Crush
+  when:
+    - coding_agents_crush_state == 'present'
+    - not (coding_agents_uninstall | default(false) | bool)
+  tags: ["crush", "install"]
+  block:
+    - name: Crush CLI setup
+      when: coding_agents_go_check.rc == 0
+      block:
+        - name: Determine requested Crush version
+          ansible.builtin.shell: |
+            go list -m -f '{% raw %}{{.Version}}{% endraw %}' {{ coding_agents_crush_go_package }}
+          environment:
+            GOPATH: "{{ ansible_user_dir }}/go"
+          register: coding_agents_crush_requested_version
+          changed_when: false
+
+        - name: Check currently installed Crush version
+          ansible.builtin.shell: |
+            set -o pipefail
+            if [ -x "{{ ansible_user_dir }}/go/bin/crush" ]; then
+              go version -m "{{ ansible_user_dir }}/go/bin/crush" | awk '$1 == "mod" {print $3}'
+            fi
+          args:
+            executable: /bin/bash
+          register: coding_agents_crush_installed_version
+          changed_when: false
+
+        - name: Install Crush CLI
+          ansible.builtin.command:
+            cmd: "go install {{ coding_agents_crush_go_package }}"
+          environment:
+            GOPATH: "{{ ansible_user_dir }}/go"
+          when: coding_agents_crush_requested_version.stdout | trim != coding_agents_crush_installed_version.stdout | trim
+          changed_when: coding_agents_crush_requested_version.stdout | trim != coding_agents_crush_installed_version.stdout | trim
+
+    - name: Crush CLI not installed (go missing)
+      ansible.builtin.debug:
+        msg: "WARNING: go not found — cannot install Crush CLI. Install golang via the base role."
+      when: coding_agents_go_check.rc != 0
+
+# -- Config --
+- name: Configure Crush
+  when:
+    - coding_agents_crush_state == 'present'
+    - not (coding_agents_uninstall | default(false) | bool)
+  tags: ["crush", "config"]
+  block:
+    - name: Ensure Crush config directory exists
+      ansible.builtin.file:
+        path: "{{ coding_agents_crush_config_dir }}"
+        state: directory
+        mode: "0755"
+
+    # - name: Deploy Crush config
+    #   ansible.builtin.template:
+    #     src: crush/crushrc.j2
+    #     dest: "{{ coding_agents_crush_config_dir }}/crushrc"
+    #     backup: true
+    #     mode: "0644"
+    #   tags: ["mcp"]
+
+    - name: Ensure Crush agents directory exists
+      ansible.builtin.file:
+        path: "{{ coding_agents_crush_agents_dir }}"
+        state: directory
+        mode: "0755"

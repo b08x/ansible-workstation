@@ -1,0 +1,13 @@
+---
+base_packages:
+  - aria2
+  # - golang
+  - nodejs
+  - npm
+  # Required by the role's own tasks: sshd is enabled in main.yml, git and zsh
+  # run the oh-my-zsh installer, zram-generator reads the config main.yml writes.
+  - fzf
+  - git
+  - openssh-server
+  - zram-generator
+  - zsh

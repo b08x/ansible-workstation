@@ -1,28 +1,22 @@
+// with SELinux strictly enforced, they might run into issues with workspace volumes failing to mount. 
+// If this happens, you can bypass it by adding "--security-opt=label=disable" to your runArgs array, 
+// which tells Podman not to apply SELinux labels to the container's processes.
 {
-  "name": "ansible-dev-container-podman",
-  "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
-  "containerUser": "root",
-  "runArgs": [
-    "--cap-add=CAP_MKNOD",
-    "--cap-add=NET_ADMIN",
-    "--cap-add=SYS_ADMIN",
-    "--cap-add=SYS_RESOURCE",
-    "--device",
-    "/dev/fuse",
-    "--security-opt",
-    "seccomp=unconfined",
-    "--security-opt",
-    "label=disable",
-    "--security-opt",
-    "apparmor=unconfined",
-    "--security-opt",
-    "unmask=/sys/fs/cgroup",
-    "--userns=host",
-    "--hostname=ansible-dev-container"
-  ],
-  "customizations": {
-    "vscode": {
-      "extensions": ["redhat.ansible", "redhat.vscode-redhat-account"]
+    "image": "ghcr.io/ansible/community-ansible-dev-tools:latest",
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": false,
+    "runArgs": [
+        "--userns=keep-id",
+        "--device=/dev/fuse",
+        "--security-opt=unmask=/sys/fs/cgroup",
+        "--hostname=ansible-dev-container"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "redhat.ansible",
+                "redhat.vscode-redhat-account"
+            ]
+        }
     }
-  }
 }

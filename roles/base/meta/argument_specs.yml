@@ -1,0 +1,19 @@
+---
+# argument spec file for b08x.devworkstation.base
+
+argument_specs:
+  main:
+    short_description: Role description.
+    options:
+      base_my_variable:
+        type: str
+        description: A simple string argument for demonstration.
+        default: "default_value"
+      base_gitflow_copr:
+        type: str
+        description: COPR "owner/project" that provides the gitflow package on Fedora.
+        default: elegos/gitflow
+      base_install_homebrew:
+        type: bool
+        description: Install Homebrew on Fedora hosts. Off by default.
+        default: false

@@ -1,0 +1,19 @@
+---
+# Samba firewall configuration
+
+- name: Enable Samba service in firewalld
+  ansible.posix.firewalld:
+    service: samba
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+
+- name: Enable Samba client service in firewalld
+  ansible.posix.firewalld:
+    service: samba-client
+    permanent: true
+    state: enabled
+    immediate: true
+  when: nas_samba_enable_client_firewall | default(false)
+  notify: Reload firewalld

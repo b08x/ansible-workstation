@@ -1,0 +1,28 @@
+---
+- name: Report missing GNOME package list for this distribution
+  ansible.builtin.debug:
+    msg: >-
+      desktop_packages has no gnome key for {{ ansible_distribution }};
+      skipping the GNOME package install.
+  when: not (desktop_packages.gnome | default([]))
+  tags: ["packages", "desktop", "gnome"]
+
+- name: Install GNOME packages
+  ansible.builtin.dnf:
+    name: "{{ desktop_packages.gnome }}"
+    state: present
+    allowerasing: true
+  when: desktop_packages.gnome | default([])
+  tags: ["packages", "desktop", "gnome"]
+
+- name: Get the current default systemd target
+  ansible.builtin.command: systemctl get-default
+  changed_when: false
+  register: desktop_current_target
+
+- name: Set default target to graphical
+  ansible.builtin.command: systemctl set-default graphical.target
+  when:
+    - desktop_current_target.stdout | trim != 'graphical.target'
+  register: desktop_set_default_target
+  changed_when: desktop_set_default_target.rc == 0

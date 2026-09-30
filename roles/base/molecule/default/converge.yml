@@ -1,0 +1,10 @@
+---
+# Mirrors playbooks/base.yml: facts are gathered as root.
+- name: Converge
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Apply the base role
+      ansible.builtin.include_role:
+        name: base

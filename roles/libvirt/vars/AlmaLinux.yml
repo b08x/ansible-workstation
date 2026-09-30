@@ -1,0 +1,7 @@
+---
+libvirt_packages:
+  - "@virtualization-host-environment"
+  - virt-manager
+  - qemu-kvm
+  - virt-install
+libvirt_bridge_conf_path: /etc/qemu-kvm/bridge.conf

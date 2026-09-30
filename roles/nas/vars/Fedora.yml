@@ -1,0 +1,30 @@
+---
+# Fedora-specific package names for NAS role
+
+# NFS server packages
+nas_packages_nfs:
+  - nfs-utils
+  - rpcbind
+
+# Samba/SMB server packages
+nas_packages_samba:
+  - samba
+  - samba-client
+  - samba-common
+
+# Rsync daemon packages
+nas_packages_rsync:
+  - rsync
+  - xinetd # Optional, for xinetd-based rsync if not using systemd
+
+# NFS service names (Fedora uses nfs-server)
+nas_service_nfs: nfs-server
+nas_service_nfs_idmapd: nfs-idmapd
+nas_service_rpcbind: rpcbind
+
+# Samba service names
+nas_service_samba: smb
+nas_service_nmb: nmb
+
+# Firewall service (firewalld on Fedora)
+nas_firewall_backend: firewalld

@@ -1,0 +1,12 @@
+---
+# Per-agent settings for OpenCode
+# Config file: ~/.config/opencode/opencode.json (JSON)
+# MCP config: embedded in opencode.json under 'mcp' key (env vars use {env:VAR} syntax)
+
+coding_agents_opencode_settings:
+  model: "anthropic/claude-sonnet-4-20250514"
+  small_model: "anthropic/claude-3-5-haiku-20241022"
+  permission:
+    edit: "ask"
+    bash: "auto"
+    webfetch: "auto"

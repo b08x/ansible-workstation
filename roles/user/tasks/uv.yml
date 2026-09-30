@@ -1,0 +1,36 @@
+---
+- name: Add UV_PYTHON_PREFERENCE to shell environments
+  ansible.builtin.lineinfile:
+    path: "{{ user.home | default('/home/' + user.name) }}/{{ item }}"
+    line: 'export UV_PYTHON_PREFERENCE="only-managed"'
+    regexp: "^export UV_PYTHON_PREFERENCE="
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    create: true
+    backup: true
+  loop:
+    - .bashrc
+    - .zshrc
+  become: false
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["uv", "base"]
+
+# - name: Ensure ~/.local/bin is in PATH for uv tools
+#   ansible.builtin.lineinfile:
+#     path: "{{ user.home | default('/home/' + user.name) }}/{{ item }}"
+#     line: 'export PATH="$HOME/.local/bin:$PATH"'
+#     regexp: '^export PATH=.*\.local/bin'
+#     owner: "{{ user.name }}"
+#     group: "{{ user.name }}"
+#     mode: "0644"
+#     create: true
+#   loop:
+#     - .bashrc
+#     - .zshrc
+#   tags: ["uv", "base"]
+
+- name: Install Python 3.1x
+  community.general.uv_python:
+    version: "{{ user_uv_python_version }}"
+  become: false

@@ -1,0 +1,38 @@
+---
+- name: Create container instances
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Render Containerfile
+      ansible.builtin.template:
+        src: Containerfile.j2
+        dest: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/Containerfile.{{ item }}"
+        mode: "0644"
+      vars:
+        container_base_image: "{{ hostvars[item].container_base_image }}"
+        container_bootstrap_packages: "{{ hostvars[item].container_bootstrap_packages }}"
+      loop: "{{ groups['molecule'] }}"
+
+    - name: Build systemd-enabled test image
+      containers.podman.podman_image:
+        name: "{{ hostvars[item].container_image }}"
+        path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}"
+        build:
+          file: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/Containerfile.{{ item }}"
+        state: build
+      loop: "{{ groups['molecule'] }}"
+
+    - name: Create test containers
+      containers.podman.podman_container:
+        name: "{{ item }}"
+        image: "{{ hostvars[item].container_image }}"
+        command: "{{ hostvars[item].container_command }}"
+        systemd: always
+        state: started
+      loop: "{{ groups['molecule'] }}"
+
+    - name: Wait for containers to be ready
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['molecule'] }}"

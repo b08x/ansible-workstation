@@ -1,0 +1,239 @@
+---
+# defaults file for nas role (RedHat family only)
+
+# =============================================================================
+# Service Enable Flags
+# =============================================================================
+
+# Enable/disable individual NAS services
+nas_enable_nfs: true
+nas_enable_samba: false
+nas_enable_rsync: false
+
+# =============================================================================
+# NFS Configuration
+# =============================================================================
+
+# NFS User/Group (typically nobody:nobody for NFSv4)
+nas_nfs_user_name: nobody
+nas_nfs_user_group: nobody
+nas_nfs_user_uid: 65534
+nas_nfs_user_gid: 65534
+
+# NFS Domain (for NFSv4 ID mapping)
+# Default: uses system's DNS domain
+nas_nfs_domain: "{{ ansible_domain | default('localdomain') }}"
+
+# NFS Allowed Networks (CIDR notation)
+# List of network addresses allowed to access NFS exports
+nas_nfs_allowed_networks:
+  - "192.168.41.0/24"
+  # - "10.0.0.0/8"
+  # - "172.16.0.0/12"
+
+# NFS Export Options (default options for all exports)
+nas_nfs_export_options:
+  - rw
+  - sync
+  - no_subtree_check
+
+# NFS Root Export Options (fsid=0 for NFSv4 root)
+nas_nfs_root_export_options:
+  - rw
+  - fsid=0
+  - no_subtree_check
+  - sync
+
+# NFS Exports List
+# Define directories to export via NFS
+# Each export can have:
+#   - path: Directory path to export (required)
+#   - clients: List of allowed networks/hosts (optional, defaults to nas_nfs_allowed_networks)
+#   - options: Export options (optional, defaults to nas_nfs_export_options)
+#   - create_dir: Whether to create directory if it doesn't exist (optional, default: false)
+#   - owner: Directory owner (optional, default: nas_nfs_user_name)
+#   - group: Directory group (optional, default: nas_nfs_user_group)
+#   - mode: Directory permissions (optional, default: '0755')
+nas_nfs_exports:
+  - path: /srv/nfs
+    create_dir: true
+    is_root: true
+  # Example additional exports:
+  # - path: /srv/nfs/shared
+  #   create_dir: true
+  #   options:
+  #     - rw
+  #     - nohide
+  #     - insecure
+  #     - no_subtree_check
+  #     - sync
+  # - path: /srv/nfs/media
+  #   create_dir: true
+  #   owner: nobody
+  #   group: nobody
+  #   mode: '0775'
+
+# Custom NFS firewall ports (optional)
+# If not defined, standard NFS firewalld services will be used
+nas_nfs_firewall_ports: []
+# Example:
+# nas_nfs_firewall_ports:
+#   - "2049/tcp"
+#   - "2049/udp"
+
+# =============================================================================
+# NFS Firewall Port Configuration
+# =============================================================================
+
+# Fixed NFS service ports for explicit firewall rules and /etc/nfs.conf
+# These ports are configured to avoid conflicts and ephemeral ranges
+# Override these in host_vars/ or group_vars/ for environment-specific needs
+#
+# The NFS role uses a hybrid firewall approach:
+# 1. Firewalld services (nfs, mountd, rpc-bind) for comprehensive coverage
+# 2. Explicit port rules for fixed daemon ports in /etc/nfs.conf
+#
+# This prevents ephemeral port issues and improves firewall manageability
+firewall:
+  nfs:
+    ports:
+      # RPC and core NFS ports (managed by firewalld services)
+      rpcbind: 111 # RPC port mapper (both TCP/UDP)
+      nfs: 2049 # Main NFS server port (both TCP/UDP)
+
+      # NFS auxiliary daemon ports (require explicit configuration)
+      lockd:
+        tcp: 32803 # NFS lock manager TCP port
+        udp: 32769 # NFS lock manager UDP port
+      mountd: 892 # NFS mount daemon port (both TCP/UDP)
+      statd: 662 # NFS status monitor port (both TCP/UDP)
+
+      # RDMA support (if enabled in /etc/nfs.conf)
+      rdma: 20049 # NFS over RDMA port
+
+# =============================================================================
+# Samba Configuration
+# =============================================================================
+
+# Samba User/Group
+nas_samba_user: smbuser
+nas_samba_group: smbgroup
+nas_samba_uid: 1036
+nas_samba_gid: 1036
+nas_samba_user_system: false
+nas_samba_group_system: false
+
+# Samba Global Settings
+nas_samba_workgroup: WORKGROUP
+nas_samba_server_string: "Samba Server %v"
+nas_samba_netbios_name: "{{ ansible_hostname | upper }}"
+
+# Samba Security Settings
+nas_samba_server_min_protocol: NT1
+nas_samba_client_min_protocol: NT1
+nas_samba_client_max_protocol: SMB3
+nas_samba_ntlm_auth: ntlmv1-permitted
+
+# Samba Network Access Control
+nas_samba_hosts_allow:
+  - 127.0.0.1
+  - "192.168.41.0/24"
+  # - "10.0.0.0/8"
+
+# Samba File/Directory Permissions
+nas_samba_create_mask: "0664"
+nas_samba_directory_mask: "2755"
+nas_samba_force_create_mode: "0644"
+nas_samba_force_directory_mode: "2755"
+
+# Samba Shares List
+# Define Samba/SMB shares
+# Each share can have:
+#   - name: Share name (required)
+#   - path: Directory path (required)
+#   - comment: Share description (optional)
+#   - valid_users: List of users/groups allowed (optional)
+#   - write_list: List of users with write access (optional)
+#   - read_only: Read-only flag (optional, default: false)
+#   - browseable: Browseable flag (optional, default: true)
+#   - public: Guest access (optional, default: false)
+#   - create_dir: Create directory if missing (optional, default: false)
+#   - owner: Directory owner (optional)
+#   - group: Directory group (optional)
+#   - mode: Directory permissions (optional)
+nas_samba_shares:
+  - name: shared
+    path: /srv/samba/shared
+    comment: Shared Files
+    browseable: true
+    public: false
+    create_dir: true
+    owner: root
+    group: "{{ nas_samba_group }}"
+    mode: "0775"
+  # Example additional shares:
+  # - name: Media
+  #   path: /storage/media
+  #   comment: Media Files
+  #   valid_users:
+  #     - mediauser
+  #     - "@{{ nas_samba_group }}"
+  #   write_list:
+  #     - mediauser
+  #   browseable: true
+  #   public: false
+  # - name: backups
+  #   path: /backups
+  #   comment: Backup Storage
+  #   read_only: true
+  #   browseable: true
+
+# Samba Service Options
+nas_samba_enable_nmb: true # Enable NetBIOS service
+nas_samba_enable_client_firewall: false # Enable samba-client firewall service
+nas_samba_enable_homes: true # Enable [homes] share
+nas_samba_disable_printing: true # Disable printer sharing
+
+# =============================================================================
+# Rsync Daemon Configuration
+# =============================================================================
+
+# Rsync Daemon User/Group
+# These should match an existing system user for file ownership
+nas_rsync_user: nobody
+nas_rsync_group: nobody
+nas_rsync_uid: 65534
+nas_rsync_gid: 65534
+
+# Rsync Daemon Settings
+nas_rsync_max_connections: 4
+nas_rsync_use_chroot: false
+nas_rsync_syslog_facility: local5
+
+# Rsync Modules/Shares
+# Define rsync daemon modules (shares)
+# Each module can have:
+#   - name: Module name (required)
+#   - path: Directory path (required)
+#   - comment: Module description (optional)
+#   - read_only: Read-only flag (optional, default: false)
+#   - list: Allow listing (optional, default: true)
+#   - uid: User for file operations (optional, defaults to nas_rsync_user)
+#   - gid: Group for file operations (optional, defaults to nas_rsync_group)
+#   - hosts_allow: List of allowed hosts/networks (optional)
+#   - hosts_deny: List of denied hosts/networks (optional)
+nas_rsync_modules:
+  - name: shared
+    path: /srv/rsync/shared
+    comment: Shared Files via Rsync
+    read_only: false
+  # Example additional modules:
+  # - name: backups
+  #   path: /backups
+  #   comment: Backup Storage
+  #   read_only: true
+  # - name: media
+  #   path: /storage/media
+  #   comment: Media Files
+  #   hosts_allow:
+  #     - "192.168.41.0/24"

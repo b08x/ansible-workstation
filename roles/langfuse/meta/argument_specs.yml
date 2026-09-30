@@ -1,0 +1,166 @@
+---
+# argument spec file for b08x.llmops.langfuse
+
+argument_specs:
+  main:
+    short_description: Deploy self-hosted Langfuse v4 via Docker Compose or Podman.
+    options:
+      langfuse_container_runtime:
+        type: str
+        description: Container runtime to use ("docker" for Docker Compose, "podman" for containers.podman modules).
+        default: docker
+        choices: ["docker", "podman"]
+      langfuse_deploy_dir:
+        type: str
+        description: Directory for compose files and persistent data.
+        default: "{{ user.home | default('/opt') }}/langfuse"
+      langfuse_project_name:
+        type: str
+        description: Docker Compose project name (also used as pod name for podman).
+        default: langfuse
+      langfuse_image_tag:
+        type: str
+        description: Langfuse web and worker image tag.
+        default: "4"
+      langfuse_clickhouse_image_tag:
+        type: str
+        description: ClickHouse server image tag.
+        default: "25.12"
+      langfuse_postgres_version:
+        type: str
+        description: PostgreSQL image version.
+        default: "17"
+      langfuse_web_port:
+        type: int
+        description: Host port for the Langfuse web UI.
+        default: 3000
+      langfuse_worker_port:
+        type: int
+        description: Host port for the Langfuse worker.
+        default: 3030
+      langfuse_minio_api_port:
+        type: int
+        description: Host port for MinIO S3 API.
+        default: 9090
+      langfuse_minio_console_port:
+        type: int
+        description: Host port for MinIO web console.
+        default: 9091
+      langfuse_bind_localhost:
+        type: bool
+        description: Bind infrastructure ports to 127.0.0.1 only.
+        default: true
+      langfuse_firewall_ports:
+        type: list
+        description: >-
+          Firewall ports to open via firewalld. Empty list skips firewall
+          management. Only applied when langfuse_bind_localhost is false.
+        default: "{{ langfuse_firewall_ports }}"
+      langfuse_force_recreate:
+        type: bool
+        description: >-
+          Force podman container recreation on every run. Useful after image
+          tag bumps or when the shared pod network namespace needs full reset.
+        default: false
+      langfuse_telemetry_enabled:
+        type: bool
+        description: Enable Langfuse telemetry.
+        default: true
+      langfuse_enable_experimental_features:
+        type: bool
+        description: Enable experimental Langfuse features.
+        default: false
+      langfuse_nextauth_url:
+        type: str
+        description: Public URL for NextAuth callbacks.
+        default: "http://localhost:3000"
+      langfuse_nextauth_secret:
+        type: str
+        description: NextAuth secret for JWT signing.
+        default: "mysecret"
+      langfuse_salt:
+        type: str
+        description: Salt for hashing API keys.
+        default: "mysalt"
+      langfuse_encryption_key:
+        type: str
+        description: 32-byte hex encryption key for sensitive data at rest.
+        default: "0000000000000000000000000000000000000000000000000000000000000000"
+      langfuse_postgres_user:
+        type: str
+        description: PostgreSQL database user.
+        default: postgres
+      langfuse_postgres_password:
+        type: str
+        description: PostgreSQL database password.
+        default: postgres
+      langfuse_postgres_db:
+        type: str
+        description: PostgreSQL database name.
+        default: postgres
+      langfuse_clickhouse_user:
+        type: str
+        description: ClickHouse database user.
+        default: clickhouse
+      langfuse_clickhouse_password:
+        type: str
+        description: ClickHouse database password.
+        default: clickhouse
+      langfuse_redis_auth:
+        type: str
+        description: Redis authentication password.
+        default: myredissecret
+      langfuse_minio_root_user:
+        type: str
+        description: MinIO root user.
+        default: minio
+      langfuse_minio_root_password:
+        type: str
+        description: MinIO root password.
+        default: miniosecret
+      langfuse_s3_event_upload_bucket:
+        type: str
+        description: S3 bucket for event uploads.
+        default: langfuse
+      langfuse_s3_media_upload_bucket:
+        type: str
+        description: S3 bucket for media uploads.
+        default: langfuse
+      langfuse_s3_batch_export_bucket:
+        type: str
+        description: S3 bucket for batch exports.
+        default: langfuse
+      langfuse_clickhouse_cluster_enabled:
+        type: bool
+        description: Enable ClickHouse cluster mode.
+        default: false
+      langfuse_clickhouse_cluster_name:
+        type: str
+        description: ClickHouse cluster name.
+        default: default
+      langfuse_backup_action:
+        type: str
+        description: Backup action to perform (none, backup, or restore).
+        default: "none"
+        choices: ["none", "backup", "restore"]
+      langfuse_backup_dir:
+        type: str
+        description: Directory for database backup files.
+        default: "{{ langfuse_deploy_dir }}/backups"
+      langfuse_backup_file:
+        type: str
+        description: For restore, absolute path to the .dump or .sql file to restore from.
+        default: ""
+      langfuse_backup_format:
+        type: str
+        description: pg_dump format (custom uses -Fc/pg_restore, plain uses -Fp/psql).
+        default: custom
+        choices: ["custom", "plain"]
+      langfuse_backup_compression:
+        type: int
+        description: Compression level 0-9 for custom format backups.
+        default: 6
+      langfuse_backup_retention_days:
+        type: int
+        description: Number of days to retain backups before pruning.
+        default: 7

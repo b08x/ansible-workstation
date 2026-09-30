@@ -1,0 +1,6 @@
+# Python libraries required by repo-local plugins and scripts.
+# Installed by bootstrap.sh into .venv via uv; Ansible itself (ansible-core)
+# comes from the system package manager and stays outside the venv.
+PyYAML>=6.0
+dspy>=3.0
+duckdb>=1.1

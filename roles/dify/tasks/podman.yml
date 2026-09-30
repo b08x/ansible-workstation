@@ -1,0 +1,34 @@
+---
+# Podman deployment tasks for b08x.llmops.dify
+# Uses podman compose CLI (podman-compose or podman compose) to manage the
+# full Dify stack from the same docker-compose.yml template as Docker.
+
+- name: Deploy Docker Compose configuration for Podman
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ dify_compose_file }}"
+    mode: "0644"
+    backup: true
+  tags: ["dify", "config"]
+
+- name: Stop existing Dify compose stack for clean redeploy
+  ansible.builtin.command:
+    cmd: "podman compose -f {{ dify_compose_file }} --env-file {{ dify_env_file }} down"
+  changed_when: false
+  failed_when: false
+  when: dify_force_recreate | bool
+  tags: ["dify", "podman"]
+
+- name: Pull Dify container images
+  ansible.builtin.command:
+    cmd: "podman compose -f {{ dify_compose_file }} --env-file {{ dify_env_file }} pull"
+  changed_when: false
+  tags: ["dify", "images"]
+
+- name: Start Dify Podman Compose stack
+  ansible.builtin.command:
+    cmd: >-
+      podman compose -f {{ dify_compose_file }} --env-file {{ dify_env_file }} up -d
+      {{ '--force-recreate' if dify_force_recreate | bool else '' }}
+  changed_when: false
+  tags: ["dify", "services"]

@@ -1,0 +1,14 @@
+---
+# vars file for b08x.llmops.langfuse
+
+# Internal image references
+langfuse_web_image: "docker.langfuse.com/langfuse/langfuse:{{ langfuse_image_tag }}"
+langfuse_worker_image: "docker.langfuse.com/langfuse/langfuse-worker:{{ langfuse_image_tag }}"
+langfuse_clickhouse_image: "docker.io/clickhouse/clickhouse-server:{{ langfuse_clickhouse_image_tag }}"
+langfuse_postgres_image: "docker.io/postgres:{{ langfuse_postgres_version }}"
+langfuse_redis_image: "docker.io/redis:7"
+langfuse_minio_image: "cgr.dev/chainguard/minio"
+
+# Compose file paths
+langfuse_compose_file: "{{ langfuse_deploy_dir }}/docker-compose.yml"
+langfuse_env_file: "{{ langfuse_deploy_dir }}/.env"

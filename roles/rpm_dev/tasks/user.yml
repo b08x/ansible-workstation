@@ -1,0 +1,13 @@
+---
+- name: "Create mock group"
+  ansible.builtin.group:
+    name: mock
+    state: present
+  tags: ["rpm-dev", "user-setup"]
+
+- name: "Add user to mock group"
+  ansible.builtin.user:
+    name: "{{ rpm_dev_user.name }}"
+    groups: "{{ rpm_dev_user.groups }}"
+    append: true
+  tags: ["rpm-dev", "user-setup"]

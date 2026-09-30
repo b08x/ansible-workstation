@@ -1,0 +1,6 @@
+---
+- name: Test play
+  hosts: localhost
+  remote_user: root
+  roles:
+    - rpm_dev

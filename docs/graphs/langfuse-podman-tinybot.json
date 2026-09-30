@@ -1,0 +1,626 @@
+{
+  "version": 1,
+  "title": "Ansible Playbook Grapher",
+  "playbooks": [
+    {
+      "type": "PlaybookNode",
+      "id": "playbook_0cd038cc",
+      "name": "playbooks/langfuse-podman-tinybot.yml",
+      "when": "",
+      "index": 1,
+      "location": {
+        "type": "file",
+        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/langfuse-podman-tinybot.yml",
+        "line": 1,
+        "column": 1
+      },
+      "plays": [
+        {
+          "type": "PlayNode",
+          "id": "play_18e6e1d6",
+          "name": "Deploy Langfuse (Podman) on tinybot",
+          "when": "",
+          "index": 1,
+          "location": {
+            "type": "file",
+            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/langfuse-podman-tinybot.yml",
+            "line": 2,
+            "column": 3
+          },
+          "pre_tasks": [],
+          "roles": [
+            {
+              "type": "RoleNode",
+              "id": "role_a1a511df",
+              "name": "b08x.llmops.langfuse",
+              "when": "",
+              "index": 1,
+              "location": {
+                "type": "folder",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse",
+                "line": null,
+                "column": null
+              },
+              "tasks": [
+                {
+                  "type": "TaskNode",
+                  "id": "task_152e21f7",
+                  "name": "b08x.llmops.langfuse : Validating arguments against arg spec 'main' - Deploy self-hosted Langfuse v4 via Docker Compose or Podman.",
+                  "when": "",
+                  "index": 1,
+                  "location": null,
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_95647eec",
+                  "name": "b08x.llmops.langfuse : Starting langfuse tasks",
+                  "when": "",
+                  "index": 2,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_76cd1c2c",
+                  "name": "b08x.llmops.langfuse : Verify container runtime is available",
+                  "when": "",
+                  "index": 3,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 9,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_c1e3b8ea",
+                  "name": "b08x.llmops.langfuse : Fail if container runtime is not available",
+                  "when": "[when: langfuse_runtime_check.rc != 0]",
+                  "index": 4,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 17,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_2fdfb9f6",
+                  "name": "b08x.llmops.langfuse : Create Langfuse deployment directory",
+                  "when": "",
+                  "index": 5,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 26,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_0d7cd6f5",
+                  "name": "b08x.llmops.langfuse : Deploy environment file",
+                  "when": "",
+                  "index": 6,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 33,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Langfuse stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_4dd49cc3",
+                  "name": "b08x.llmops.langfuse : Deploy Docker Compose configuration",
+                  "when": "",
+                  "index": 7,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/docker.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Langfuse stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_4ba702cc",
+                  "name": "b08x.llmops.langfuse : Pull Langfuse container images",
+                  "when": "",
+                  "index": 8,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/docker.yml",
+                    "line": 13,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e31b1c4c",
+                  "name": "b08x.llmops.langfuse : Start Langfuse Docker Compose stack",
+                  "when": "",
+                  "index": 9,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/docker.yml",
+                    "line": 19,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_0f98102e",
+                  "name": "b08x.llmops.langfuse : Stop existing Langfuse pod for clean redeploy",
+                  "when": "[when: langfuse_force_recreate | bool]",
+                  "index": 10,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                    "line": 8,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_95022cd4",
+                  "name": "b08x.llmops.langfuse : Remove existing Langfuse pod for clean redeploy",
+                  "when": "[when: langfuse_force_recreate | bool]",
+                  "index": 11,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                    "line": 16,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_2b097ff6",
+                  "name": "Deploy Langfuse via Podman",
+                  "when": "",
+                  "index": 12,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                    "line": 26,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_84b580fd",
+                      "name": "b08x.llmops.langfuse : Create PostgreSQL volume",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 31,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_2fa2873b",
+                      "name": "b08x.llmops.langfuse : Create ClickHouse data volume",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 37,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_b6d24355",
+                      "name": "b08x.llmops.langfuse : Create ClickHouse logs volume",
+                      "when": "",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 43,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_e0eeae55",
+                      "name": "b08x.llmops.langfuse : Create MinIO volume",
+                      "when": "",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 49,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_73a12d86",
+                      "name": "b08x.llmops.langfuse : Create Redis volume",
+                      "when": "",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 55,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_917c5cad",
+                      "name": "b08x.llmops.langfuse : Create Langfuse pod",
+                      "when": "",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 63,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_a48b769a",
+                      "name": "b08x.llmops.langfuse : Start PostgreSQL container",
+                      "when": "",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 80,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_5d4f862d",
+                      "name": "b08x.llmops.langfuse : Start ClickHouse container",
+                      "when": "",
+                      "index": 8,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 102,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c92e3614",
+                      "name": "b08x.llmops.langfuse : Start Redis container",
+                      "when": "",
+                      "index": 9,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 125,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_12d746aa",
+                      "name": "b08x.llmops.langfuse : Start MinIO container",
+                      "when": "",
+                      "index": 10,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 144,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_550e852c",
+                      "name": "b08x.llmops.langfuse : Start Langfuse worker container",
+                      "when": "",
+                      "index": 11,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 170,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_765897ef",
+                      "name": "b08x.llmops.langfuse : Start Langfuse web container",
+                      "when": "",
+                      "index": 12,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/podman.yml",
+                        "line": 225,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e7e59e43",
+                  "name": "b08x.llmops.langfuse : Open firewall ports for Langfuse",
+                  "when": "[when: langfuse_firewall_ports | length > 0 and not (langfuse_bind_localhost | bool)]",
+                  "index": 13,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/main.yml",
+                    "line": 52,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e3bd6c89",
+                  "name": "b08x.llmops.langfuse : Set container CLI for backup operations",
+                  "when": "",
+                  "index": 14,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                    "line": 8,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_c38faed5",
+                  "name": "Backup Langfuse PostgreSQL",
+                  "when": "[when: langfuse_backup_action == \"backup\"]",
+                  "index": 15,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                    "line": 16,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_27ba0af7",
+                      "name": "b08x.llmops.langfuse : Create backup directory",
+                      "when": "[when: langfuse_backup_action == \"backup\"]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 20,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_f62fb074",
+                      "name": "b08x.llmops.langfuse : Set backup filename with timestamp",
+                      "when": "[when: langfuse_backup_action == \"backup\"]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 26,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_67cae198",
+                      "name": "b08x.llmops.langfuse : Backup PostgreSQL database (custom format)",
+                      "when": "[when: langfuse_backup_action == \"backup\" and langfuse_backup_format == \"custom\"]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 31,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_a1c20dea",
+                      "name": "b08x.llmops.langfuse : Backup PostgreSQL database (plain SQL)",
+                      "when": "[when: langfuse_backup_action == \"backup\" and langfuse_backup_format == \"plain\"]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 41,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_693516dd",
+                      "name": "b08x.llmops.langfuse : Display backup result",
+                      "when": "[when: langfuse_backup_action == \"backup\" and langfuse_backup_result is defined and langfuse_backup_result.changed]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 51,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_57e8f9b5",
+                      "name": "b08x.llmops.langfuse : Prune old backups",
+                      "when": "[when: langfuse_backup_action == \"backup\"]",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 56,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_067fa840",
+                      "name": "b08x.llmops.langfuse : Remove old backups",
+                      "when": "[when: langfuse_backup_action == \"backup\" and langfuse_old_backups.files | length > 0]",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 64,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_e03423eb",
+                  "name": "Restore Langfuse PostgreSQL",
+                  "when": "[when: langfuse_backup_action == \"restore\"]",
+                  "index": 16,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                    "line": 75,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_cc7e528e",
+                      "name": "b08x.llmops.langfuse : Verify restore file exists",
+                      "when": "[when: langfuse_backup_action == \"restore\"]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 79,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_dbb8439b",
+                      "name": "b08x.llmops.langfuse : Fail if restore file is missing",
+                      "when": "[when: langfuse_backup_action == \"restore\" and not langfuse_restore_file_stat.stat.exists]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 84,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_1b7ac86d",
+                      "name": "b08x.llmops.langfuse : Restore PostgreSQL database (custom format)",
+                      "when": "[when: langfuse_backup_action == \"restore\" and langfuse_restore_file_stat.stat.exists and langfuse_backup_file | regex_search('\\.dump$')]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 89,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_a9bfb952",
+                      "name": "b08x.llmops.langfuse : Restore PostgreSQL database (plain SQL)",
+                      "when": "[when: langfuse_backup_action == \"restore\" and langfuse_restore_file_stat.stat.exists and langfuse_backup_file | regex_search('\\.sql$')]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 100,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_93b4ccb6",
+                      "name": "b08x.llmops.langfuse : Display restore result",
+                      "when": "[when: langfuse_backup_action == \"restore\" and langfuse_restore_result is defined and langfuse_restore_result.changed]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/langfuse/tasks/backup.yml",
+                        "line": 111,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                }
+              ],
+              "handlers": [],
+              "include_role": false
+            }
+          ],
+          "tasks": [],
+          "post_tasks": [],
+          "handlers": [],
+          "hosts": [
+            "tinybot"
+          ],
+          "colors": {
+            "main": "#b31952",
+            "font": "#ffffff"
+          }
+        }
+      ]
+    }
+  ]
+}

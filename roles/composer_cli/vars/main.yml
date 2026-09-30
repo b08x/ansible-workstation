@@ -1,0 +1,51 @@
+---
+# vars file for b08x.rhel_builder.composer_cli
+# Internal role constants — not intended for user override.
+
+composer_cli_os_packages:
+  Fedora:
+    - osbuild-composer
+    - composer-cli
+  AlmaLinux:
+    - osbuild-composer
+    - composer-cli
+
+composer_cli_blueprint_toml: |
+  name = "workstation"
+  description = "Composer-cli workstation blueprint with desktop, GPU compute, and container tooling"
+  version = "1.0.0"
+
+  [[packages]]
+  name = "gnome-desktop"
+  version = "*"
+
+  [[packages]]
+  name = "sway"
+  version = "*"
+
+  [[packages]]
+  name = "akmod-nvidia"
+  version = "*"
+
+  [[packages]]
+  name = "xorg-x11-drv-nvidia-cuda"
+  version = "*"
+
+  [[packages]]
+  name = "intel-oneapi-base-toolkit"
+  version = "*"
+
+  [[packages]]
+  name = "podman"
+  version = "*"
+
+  [[packages]]
+  name = "buildah"
+  version = "*"
+
+  [customizations]
+  hostname = "composer-cli-workstation"
+
+  [[customizations.filesystem]]
+  mountpoint = "/"
+  minsize = "10 GiB"

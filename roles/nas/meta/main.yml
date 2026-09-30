@@ -1,0 +1,39 @@
+---
+galaxy_info:
+  role_name: nas
+  author: Ansible Workstation Project
+  description: Configure network-attached storage services (NFS, Samba, Rsync) for RedHat family systems
+  company: N/A
+
+  license: MIT
+
+  min_ansible_version: "2.12"
+
+  # Supported platforms
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL # Enterprise Linux (Rocky, RHEL, AlmaLinux)
+      versions:
+        - "9"
+
+  galaxy_tags:
+    - nas
+    - storage
+    - nfs
+    - samba
+    - smb
+    - rsync
+    - fileserver
+    - networking
+    - redhat
+    - fedora
+
+# Role dependencies
+# This role requires ansible.posix collection for firewalld module
+dependencies: []
+
+# Collection requirements
+collections:
+  - ansible.posix

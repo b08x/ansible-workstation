@@ -1,0 +1,41 @@
+---
+- name: RPM Development Environment Setup
+  hosts: builder
+  become: true
+  gather_facts: true
+  vars:
+    rpm_dev_user:
+      name: "{{ user.name }}"
+      groups: ["mock"]
+      create_home: true
+
+    mock_config:
+      enable_network: true
+      enable_bootstrap: true
+      use_host_resolv: false
+      cache_topdir: /var/cache/mock
+      root_cache_enable: true
+      yum_cache_enable: true
+      dnf_cache_enable: true
+      cleanup_on_success: true
+      cleanup_on_failure: false
+
+    rpm_build:
+      create_directories: true
+      setup_macros: true
+      home_dir: "{{ user.home }}"
+      build_dir: "{{ user.home }}/rpmbuild"
+      directories:
+        - BUILD
+        - RPMS
+        - SOURCES
+        - SPECS
+        - SRPMS
+
+    rpm_dev_install_packages: true
+    rpm_dev_setup_user: true
+    rpm_dev_setup_mock: true
+    rpm_dev_setup_directories: true
+  roles:
+    - role: rpm_dev
+      tags: ["rpm_dev", "builder"]

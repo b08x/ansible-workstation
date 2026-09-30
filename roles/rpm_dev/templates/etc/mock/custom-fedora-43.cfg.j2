@@ -1,0 +1,32 @@
+config_opts['releasever'] = '43'
+config_opts['target_arch'] = 'x86_64'
+config_opts['legal_host_arches'] = ('x86_64',)
+
+# Custom configuration based on role variables
+config_opts['use_host_resolv'] = {{ mock_config.use_host_resolv }}
+config_opts['cleanup_on_success'] = {{ mock_config.cleanup_on_success }}
+config_opts['cleanup_on_failure'] = {{ mock_config.cleanup_on_failure }}
+
+{% if not mock_config.enable_network %}
+config_opts['rpmbuild_networking'] = False
+config_opts['use_host_resolv'] = False
+{% endif %}
+
+# Bootstrap configuration
+{% if mock_config.enable_bootstrap %}
+config_opts['use_bootstrap'] = True
+config_opts['use_bootstrap_image'] = True
+{% endif %}
+
+# Cache configuration
+config_opts['cache_topdir'] = '{{ mock_config.cache_topdir }}'
+config_opts['root_cache_enable'] = {{ mock_config.root_cache_enable }}
+config_opts['yum_cache_enable'] = {{ mock_config.yum_cache_enable }}
+config_opts['dnf_cache_enable'] = {{ mock_config.dnf_cache_enable }}
+
+# Plugin configuration
+config_opts['plugin_conf']['root_cache_enable'] = {{ mock_config.root_cache_enable }}
+config_opts['plugin_conf']['yum_cache_enable'] = {{ mock_config.yum_cache_enable }}
+config_opts['plugin_conf']['dnf_cache_enable'] = {{ mock_config.dnf_cache_enable }}
+
+include('templates/custom-fedora-branched.tpl')

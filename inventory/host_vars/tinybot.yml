@@ -1,0 +1,7 @@
+---
+intel_oneapi_install: true
+
+tuning_cpupower_governor: powersave
+tuning_cpupower_min_freq: 400MHz # or "600MHz"
+tuning_cpupower_max_freq: 3100MHz # or "3800MHz"
+tuning_irqbalance_enabled: false

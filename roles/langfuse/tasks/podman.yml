@@ -1,0 +1,295 @@
+---
+# Podman deployment tasks for b08x.llmops.langfuse
+# Deploys the full Langfuse v4 stack using containers.podman modules:
+# podman_pod + podman_volume + podman_container
+
+# -- Stop existing pod for clean network namespace (P4) --
+
+- name: Stop existing Langfuse pod for clean redeploy
+  containers.podman.podman_pod:
+    name: "{{ langfuse_project_name }}"
+    state: stopped
+  when: langfuse_force_recreate | bool
+  failed_when: false
+  tags: ["langfuse", "podman", "pod"]
+
+- name: Remove existing Langfuse pod for clean redeploy
+  containers.podman.podman_pod:
+    name: "{{ langfuse_project_name }}"
+    state: absent
+  when: langfuse_force_recreate | bool
+  failed_when: false
+  tags: ["langfuse", "podman", "pod"]
+
+# -- Deploy Langfuse via Podman --
+
+- name: Deploy Langfuse via Podman
+  become: false
+  block:
+    # -- Volumes --
+
+    - name: Create PostgreSQL volume
+      containers.podman.podman_volume:
+        name: "{{ langfuse_project_name }}_postgres_data"
+        state: present
+      tags: ["langfuse", "podman", "volumes"]
+
+    - name: Create ClickHouse data volume
+      containers.podman.podman_volume:
+        name: "{{ langfuse_project_name }}_clickhouse_data"
+        state: present
+      tags: ["langfuse", "podman", "volumes"]
+
+    - name: Create ClickHouse logs volume
+      containers.podman.podman_volume:
+        name: "{{ langfuse_project_name }}_clickhouse_logs"
+        state: present
+      tags: ["langfuse", "podman", "volumes"]
+
+    - name: Create MinIO volume
+      containers.podman.podman_volume:
+        name: "{{ langfuse_project_name }}_minio_data"
+        state: present
+      tags: ["langfuse", "podman", "volumes"]
+
+    - name: Create Redis volume
+      containers.podman.podman_volume:
+        name: "{{ langfuse_project_name }}_redis_data"
+        state: present
+      tags: ["langfuse", "podman", "volumes"]
+
+    # -- Pod --
+
+    - name: Create Langfuse pod
+      containers.podman.podman_pod:
+        name: "{{ langfuse_project_name }}"
+        state: started
+        publish:
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}{{ langfuse_web_port }}:3000"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}{{ langfuse_worker_port }}:3030"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}5432:5432"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}8123:8123"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}9000:9000"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}6379:6379"
+          - "{{ langfuse_minio_api_port }}:9100"
+          - "{% if langfuse_bind_localhost %}127.0.0.1:{% endif %}{{ langfuse_minio_console_port }}:9101"
+      tags: ["langfuse", "podman", "pod"]
+
+    # -- Infrastructure containers --
+
+    - name: Start PostgreSQL container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-postgres"
+        image: "{{ langfuse_postgres_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        env:
+          POSTGRES_USER: "{{ langfuse_postgres_user }}"
+          POSTGRES_PASSWORD: "{{ langfuse_postgres_password }}"
+          POSTGRES_DB: "{{ langfuse_postgres_db }}"
+          TZ: UTC
+          PGTZ: UTC
+        volumes:
+          - "{{ langfuse_project_name }}_postgres_data:/var/lib/postgresql/data"
+        healthcheck: "pg_isready -U {{ langfuse_postgres_user }}"
+        healthcheck_interval: 3s
+        healthcheck_timeout: 3s
+        healthcheck_retries: 10
+      tags: ["langfuse", "podman", "containers"]
+
+    - name: Start ClickHouse container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-clickhouse"
+        image: "{{ langfuse_clickhouse_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        user: "101:101"
+        env:
+          CLICKHOUSE_DB: default
+          CLICKHOUSE_USER: "{{ langfuse_clickhouse_user }}"
+          CLICKHOUSE_PASSWORD: "{{ langfuse_clickhouse_password }}"
+        volumes:
+          - "{{ langfuse_project_name }}_clickhouse_data:/var/lib/clickhouse"
+          - "{{ langfuse_project_name }}_clickhouse_logs:/var/log/clickhouse-server"
+        healthcheck: "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"
+        healthcheck_interval: 5s
+        healthcheck_timeout: 5s
+        healthcheck_retries: 10
+        healthcheck_start_period: 1s
+      tags: ["langfuse", "podman", "containers"]
+
+    - name: Start Redis container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-redis"
+        image: "{{ langfuse_redis_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        command: >
+          --requirepass {{ langfuse_redis_auth }}
+          --maxmemory-policy noeviction
+        volumes:
+          - "{{ langfuse_project_name }}_redis_data:/data"
+        healthcheck: "redis-cli -a {{ langfuse_redis_auth }} ping"
+        healthcheck_interval: 3s
+        healthcheck_timeout: 10s
+        healthcheck_retries: 10
+      tags: ["langfuse", "podman", "containers"]
+
+    - name: Start MinIO container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-minio"
+        image: "{{ langfuse_minio_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        entrypoint: sh
+        command:
+          - "-c"
+          - "mkdir -p /data/{{ langfuse_s3_event_upload_bucket }} && minio server --address ':9100' --console-address ':9101' /data"
+        env:
+          MINIO_ROOT_USER: "{{ langfuse_minio_root_user }}"
+          MINIO_ROOT_PASSWORD: "{{ langfuse_minio_root_password }}"
+        volumes:
+          - "{{ langfuse_project_name }}_minio_data:/data"
+        healthcheck: "sh -c 'mc alias set local http://localhost:9100 {{ langfuse_minio_root_user }} {{ langfuse_minio_root_password }} 2>/dev/null; mc ready local'" # noqa: yaml[line-length]
+        healthcheck_interval: 1s
+        healthcheck_timeout: 5s
+        healthcheck_retries: 5
+        healthcheck_start_period: 1s
+      tags: ["langfuse", "podman", "containers"]
+
+    # -- Langfuse application containers --
+
+    - name: Start Langfuse worker container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-worker"
+        image: "{{ langfuse_worker_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        env:
+          NEXTAUTH_URL: "{{ langfuse_nextauth_url }}"
+          DATABASE_URL: "postgresql://{{ langfuse_postgres_user }}:{{ langfuse_postgres_password }}@localhost:5432/{{ langfuse_postgres_db }}"
+          SALT: "{{ langfuse_salt }}"
+          ENCRYPTION_KEY: "{{ langfuse_encryption_key }}"
+          TELEMETRY_ENABLED: "{{ langfuse_telemetry_enabled | lower }}"
+          LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "{{ langfuse_enable_experimental_features | lower }}"
+          CLICKHOUSE_MIGRATION_URL: "clickhouse://localhost:9000"
+          CLICKHOUSE_URL: "http://localhost:8123"
+          CLICKHOUSE_USER: "{{ langfuse_clickhouse_user }}"
+          CLICKHOUSE_PASSWORD: "{{ langfuse_clickhouse_password }}"
+          CLICKHOUSE_CLUSTER_ENABLED: "{{ langfuse_clickhouse_cluster_enabled | lower }}"
+          CLICKHOUSE_CLUSTER_NAME: "{{ langfuse_clickhouse_cluster_name }}"
+          LANGFUSE_USE_AZURE_BLOB: "false"
+          LANGFUSE_USE_OCI_NATIVE_OBJECT_STORAGE: "false"
+          LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "{{ langfuse_s3_event_upload_bucket }}"
+          LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+          LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: "http://localhost:9100"
+          LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+          LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+          LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "{{ langfuse_s3_media_upload_bucket }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+          LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: "http://localhost:{{ langfuse_minio_api_port }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+          LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: "media/"
+          LANGFUSE_OBSERVATION_FIELD_OVERFLOW_ENABLED: "false"
+          LANGFUSE_OBSERVATION_FIELD_SIZE_LIMIT_BYTES: "2097152"
+          LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+          LANGFUSE_S3_BATCH_EXPORT_BUCKET: "{{ langfuse_s3_batch_export_bucket }}"
+          LANGFUSE_S3_BATCH_EXPORT_PREFIX: "exports/"
+          LANGFUSE_S3_BATCH_EXPORT_REGION: auto
+          LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: "http://localhost:9100"
+          LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT: "http://localhost:{{ langfuse_minio_api_port }}"
+          LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: "true"
+          LANGFUSE_MIGRATION_V4_WRITE_MODE: "dual"
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          REDIS_AUTH: "{{ langfuse_redis_auth }}"
+          LANGFUSE_BULLMQ_SKIP_REDIS_VERSION_CHECK: "false"
+      tags: ["langfuse", "podman", "containers"]
+
+    - name: Start Langfuse web container
+      containers.podman.podman_container:
+        name: "{{ langfuse_project_name }}-web"
+        image: "{{ langfuse_web_image }}"
+        pod: "{{ langfuse_project_name }}"
+        state: started
+        restart_policy: always
+        recreate: "{{ langfuse_force_recreate | bool }}"
+        env:
+          NEXTAUTH_URL: "{{ langfuse_nextauth_url }}"
+          NEXTAUTH_SECRET: "{{ langfuse_nextauth_secret }}"
+          DATABASE_URL: "postgresql://{{ langfuse_postgres_user }}:{{ langfuse_postgres_password }}@localhost:5432/{{ langfuse_postgres_db }}"
+          SALT: "{{ langfuse_salt }}"
+          ENCRYPTION_KEY: "{{ langfuse_encryption_key }}"
+          TELEMETRY_ENABLED: "{{ langfuse_telemetry_enabled | lower }}"
+          LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "{{ langfuse_enable_experimental_features | lower }}"
+          CLICKHOUSE_MIGRATION_URL: "clickhouse://localhost:9000"
+          CLICKHOUSE_URL: "http://localhost:8123"
+          CLICKHOUSE_USER: "{{ langfuse_clickhouse_user }}"
+          CLICKHOUSE_PASSWORD: "{{ langfuse_clickhouse_password }}"
+          CLICKHOUSE_CLUSTER_ENABLED: "{{ langfuse_clickhouse_cluster_enabled | lower }}"
+          CLICKHOUSE_CLUSTER_NAME: "{{ langfuse_clickhouse_cluster_name }}"
+          LANGFUSE_USE_AZURE_BLOB: "false"
+          LANGFUSE_USE_OCI_NATIVE_OBJECT_STORAGE: "false"
+          LANGFUSE_S3_EVENT_UPLOAD_BUCKET: "{{ langfuse_s3_event_upload_bucket }}"
+          LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+          LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: "http://localhost:9100"
+          LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+          LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+          LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: "{{ langfuse_s3_media_upload_bucket }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+          LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: "http://localhost:{{ langfuse_minio_api_port }}"
+          LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: "http://localhost:9100"
+          LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+          LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: "media/"
+          LANGFUSE_OBSERVATION_FIELD_OVERFLOW_ENABLED: "false"
+          LANGFUSE_OBSERVATION_FIELD_SIZE_LIMIT_BYTES: "2097152"
+          LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+          LANGFUSE_S3_BATCH_EXPORT_BUCKET: "{{ langfuse_s3_batch_export_bucket }}"
+          LANGFUSE_S3_BATCH_EXPORT_PREFIX: "exports/"
+          LANGFUSE_S3_BATCH_EXPORT_REGION: auto
+          LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: "http://localhost:9100"
+          LANGFUSE_S3_BATCH_EXPORT_EXTERNAL_ENDPOINT: "http://localhost:{{ langfuse_minio_api_port }}"
+          LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: "{{ langfuse_minio_root_user }}"
+          LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: "{{ langfuse_minio_root_password }}"
+          LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: "true"
+          LANGFUSE_MIGRATION_V4_WRITE_MODE: "dual"
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+          REDIS_AUTH: "{{ langfuse_redis_auth }}"
+          LANGFUSE_BULLMQ_SKIP_REDIS_VERSION_CHECK: "false"
+      tags: ["langfuse", "podman", "containers"]
+  rescue:
+    # The rescue exists only to attach the operator hint; it re-raises so a
+    # failed deployment fails the play rather than exiting green.
+    - name: Report podman deployment failure
+      ansible.builtin.debug:
+        msg: "Podman deployment failed — check container logs with 'podman logs {{ langfuse_project_name }}-<service>'"
+
+    - name: Fail the play on podman deployment failure
+      ansible.builtin.fail:
+        msg: >-
+          Langfuse podman deployment failed at task
+          '{{ ansible_failed_task.name | default('unknown') }}':
+          {{ ansible_failed_result.msg | default(ansible_failed_result) }}
+          Check container logs with
+          'podman logs {{ langfuse_project_name }}-<service>'.

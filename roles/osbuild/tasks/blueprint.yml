@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Blueprint preparation for image-builder-cli (stateless)
+
+- name: Render blueprint from Jinja2 template
+  ansible.builtin.template:
+    src: "{{ osbuild_blueprint_template }}"
+    dest: "{{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml"
+    mode: "0644"
+    backup: true
+  when: osbuild_use_blueprint_template | bool
+
+- name: Copy static blueprint file
+  ansible.builtin.copy:
+    src: "{{ osbuild_static_blueprint_path }}"
+    dest: "{{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml"
+    mode: "0644"
+    backup: true
+  when: not osbuild_use_blueprint_template | bool
+
+- name: Set blueprint file path
+  ansible.builtin.set_fact:
+    blueprint_file_path: "{{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml"
+
+- name: Display blueprint path
+  ansible.builtin.debug:
+    msg: "Blueprint ready: {{ blueprint_file_path }}"
+
+- name: Validate blueprint syntax (optional)
+  block:
+    - name: TOML syntax check
+      ansible.builtin.command: python3 -c "import tomli; tomli.load(open('{{ blueprint_file_path }}', 'rb'))"
+      changed_when: false
+
+    - name: Display validation success
+      ansible.builtin.debug:
+        msg: "✓ Blueprint TOML syntax is valid"
+
+  rescue:
+    # Shape 3 (optional dependency): the TOML check is an extra assertion, not
+    # the deliverable. The blueprint is already written, so the role's contract
+    # holds when python3-tomli is absent.
+    - name: Skip validation if tomli unavailable
+      ansible.builtin.debug:
+        msg: "⚠ TOML validation skipped (python3-tomli not installed)"

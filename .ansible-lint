@@ -1,0 +1,16 @@
+---
+exclude_paths:
+  - collections/ansible_collections/ansible/
+  - collections/ansible_collections/cisco/
+  - collections/ansible_collections/community/
+  - collections/ansible_collections/network/
+  - .ansible/
+
+# Completely ignore these rules everywhere
+skip_list:
+  - var-naming[no-role-prefix]
+
+# playbooks/remediate.yml takes its host list from -e target=<host> and fails
+# without it; give syntax-check a value so the play can be parsed.
+extra_vars:
+  target: localhost

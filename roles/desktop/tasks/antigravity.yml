@@ -1,0 +1,142 @@
+---
+# Antigravity Hub + IDE — binary install and desktop entries.
+# The Antigravity CLI (agy) and its configuration live in the coding_agents role.
+
+# -- Uninstall --
+- name: Remove Antigravity Hub and IDE
+  when: desktop_antigravity_state == 'absent'
+  tags: ["antigravity", "uninstall"]
+  block:
+    - name: Remove Antigravity Hub and IDE directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      become: true
+      loop:
+        - /opt/antigravity
+        - /opt/antigravity-ide
+
+    - name: Remove Antigravity desktop files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      become: true
+      loop:
+        - /usr/share/applications/antigravity.desktop
+        - /usr/share/applications/antigravity-ide.desktop
+# -- Install --
+- name: Install Antigravity Hub and IDE
+  when: desktop_antigravity_state == 'present'
+  tags: ["antigravity", "install"]
+  block:
+    - name: Ensure Antigravity destination directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+        mode: "0755"
+      become: true
+      loop:
+        - /opt/antigravity
+        - /opt/antigravity-ide
+
+    - name: Check installed Antigravity Hub version
+      ansible.builtin.slurp:
+        src: /opt/antigravity/.installed_url
+      register: desktop_antigravity_hub_installed
+      failed_when: false
+      become: true
+
+    - name: Update Antigravity Hub
+      when: >
+        desktop_antigravity_hub_installed.content is not defined or
+        (desktop_antigravity_hub_installed.content | b64decode | trim != desktop_antigravity_hub_url)
+      block:
+        - name: Download Antigravity Hub package
+          ansible.builtin.get_url:
+            url: "{{ desktop_antigravity_hub_url }}"
+            dest: /tmp/Antigravity.tar.gz
+            mode: "0644"
+
+        - name: Extract Antigravity Hub package
+          ansible.builtin.unarchive:
+            src: /tmp/Antigravity.tar.gz
+            dest: /opt/antigravity
+            remote_src: true
+            owner: "{{ ansible_user_id }}"
+            group: "{{ ansible_user_id }}"
+          become: true
+
+        - name: Record installed Antigravity Hub version
+          ansible.builtin.copy:
+            content: "{{ desktop_antigravity_hub_url }}"
+            dest: /opt/antigravity/.installed_url
+            mode: "0644"
+            backup: true
+          become: true
+
+    - name: Check installed Antigravity IDE version
+      ansible.builtin.slurp:
+        src: /opt/antigravity-ide/.installed_url
+      register: desktop_antigravity_ide_installed
+      failed_when: false
+      become: true
+
+    - name: Update Antigravity IDE
+      when: >
+        desktop_antigravity_ide_installed.content is not defined or
+        (desktop_antigravity_ide_installed.content | b64decode | trim != desktop_antigravity_ide_url)
+      block:
+        - name: Download Antigravity IDE package
+          ansible.builtin.get_url:
+            url: "{{ desktop_antigravity_ide_url }}"
+            dest: "/tmp/Antigravity_IDE.tar.gz"
+            mode: "0644"
+
+        - name: Extract Antigravity IDE package
+          ansible.builtin.unarchive:
+            src: "/tmp/Antigravity_IDE.tar.gz"
+            dest: /opt/antigravity-ide
+            remote_src: true
+            owner: "{{ ansible_user_id }}"
+            group: "{{ ansible_user_id }}"
+            extra_opts:
+              - --strip-components=1
+          become: true
+
+        - name: Record installed Antigravity IDE version
+          ansible.builtin.copy:
+            content: "{{ desktop_antigravity_ide_url }}"
+            dest: /opt/antigravity-ide/.installed_url
+            mode: "0644"
+            backup: true
+          become: true
+
+    - name: Create desktop file for Antigravity IDE
+      ansible.builtin.copy:
+        dest: /usr/share/applications/antigravity-ide.desktop
+        content: |
+          [Desktop Entry]
+          Name=Antigravity IDE
+          Exec=/opt/antigravity-ide/antigravity-ide %F
+          Icon=/opt/antigravity-ide/resources/app/resources/linux/code.png
+          Type=Application
+          Categories=Development;IDE;
+        mode: "0644"
+        backup: true
+      become: true
+
+    - name: Create desktop file for Antigravity Hub
+      ansible.builtin.copy:
+        dest: /usr/share/applications/antigravity.desktop
+        content: |
+          [Desktop Entry]
+          Name=Antigravity
+          Exec=/opt/antigravity/Antigravity-x64/antigravity
+          Icon=/opt/antigravity-ide/resources/app/resources/linux/code.png
+          Type=Application
+          Categories=Development;IDE;
+        mode: "0644"
+        backup: true
+      become: true

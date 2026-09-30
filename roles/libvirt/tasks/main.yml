@@ -1,0 +1,81 @@
+---
+# tasks file for libvirt
+
+- name: Starting libvirt tasks
+  ansible.builtin.debug:
+    msg: "Starting libvirt tasks"
+  tags: ["libvirt", "always"]
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars:
+    file: "{{ ansible_distribution }}.yml"
+  tags: ["libvirt", "always"]
+
+- name: Install virtualization packages
+  ansible.builtin.dnf:
+    name: "{{ libvirt_packages }}"
+    state: present
+  tags: ["libvirt", "install"]
+
+- name: Configure libvirtd
+  ansible.builtin.template:
+    src: etc/libvirt/libvirtd.conf.j2
+    dest: /etc/libvirt/libvirtd.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart libvirtd
+  tags: ["libvirt", "config"]
+
+- name: Configure QEMU bridge access
+  ansible.builtin.copy:
+    src: etc/qemu/bridge.conf
+    dest: "{{ libvirt_bridge_conf_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  tags: ["libvirt", "config", "qemu"]
+
+- name: Disable lvmetad for libvirt storage pools
+  ansible.builtin.lineinfile:
+    path: /etc/lvm/lvm.conf
+    regexp: '^\s*use_lvmetad\s*='
+    line: "    use_lvmetad = 0"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: libvirt_configure_lvm | default(false) | bool
+  tags: ["libvirt", "lvm"]
+
+- name: Add specified users to the libvirt group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: "libvirt"
+    append: true
+  loop: "{{ libvirt_users }}"
+  when: libvirt_users | length > 0
+  tags: ["libvirt", "users"]
+
+- name: Ensure libvirt service is started and enabled
+  ansible.builtin.systemd:
+    name: "{{ libvirt_service }}"
+    enabled: "{{ libvirt_service_enabled }}"
+    state: started
+  tags: ["libvirt", "service"]
+
+- name: Add user to qemu group for KVM access
+  ansible.builtin.user:
+    name: "{{ user.name }}"
+    groups: "{{ item }}"
+    append: true
+  loop:
+    - libvirt
+    - qemu
+  tags: ["libvirt", "users"]
+
+- name: Resolve network conflicts between Libvirt and Docker
+  ansible.builtin.include_tasks: network_conflicts.yml
+  tags: ["kvm", "docker", "network", "libvirt"]

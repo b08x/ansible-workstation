@@ -1,0 +1,74 @@
+---
+- name: Check if oh-my-zsh is installed
+  ansible.builtin.stat:
+    path: "/usr/share/oh-my-zsh"
+  register: base_oh_my_zsh_stat
+  tags: ["zsh", "oh-my-zsh"]
+
+- name: Oh-my-zsh installation
+  when: not base_oh_my_zsh_stat.stat.exists
+  tags: ["zsh", "oh-my-zsh"]
+  environment:
+    ZSH: "/usr/share/oh-my-zsh"
+  block:
+    - name: Download oh-my-zsh install script
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+        dest: "/tmp/oh-my-zsh-install.sh"
+        mode: "0755"
+      register: base_oh_my_zsh_install_script
+
+    - name: Install oh-my-zsh
+      ansible.builtin.command:
+        cmd: "/tmp/oh-my-zsh-install.sh --unattended"
+        creates: "/usr/share/oh-my-zsh"
+      environment:
+        ZSH: "/usr/share/oh-my-zsh"
+      tags: ["zsh", "oh-my-zsh"]
+      register: base_oh_my_zsh_install
+
+    - name: Clean up oh-my-zsh install script
+      ansible.builtin.file:
+        path: "/tmp/oh-my-zsh-install.sh"
+        state: absent
+
+- name: Check if zoxide is installed
+  ansible.builtin.stat:
+    path: "{{ user.home }}/.local/bin/zoxide"
+  register: base_zoxide_stat
+  tags: ["zsh", "zoxide"]
+
+- name: Install zoxide from GitHub releases
+  when: not base_zoxide_stat.stat.exists
+  tags: ["zsh", "zoxide"]
+  block:
+    - name: Download zoxide install script
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh"
+        dest: "/tmp/zoxide-install.sh"
+        mode: "0755"
+
+    - name: Install zoxide
+      ansible.builtin.command:
+        cmd: "/tmp/zoxide-install.sh"
+        creates: "{{ user.home }}/.local/bin/zoxide"
+      become: false
+
+    - name: Clean up zoxide install script
+      ansible.builtin.file:
+        path: "/tmp/zoxide-install.sh"
+        state: absent
+
+  rescue:
+    # Shape 3 (optional): zoxide is a shell convenience, not part of what this
+    # role promises. Set base_zoxide_required=true to make it a hard failure.
+    - name: Report zoxide installation failure
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: failed to install zoxide, usually network connectivity or
+          GitHub availability. The shell is usable without it.
+
+    - name: Fail the play when zoxide is required
+      ansible.builtin.fail:
+        msg: "zoxide installation failed and base_zoxide_required is true."
+      when: base_zoxide_required | bool

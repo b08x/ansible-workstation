@@ -1,0 +1,43 @@
+---
+# RPM Development Environment role defaults
+
+# User configuration for RPM development
+rpm_dev_user:
+  name: "{{ user.name }}"
+  groups: ["mock"]
+  create_home: true
+
+# Mock configuration
+mock_config:
+  enable_network: true
+  enable_bootstrap: true
+  use_host_resolv: false
+  cache_topdir: /var/cache/mock
+  root_cache_enable: true
+  yum_cache_enable: true
+  dnf_cache_enable: true
+  cleanup_on_success: true
+  cleanup_on_failure: false
+
+# RPM build environment setup
+rpm_build:
+  create_directories: true
+  setup_macros: true
+  home_dir: "{{ user.home }}"
+  build_dir: "{{ user.home }}/rpmbuild"
+  directories:
+    - BUILD
+    - RPMS
+    - SOURCES
+    - SPECS
+    - SRPMS
+
+# Mock build targets — distribution-specific defaults loaded from vars/<dist>.yml
+# Override per-host or per-group as needed.
+mock_targets: "{{ _mock_targets | default([]) }}"
+
+# Package installation control
+rpm_dev_install_packages: true
+rpm_dev_setup_user: true
+rpm_dev_setup_mock: true
+rpm_dev_setup_directories: true

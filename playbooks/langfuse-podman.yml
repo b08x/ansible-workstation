@@ -1,0 +1,75 @@
+---
+- name: Deploy Langfuse (Podman)
+  hosts: langfuse
+  become: false
+  gather_facts: false
+  vars:
+    # Container runtime
+    langfuse_container_runtime: podman
+
+    # Deployment
+    langfuse_deploy_dir: "{{ user.home }}/LLMOS/langfuse"
+    langfuse_project_name: langfuse
+
+    # Bind
+    langfuse_bind_localhost: false
+
+    # Ports
+    langfuse_web_port: 3000
+    langfuse_worker_port: 3030
+    langfuse_minio_api_port: 9090
+    langfuse_minio_console_port: 9091
+
+    # URLs
+    langfuse_nextauth_url: "http://tinybot:3000"
+    langfuse_nextauth_secret: "mysecret"
+    langfuse_salt: "mysalt"
+    langfuse_encryption_key: "0000000000000000000000000000000000000000000000000000000000000000"
+
+    # PostgreSQL
+    langfuse_postgres_user: postgres
+    langfuse_postgres_password: "{{ vault_langfuse_postgres_password | default('postgres') }}"
+    langfuse_postgres_db: postgres
+
+    # ClickHouse
+    langfuse_clickhouse_user: clickhouse
+    langfuse_clickhouse_password: "{{ vault_langfuse_clickhouse_password | default('clickhouse') }}"
+
+    # Redis
+    langfuse_redis_auth: "{{ vault_langfuse_redis_auth | default('myredissecret') }}"
+
+    # MinIO
+    langfuse_minio_root_user: minio
+    langfuse_minio_root_password: "{{ vault_langfuse_minio_root_password | default('miniosecret') }}"
+
+    # S3 buckets
+    langfuse_s3_event_upload_bucket: langfuse
+    langfuse_s3_media_upload_bucket: langfuse
+    langfuse_s3_batch_export_bucket: langfuse
+
+    # Feature flags
+    langfuse_telemetry_enabled: true
+    langfuse_enable_experimental_features: false
+
+    # ClickHouse cluster
+    langfuse_clickhouse_cluster_enabled: false
+    langfuse_clickhouse_cluster_name: default
+
+    # Backup
+    langfuse_backup_action: "none"
+    langfuse_backup_dir: "{{ user.home }}/LLMOS/langfuse/backups"
+
+    # Image tags
+    langfuse_image_tag: "latest"
+    langfuse_clickhouse_image_tag: "25.12"
+    langfuse_postgres_version: "17"
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # base.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: langfuse
+      tags: ["langfuse", "llmops"]

@@ -1,0 +1,55 @@
+# Ruff configuration for this repository.
+#
+# This file must exist even if it were empty. Ruff walks up the directory tree
+# for configuration, and the parent of this repo (WorkspaceV3) contains an
+# unrelated project's pyproject.toml carrying `[tool.ruff] exclude = ["*"]`.
+# Without a config here, that neighbour silently becomes this repo's lint
+# configuration and excludes every file from checking.
+
+# ansible-core >= 2.15 (see collections/*/meta/runtime.yml) supports Python 3.9
+# on the controller, and callback plugins run under the controller interpreter.
+# Pinning this stops ruff proposing 3.10+ syntax such as `X | None`.
+target-version = "py39"
+line-length = 88  # black's default; black is the formatter of record here
+
+[lint]
+select = ["E", "W", "F", "I", "B", "C4", "SIM", "UP", "RET", "RUF", "DTZ"]
+
+ignore = [
+  # -- Ansible plugin boilerplate. Every ansible-core plugin carries these and
+  # ansible-test enforces them; ruff reads them as dead Python 2 compatibility.
+  "UP001",  # __metaclass__ = type
+  "UP009",  # # -*- coding: utf-8 -*-
+  "UP010",  # from __future__ import absolute_import, division, print_function
+
+  # -- Deliberate in a callback plugin. Anything raised out of a callback
+  # aborts the playbook, so the broad excepts and quiet passes are the
+  # contract, not an oversight. Each one is commented at its site.
+  "S110",   # try-except-pass
+  "BLE001", # blind except
+
+  # -- black owns line width. It already guarantees code fits in `line-length`;
+  # what remains are long string literals, which black deliberately never
+  # splits. Rewrapping those by hand risks altering the emitted text, so E501
+  # here reports only lines no formatter will act on.
+  "E501",   # line-too-long
+]
+
+[lint.per-file-ignores]
+# The plugin loader imports this file directly rather than as part of a package,
+# so sys.path must be primed before the sibling helper modules are importable.
+"plugins/callback/llm_analyzer.py" = ["E402"]
+"scripts/llm_trainset.py" = ["E402"]  # same: sys.path primed before the imports it enables
+
+[lint.isort]
+known-first-party = [
+  "llm_analyzer",
+  "llm_engine",
+  "llm_metrics",
+  "llm_pool",
+  "llm_report",
+  "llm_signatures",
+  "llm_style",
+  "llm_suggestions",
+  "llm_trace_store",
+]

@@ -1,0 +1,12 @@
+---
+- name: Coding Agents Setup
+  hosts: workstations
+  become: false
+  gather_facts: false
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: coding_agents
+      tags: ["coding_agents", "system"]

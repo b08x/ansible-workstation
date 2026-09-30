@@ -1,0 +1,715 @@
+{
+  "version": 1,
+  "title": "Ansible Playbook Grapher",
+  "playbooks": [
+    {
+      "type": "PlaybookNode",
+      "id": "playbook_062518e8",
+      "name": "playbooks/dify-docker-ninjabot.yml",
+      "when": "",
+      "index": 1,
+      "location": {
+        "type": "file",
+        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/dify-docker-ninjabot.yml",
+        "line": 1,
+        "column": 1
+      },
+      "plays": [
+        {
+          "type": "PlayNode",
+          "id": "play_72991a89",
+          "name": "Deploy Dify (Docker) on ninjabot",
+          "when": "",
+          "index": 1,
+          "location": {
+            "type": "file",
+            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/dify-docker-ninjabot.yml",
+            "line": 2,
+            "column": 3
+          },
+          "pre_tasks": [],
+          "roles": [
+            {
+              "type": "RoleNode",
+              "id": "role_63065895",
+              "name": "b08x.llmops.dify",
+              "when": "",
+              "index": 1,
+              "location": {
+                "type": "folder",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify",
+                "line": null,
+                "column": null
+              },
+              "tasks": [
+                {
+                  "type": "TaskNode",
+                  "id": "task_b81fe690",
+                  "name": "b08x.llmops.dify : Validating arguments against arg spec 'main' - Deploy self-hosted Dify LLM platform via Docker Compose or Podman.",
+                  "when": "",
+                  "index": 1,
+                  "location": null,
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_2bb95224",
+                  "name": "b08x.llmops.dify : Starting dify tasks",
+                  "when": "",
+                  "index": 2,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_cdd04427",
+                  "name": "b08x.llmops.dify : Verify container runtime is available",
+                  "when": "",
+                  "index": 3,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 9,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_51e55f89",
+                  "name": "b08x.llmops.dify : Fail if container runtime is not available",
+                  "when": "[when: dify_runtime_check.rc != 0]",
+                  "index": 4,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 17,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_74e28b87",
+                  "name": "b08x.llmops.dify : Create Dify deployment directory",
+                  "when": "",
+                  "index": 5,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 26,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_288c7d2b",
+                  "name": "b08x.llmops.dify : Create Dify data subdirectories",
+                  "when": "",
+                  "index": 6,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 33,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_fb41be05",
+                  "name": "b08x.llmops.dify : Deploy sandbox config",
+                  "when": "",
+                  "index": 7,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 51,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Dify stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_df10d2b6",
+                  "name": "b08x.llmops.dify : Deploy environment file",
+                  "when": "",
+                  "index": 8,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 59,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Dify stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_db2e4e49",
+                  "name": "b08x.llmops.dify : Create SSRF proxy config directory",
+                  "when": "",
+                  "index": 9,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 68,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_6cc6e5b9",
+                  "name": "b08x.llmops.dify : Create Nginx config directories",
+                  "when": "",
+                  "index": 10,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 76,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_af711c3a",
+                  "name": "b08x.llmops.dify : Remove Docker-created directory stubs at file paths",
+                  "when": "",
+                  "index": 11,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 88,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_118206fd",
+                  "name": "b08x.llmops.dify : Deploy SSRF proxy config files",
+                  "when": "",
+                  "index": 12,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 106,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Dify stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_9f4c7236",
+                  "name": "b08x.llmops.dify : Deploy Nginx config files",
+                  "when": "",
+                  "index": 13,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 131,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Dify stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_2041ab7f",
+                  "name": "b08x.llmops.dify : Deploy Docker Compose configuration",
+                  "when": "",
+                  "index": 14,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/docker.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart Dify stack"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_4409abf0",
+                  "name": "b08x.llmops.dify : Pull Dify container images",
+                  "when": "",
+                  "index": 15,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/docker.yml",
+                    "line": 13,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_89532330",
+                  "name": "b08x.llmops.dify : Start Dify Docker Compose stack",
+                  "when": "",
+                  "index": 16,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/docker.yml",
+                    "line": 19,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_ba3a9841",
+                  "name": "b08x.llmops.dify : Deploy Docker Compose configuration for Podman",
+                  "when": "",
+                  "index": 17,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/podman.yml",
+                    "line": 6,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_f93bb959",
+                  "name": "b08x.llmops.dify : Stop existing Dify compose stack for clean redeploy",
+                  "when": "[when: dify_force_recreate | bool]",
+                  "index": 18,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/podman.yml",
+                    "line": 14,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_5a75979c",
+                  "name": "b08x.llmops.dify : Pull Dify container images",
+                  "when": "",
+                  "index": 19,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/podman.yml",
+                    "line": 22,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_6d7486f1",
+                  "name": "b08x.llmops.dify : Start Dify Podman Compose stack",
+                  "when": "",
+                  "index": 20,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/podman.yml",
+                    "line": 28,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_066dbea5",
+                  "name": "b08x.llmops.dify : Open firewall ports for Dify",
+                  "when": "[when: dify_firewall_ports | length > 0 and not (dify_bind_localhost | bool)]",
+                  "index": 21,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/main.yml",
+                    "line": 166,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_a626618d",
+                  "name": "b08x.llmops.dify : Set container CLI for backup operations",
+                  "when": "",
+                  "index": 22,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                    "line": 8,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_ddd6fb06",
+                  "name": "b08x.llmops.dify : Set volume backup path list",
+                  "when": "",
+                  "index": 23,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                    "line": 15,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_785cf6ba",
+                  "name": "Backup Dify",
+                  "when": "[when: dify_backup_action == \"backup\"]",
+                  "index": 24,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                    "line": 36,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_df86b5bf",
+                      "name": "b08x.llmops.dify : Create backup directory",
+                      "when": "[when: dify_backup_action == \"backup\"]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 40,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_60c56fa2",
+                      "name": "b08x.llmops.dify : Set backup filenames with timestamp",
+                      "when": "[when: dify_backup_action == \"backup\"]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 46,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c6e9af21",
+                      "name": "b08x.llmops.dify : Backup PostgreSQL database (custom format)",
+                      "when": "[when: dify_backup_action == \"backup\" and dify_backup_format == \"custom\"]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 53,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_441336ca",
+                      "name": "b08x.llmops.dify : Backup PostgreSQL database (plain SQL)",
+                      "when": "[when: dify_backup_action == \"backup\" and dify_backup_format == \"plain\"]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 63,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_7463a95f",
+                      "name": "b08x.llmops.dify : Display database backup result",
+                      "when": "[when: dify_backup_action == \"backup\" and dify_backup_db_result is defined and dify_backup_db_result.changed]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 73,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_6562ece0",
+                      "name": "b08x.llmops.dify : Backup volume data and configs",
+                      "when": "[when: dify_backup_action == \"backup\" and dify_backup_include_volumes | bool]",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 78,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_373752a8",
+                      "name": "b08x.llmops.dify : Display volume backup result",
+                      "when": "[when: dify_backup_action == \"backup\" and dify_backup_include_volumes | bool and dify_backup_volume_result is defined and dify_backup_volume_result.changed]",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 88,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_72471280",
+                      "name": "b08x.llmops.dify : Find old database backups",
+                      "when": "[when: dify_backup_action == \"backup\"]",
+                      "index": 8,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 96,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_5df7870f",
+                      "name": "b08x.llmops.dify : Find old volume backups",
+                      "when": "[when: dify_backup_action == \"backup\"]",
+                      "index": 9,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 104,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_cfabfe2f",
+                      "name": "b08x.llmops.dify : Remove old backups",
+                      "when": "[when: dify_backup_action == \"backup\" and (dify_old_db_backups.files + dify_old_volume_backups.files) | length > 0]",
+                      "index": 10,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 112,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_583034cc",
+                  "name": "Restore Dify",
+                  "when": "[when: dify_backup_action == \"restore\"]",
+                  "index": 25,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                    "line": 123,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_54253505",
+                      "name": "b08x.llmops.dify : Verify database restore file exists",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_file | length > 0]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 127,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_a9bb2519",
+                      "name": "b08x.llmops.dify : Fail if database restore file is missing",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_file | length > 0 and not dify_restore_file_stat.stat.exists]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 133,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c17a3e42",
+                      "name": "b08x.llmops.dify : Verify volume restore file exists",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_include_volumes | bool and dify_backup_volume_file | length > 0]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 140,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_12e6c515",
+                      "name": "b08x.llmops.dify : Fail if volume restore file is missing",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_include_volumes | bool and dify_backup_volume_file | length > 0 and not dify_restore_volume_stat.stat.exists]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 148,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_b6960d33",
+                      "name": "b08x.llmops.dify : Stop Dify stack before volume restore",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_include_volumes | bool and dify_backup_volume_file | length > 0 and dify_restore_volume_stat.stat.exists]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 156,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_7f0f314f",
+                      "name": "b08x.llmops.dify : Restore volume data and configs",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_include_volumes | bool and dify_backup_volume_file | length > 0 and dify_restore_volume_stat.stat.exists]",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 168,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_a05c5530",
+                      "name": "b08x.llmops.dify : Start Dify stack after volume restore",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_include_volumes | bool and dify_backup_volume_file | length > 0 and dify_restore_volume_stat.stat.exists]",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 178,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_b001fd3d",
+                      "name": "b08x.llmops.dify : Wait for PostgreSQL to be ready",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_file | length > 0 and dify_restore_file_stat.stat.exists]",
+                      "index": 8,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 189,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_9c9957fc",
+                      "name": "b08x.llmops.dify : Restore PostgreSQL database (custom format)",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_file | length > 0 and dify_restore_file_stat.stat.exists and dify_backup_file | regex_search('\\.dump$')]",
+                      "index": 9,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 202,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_7d1c0ea4",
+                      "name": "b08x.llmops.dify : Restore PostgreSQL database (plain SQL)",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_backup_file | length > 0 and dify_restore_file_stat.stat.exists and dify_backup_file | regex_search('\\.sql$')]",
+                      "index": 10,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 214,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_cc0c4af6",
+                      "name": "b08x.llmops.dify : Display restore results",
+                      "when": "[when: dify_backup_action == \"restore\" and dify_restore_db_result is defined or dify_restore_volume_result is defined]",
+                      "index": 11,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/llmops/roles/dify/tasks/backup.yml",
+                        "line": 226,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                }
+              ],
+              "handlers": [],
+              "include_role": false
+            }
+          ],
+          "tasks": [],
+          "post_tasks": [],
+          "handlers": [],
+          "hosts": [
+            "ninjabot"
+          ],
+          "colors": {
+            "main": "#0d1cbf",
+            "font": "#ffffff"
+          }
+        }
+      ]
+    }
+  ]
+}

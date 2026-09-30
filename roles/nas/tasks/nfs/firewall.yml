@@ -1,0 +1,155 @@
+---
+# NFS firewall configuration - Hybrid approach
+# Uses firewalld services for standard ports AND explicit port rules for fixed daemons
+
+# =============================================================================
+# Firewalld Service-Based Rules (High-level, includes multiple ports)
+# =============================================================================
+
+- name: Enable NFS service in firewalld
+  ansible.posix.firewalld:
+    service: nfs
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+
+- name: Enable mountd service in firewalld
+  ansible.posix.firewalld:
+    service: mountd
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+
+- name: Enable RPC-bind service in firewalld
+  ansible.posix.firewalld:
+    service: rpc-bind
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+
+# =============================================================================
+# Explicit Port Rules for Fixed NFS Daemon Ports
+# These match the ports configured in /etc/nfs.conf via the nfs.conf.j2 template
+# =============================================================================
+
+- name: Open explicit lockd TCP port in firewalld
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.lockd.tcp }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-lockd
+
+- name: Open explicit lockd UDP port in firewalld
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.lockd.udp }}/udp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-lockd
+
+- name: Open explicit mountd port in firewalld (TCP)
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.mountd }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-mountd
+
+- name: Open explicit mountd port in firewalld (UDP)
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.mountd }}/udp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-mountd
+
+- name: Open explicit statd port in firewalld (TCP)
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.statd }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-statd
+
+- name: Open explicit statd port in firewalld (UDP)
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.statd }}/udp"
+    permanent: true
+    state: enabled
+    immediate: true
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-statd
+
+# =============================================================================
+# Optional: RDMA Port (Conditional)
+# Only configure if RDMA is enabled (rdma=y in /etc/nfs.conf template)
+# =============================================================================
+
+- name: Open RDMA port in firewalld (TCP)
+  ansible.posix.firewalld:
+    port: "{{ firewall.nfs.ports.rdma }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+  when: firewall.nfs.ports.rdma is defined
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - nfs-rdma
+
+# =============================================================================
+# Legacy Custom Port Support (Backward Compatibility)
+# =============================================================================
+
+- name: Open legacy custom NFS ports in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: "{{ nas_nfs_firewall_ports }}"
+  when:
+    - nas_nfs_firewall_ports is defined
+    - nas_nfs_firewall_ports | length > 0
+  notify: Reload firewalld
+  tags:
+    - firewall
+    - nfs
+    - legacy

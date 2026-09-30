@@ -1,0 +1,122 @@
+---
+# defaults file for b08x.devworkstation.coding_agents
+
+# State variables: present or absent
+# Set coding_agents_uninstall: true to run uninstall tasks for all agents
+coding_agents_uninstall: false
+coding_agents_antigravity_state: present
+coding_agents_claude_state: present
+coding_agents_crush_state: present
+coding_agents_opencode_state: present
+coding_agents_vibe_state: present
+
+# Antigravity CLI (the Hub and IDE are installed by the desktop role)
+coding_agents_antigravity_cli_install_url: "https://antigravity.google/cli/install.sh"
+# Reinstall the CLI even when the agy binary is already present
+coding_agents_antigravity_cli_force_update: false
+
+# Antigravity config directories
+coding_agents_antigravity_config_dir: "{{ ansible_user_dir }}/.gemini/config"
+coding_agents_antigravity_agents_dir: "{{ ansible_user_dir }}/.gemini/config/agents"
+coding_agents_antigravity_skills_dir: "{{ ansible_user_dir }}/.gemini/antigravity-cli/skills"
+
+# Claude Code config directories
+coding_agents_claude_config_dir: "{{ ansible_user_dir }}/.claude"
+coding_agents_claude_skills_dir: "{{ ansible_user_dir }}/.claude/skills"
+coding_agents_claude_agents_dir: "{{ ansible_user_dir }}/.claude/agents"
+
+# Crush config directories
+coding_agents_crush_config_dir: "{{ ansible_user_dir }}/.config/crush"
+coding_agents_crush_skills_dir: "{{ ansible_user_dir }}/.config/crush/skills"
+coding_agents_crush_agents_dir: "{{ ansible_user_dir }}/.config/crush/agents"
+
+# OpenCode config directories
+coding_agents_opencode_config_dir: "{{ ansible_user_dir }}/.config/opencode"
+coding_agents_opencode_skills_dir: "{{ ansible_user_dir }}/.config/opencode/skills"
+coding_agents_opencode_agents_dir: "{{ ansible_user_dir }}/.config/opencode/agents"
+
+# Vibe config directories
+coding_agents_vibe_config_dir: "{{ ansible_user_dir }}/.vibe"
+coding_agents_vibe_skills_dir: "{{ ansible_user_dir }}/.vibe/skills"
+coding_agents_vibe_agents_dir: "{{ ansible_user_dir }}/.vibe/agents"
+
+# Shared skills/agents directories — central install location
+# Claude, Crush, OpenCode, Vibe natively search ~/.agents/skills/
+# Antigravity uses ~/.gemini/antigravity-cli/skills/ (needs symlink to ~/.agents/skills/)
+coding_agents_skills_dir: "{{ ansible_user_dir }}/.agents/skills"
+coding_agents_agents_dir: "{{ ansible_user_dir }}/.agents/agents"
+
+# GitHub-sourced skills
+# Each item: { repo: <url>, dest: <path>, version: <branch/tag> }
+coding_agents_skills_github: []
+# npm/npx-sourced skills
+# Each item: { package: <name>, dest: <path> }
+coding_agents_skills_npx: []
+# GitHub-sourced agent definitions
+# Each item: { repo: <url>, dest: <path>, version: <branch/tag> }
+coding_agents_agents_github: []
+# MCP server variable schemas — one per agent format
+# All default to empty — consumers override in group_vars or host_vars
+
+# Antigravity — flat dict under mcpServers key
+# Remote servers use serverUrl (not url); stdio servers use command/args/env
+# Example:
+#   coding_agents_antigravity_mcp_servers:
+#     sqlite-explorer:
+#       command: "node"
+#       args: ["/usr/local/bin/sqlite-mcp-server.js"]
+#       env:
+#         SQLITE_DB_PATH: "/var/data/app.db"
+#     my-remote-server:
+#       serverUrl: "https://api.example.com/mcp/"
+#       headers:
+#         Authorization: "Bearer YOUR_API_TOKEN"
+coding_agents_antigravity_mcp_servers: {}
+# Claude Code — flat dict, server name to config
+# Env vars use ${VAR} syntax
+# Example:
+#   coding_agents_claude_mcp_servers:
+#     sqlite:
+#       command: "npx"
+#       args: ["-y", "@modelcontextprotocol/server-sqlite"]
+#       env:
+#         SQLITE_DB_PATH: "/var/data/app.db"
+coding_agents_claude_mcp_servers: {}
+# Crush — dict generating bash 'mcp add' lines in crushrc
+# Example:
+#   coding_agents_crush_mcp_servers:
+#     sqlite:
+#       command: "npx"
+#       args: ["-y", "@modelcontextprotocol/server-sqlite"]
+coding_agents_crush_mcp_servers: {}
+# OpenCode — dict matching OpenCode's mcp shape
+# Env vars use {env:VAR} syntax
+# Example:
+#   coding_agents_opencode_mcp_servers:
+#     sqlite:
+#       command: "npx"
+#       args: ["-y", "@modelcontextprotocol/server-sqlite"]
+#       env:
+#         SQLITE_DB_PATH: "/var/data/app.db"
+coding_agents_opencode_mcp_servers: {}
+# CLI installation — npm global prefix
+# npm install -g puts binaries here; must be user-writable (role runs become: false)
+coding_agents_npm_prefix: "{{ ansible_user_dir }}/.local"
+
+# CLI installation — npm package names
+coding_agents_claude_npm_package: "@anthropic-ai/claude-code"
+coding_agents_opencode_npm_package: "opencode-ai"
+coding_agents_vibe_npm_package: "@mistralai/vibe"
+
+# CLI installation — Go package path (for crush)
+coding_agents_crush_go_package: "github.com/charmbracelet/crush@latest"
+
+# Vibe — list of dicts matching [[mcp_servers]] TOML structure
+# Example:
+#   coding_agents_vibe_mcp_servers:
+#     - name: "sqlite"
+#       command: "npx"
+#       args: ["-y", "@modelcontextprotocol/server-sqlite"]
+#       env:
+#         SQLITE_DB_PATH: "/var/data/app.db"
+coding_agents_vibe_mcp_servers: []

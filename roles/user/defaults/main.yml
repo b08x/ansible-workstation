@@ -1,0 +1,35 @@
+---
+# defaults file for b08x.devworkstation.user
+
+# Variable that will be displayed in debug output
+# This demonstrates proper role variable naming with the 'run_' prefix
+user_my_variable: "default_value"
+
+user_install_cargo: true
+
+# Building user_cargo_packages from source takes a long time, so it is opt-in.
+# user_install_cargo still installs the Rust toolchain through rustup.
+user_install_cargo_packages: false
+
+user_uv_python_version: 3.13
+
+# rbenv configuration
+user_install_rbenv: true
+user_rbenv_ruby_version: "4.0.4"
+user_rbenv_rubygems_version: "4.0.20"
+user_rbenv_configure_opts: "--with-openssl-dir=/usr"
+user_rbenv_gems:
+  - solargraph
+  - ruby-lsp
+  - rubocop
+
+user_cargo_packages:
+  - bottom
+  - choose
+  - exa
+  - git-cliff
+  - gping
+  - ripgrep_all
+  - sd
+  - gitui
+  - eza

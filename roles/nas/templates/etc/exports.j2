@@ -1,0 +1,25 @@
+# /etc/exports - exports(5) - directories exported to NFS clients
+# Managed by Ansible - NAS Role
+#
+# Example for NFSv3:
+#  /srv/home        hostname1(rw,sync) hostname2(ro,sync)
+# Example for NFSv4:
+#  /srv/nfs4        hostname1(rw,sync,fsid=0)
+#  /srv/nfs4/home   hostname1(rw,sync,nohide)
+# Using Kerberos and integrity checking:
+#  /srv/nfs4        *(rw,sync,sec=krb5i,fsid=0)
+#  /srv/nfs4/home   *(rw,sync,sec=krb5i,nohide)
+#
+# Use `exportfs -arv` to reload.
+
+{% for export in nas_nfs_exports %}
+{%   if export.is_root | default(false) %}
+# NFSv4 pseudo-root export
+{{ export.path }} {% for network in export.clients | default(nas_nfs_allowed_networks) %}{{ network }}({{ (export.options | default(nas_nfs_root_export_options)) | join(',') }}){% if not loop.last %} {% endif %}{% endfor %}
+
+{%   else %}
+# Export: {{ export.path }}
+{{ export.path }} {% for network in export.clients | default(nas_nfs_allowed_networks) %}{{ network }}({{ (export.options | default(nas_nfs_export_options)) | join(',') }}){% if not loop.last %} {% endif %}{% endfor %}
+
+{%   endif %}
+{% endfor %}

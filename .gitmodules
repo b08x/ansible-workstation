@@ -1,6 +1,0 @@
-[submodule "collections/ansible_collections/b08x/llmops"]
-	path = collections/ansible_collections/b08x/llmops
-	url = https://github.com/b08x/llmops.git
-[submodule "collections/ansible_collections/b08x/devworkstation"]
-	path = collections/ansible_collections/b08x/devworkstation
-	url = https://github.com/b08x/devworkstation.git

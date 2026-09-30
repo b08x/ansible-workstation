@@ -1,0 +1,6 @@
+---
+containerd_docker_distro_packages: []
+containerd_docker_repo_os: "alma"
+containerd_docker_service_enabled: false
+containerd_docker_manage_users: false
+containerd_docker_manage_storage: false

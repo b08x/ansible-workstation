@@ -1,0 +1,78 @@
+---
+# ============================================================================
+# Fedora Repository Configuration
+# Sets up RPM Fusion and any COPR repositories, then fixes repo priorities.
+# Adapted from ansible-collection-rhel-workstation-builder roles/base.
+# ============================================================================
+
+- name: Install repository management prerequisites
+  ansible.builtin.dnf:
+    name:
+      - python3-libdnf5
+      - fedora-workstation-repositories
+      - dnf-plugins-core
+    state: present
+  tags: ["packages", "packages__repos"]
+
+- name: Configure third-party repositories
+  tags: ["repositories"]
+  block:
+    - name: Install RPM Fusion Free repository
+      ansible.builtin.dnf:
+        name: "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: base_rpmfusion_free
+      when: base_enable_rpmfusion | bool
+      tags: ["rpmfusion"]
+
+    - name: Install RPM Fusion Non-Free repository
+      ansible.builtin.dnf:
+        name: "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: base_rpmfusion_nonfree
+      when: base_enable_rpmfusion | bool
+      tags: ["rpmfusion"]
+
+    - name: Enable COPR repositories
+      community.general.copr:
+        name: "{{ item }}"
+        state: enabled
+      loop: "{{ base_copr_repos }}"
+      register: base_copr_enabled
+      when: base_copr_repos | length > 0
+      tags: ["copr"]
+
+    - name: Set repository priorities
+      ansible.builtin.command:
+        cmd: >-
+          dnf config-manager setopt
+          fedora.priority=0 updates.priority=0 rpmfusion-*.priority=90
+      changed_when: false
+      tags: ["dnf_priorities"]
+
+  rescue:
+    # Shape 1 (add context, then re-raise): every later package task resolves
+    # against these repositories, so continuing here only relocates the failure
+    # somewhere less obvious.
+    - name: Report repository setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to configure third-party repositories.
+          Usually network connectivity or an unavailable RPM Fusion mirror.
+          Set base_enable_rpmfusion=false to skip RPM Fusion entirely.
+
+    - name: Fail the play on repository setup failure
+      ansible.builtin.fail:
+        msg: "Third-party repository configuration failed - see the preceding task output."
+
+- name: Force refresh DNF metadata cache
+  ansible.builtin.command:
+    cmd: dnf makecache
+  changed_when: true
+  when: >
+    (base_rpmfusion_free is changed) or
+    (base_rpmfusion_nonfree is changed) or
+    (base_copr_enabled is changed)
+  tags: ["repositories"]

@@ -1,0 +1,15 @@
+---
+# argument spec file for b08x.devworkstation.user
+
+argument_specs:
+  main:
+    short_description: Role description.
+    options:
+      user_my_variable:
+        type: str
+        description: A simple string argument for demonstration.
+        default: "default_value"
+      user_install_cargo_packages:
+        type: bool
+        description: Build and install user_cargo_packages with cargo. Off by default because the builds are slow.
+        default: false

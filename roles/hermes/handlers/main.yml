@@ -1,0 +1,44 @@
+---
+# handlers file for b08x.llmops.hermes
+
+- name: Restart hermes-gateway
+  ansible.builtin.systemd:
+    name: hermes-gateway
+    state: restarted
+    daemon_reload: true
+  become: true
+  listen: "restart hermes-gateway"
+  tags: ["hermes", "gateway", "service"]
+
+- name: Reload hermes-gateway
+  ansible.builtin.systemd:
+    name: hermes-gateway
+    state: reloaded
+  become: true
+  listen: "reload hermes-gateway"
+  tags: ["hermes", "gateway", "service"]
+
+- name: Start hermes-gateway
+  ansible.builtin.systemd:
+    name: hermes-gateway
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+  listen: "start hermes-gateway"
+  tags: ["hermes", "gateway", "service"]
+
+- name: Stop hermes-gateway
+  ansible.builtin.systemd:
+    name: hermes-gateway
+    state: stopped
+  become: true
+  listen: "stop hermes-gateway"
+  tags: ["hermes", "gateway", "service"]
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true
+  listen: "reload systemd"
+  tags: ["hermes", "systemd", "daemon"]

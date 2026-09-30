@@ -1,0 +1,16 @@
+---
+# handlers file for b08x.llmops.langfuse
+
+# Podman containers are recreated automatically by podman_container when
+# the env dict changes — no handler needed for that runtime.
+
+- name: Restart Langfuse stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ langfuse_deploy_dir }}"
+    project_name: "{{ langfuse_project_name }}"
+    env_files:
+      - ".env"
+    state: present
+    pull: always
+    recreate: always
+  when: langfuse_container_runtime == "docker"

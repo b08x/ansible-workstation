@@ -1,0 +1,65 @@
+---
+- name: Deploy Dify (Docker)
+  hosts: dify
+  become: false
+  gather_facts: false
+  vars:
+    # Container runtime
+    dify_container_runtime: docker
+
+    # Deployment
+    dify_deploy_dir: "/mnt/local_storage/LLMOS/dify"
+    dify_project_name: dify
+
+    # Bind
+    dify_bind_localhost: false
+
+    # Image tags
+    dify_image_tag: "1.17.0"
+    dify_sandbox_image_tag: "0.2.15"
+    dify_plugin_daemon_image_tag: "0.6.10-local"
+    dify_postgres_version: "15-alpine"
+    dify_redis_version: "6-alpine"
+    dify_weaviate_image_tag: "1.39.2"
+
+    # Database
+    dify_db_username: postgres
+    dify_db_password: "{{ vault_dify_db_password | default('difyai123456') }}"
+    dify_db_database: dify
+    dify_db_plugin_database: dify_plugin
+
+    # Vector store
+    dify_vector_store: pgvector
+
+    # pgvector
+    dify_pgvector_user: postgres
+    dify_pgvector_password: "{{ vault_dify_pgvector_password | default('difyai123456') }}"
+    dify_pgvector_database: dify
+
+    # Redis
+    dify_redis_password: difyai123456
+
+    # SSRF proxy
+    dify_ssrf_proxy_allow_private_ips: ""
+
+    # Nginx
+    dify_nginx_server_name: "_"
+    dify_nginx_https_enabled: false
+
+    # Backup
+    dify_backup_action: "none"
+    dify_backup_dir: "/mnt/local_storage/LLMOS/dify/backups"
+
+    # Secrets (should come from vault)
+    dify_secret_key: ""
+    dify_init_password: ""
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # base.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: dify
+      tags: ["dify", "llmops"]

@@ -1,0 +1,15 @@
+---
+# Full workstation provisioning
+# Usage: ansible-playbook playbooks/site.yml
+
+- name: Base System
+  import_playbook: base.yml
+
+- name: System Configuration
+  import_playbook: system.yml
+
+- name: User Environment
+  import_playbook: user.yml
+
+- name: Coding Agents
+  import_playbook: coding_agents.yml

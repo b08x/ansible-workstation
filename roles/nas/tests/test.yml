@@ -1,0 +1,6 @@
+---
+- name: Test nas role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - nas

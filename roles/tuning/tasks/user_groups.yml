@@ -1,0 +1,8 @@
+---
+- name: Add user to groups
+  ansible.builtin.user:
+    name: "{{ user.name }}"
+    groups: "{{ item }}"
+    append: true
+  loop: "{{ tuning_groups }}"
+  ignore_errors: "{{ ansible_check_mode }}"

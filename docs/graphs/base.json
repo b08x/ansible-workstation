@@ -1,0 +1,973 @@
+{
+  "version": 1,
+  "title": "Ansible Playbook Grapher",
+  "playbooks": [
+    {
+      "type": "PlaybookNode",
+      "id": "playbook_231ad201",
+      "name": "playbooks/base.yml",
+      "when": "",
+      "index": 1,
+      "location": {
+        "type": "file",
+        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+        "line": 1,
+        "column": 1
+      },
+      "plays": [
+        {
+          "type": "PlayNode",
+          "id": "play_f29bda94",
+          "name": "System Provisioning and Base Configuration",
+          "when": "",
+          "index": 1,
+          "location": {
+            "type": "file",
+            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+            "line": 2,
+            "column": 3
+          },
+          "pre_tasks": [
+            {
+              "type": "TaskNode",
+              "id": "pre_task_609a7784",
+              "name": "Gather facts as unprivileged connection user",
+              "when": "",
+              "index": 1,
+              "location": {
+                "type": "file",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+                "line": 7,
+                "column": 7
+              },
+              "notify": []
+            },
+            {
+              "type": "TaskNode",
+              "id": "pre_task_ac868aab",
+              "name": "Disable requiretty for user so automation can run without interruption",
+              "when": "[when: ansible_user_id != 'root']",
+              "index": 2,
+              "location": {
+                "type": "file",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+                "line": 15,
+                "column": 7
+              },
+              "notify": []
+            },
+            {
+              "type": "TaskNode",
+              "id": "pre_task_ea1da33b",
+              "name": "Display ansible_distribution",
+              "when": "",
+              "index": 3,
+              "location": {
+                "type": "file",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+                "line": 26,
+                "column": 7
+              },
+              "notify": []
+            },
+            {
+              "type": "TaskNode",
+              "id": "pre_task_236c88f6",
+              "name": "Symlink /etc/os-release to /etc/system-release",
+              "when": "",
+              "index": 4,
+              "location": {
+                "type": "file",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/base.yml",
+                "line": 33,
+                "column": 7
+              },
+              "notify": []
+            }
+          ],
+          "roles": [
+            {
+              "type": "RoleNode",
+              "id": "role_1927fd55",
+              "name": "b08x.devworkstation.base",
+              "when": "",
+              "index": 5,
+              "location": {
+                "type": "folder",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base",
+                "line": null,
+                "column": null
+              },
+              "tasks": [
+                {
+                  "type": "TaskNode",
+                  "id": "task_f46c62b4",
+                  "name": "b08x.devworkstation.base : Validating arguments against arg spec 'main' - Role description.",
+                  "when": "",
+                  "index": 1,
+                  "location": null,
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_bcb332f8",
+                  "name": "b08x.devworkstation.base : Starting base tasks",
+                  "when": "",
+                  "index": 2,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_79c35589",
+                  "name": "b08x.devworkstation.base : Include distribution package variables",
+                  "when": "",
+                  "index": 3,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 9,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_f40e084e",
+                  "name": "Configure DNF and fastestmirror",
+                  "when": "[when: ansible_os_family == 'RedHat']",
+                  "index": 4,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/dnf.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_ba7bfae9",
+                      "name": "b08x.devworkstation.base : Ensure dnf-plugins-core is installed",
+                      "when": "[when: ansible_os_family == 'RedHat']",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/dnf.yml",
+                        "line": 6,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_0afdbbc3",
+                      "name": "b08x.devworkstation.base : Enable fastestmirror in DNF configuration",
+                      "when": "[when: ansible_os_family == 'RedHat']",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/dnf.yml",
+                        "line": 11,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_209abd88",
+                      "name": "b08x.devworkstation.base : Configure fastestmirror plugin",
+                      "when": "[when: ansible_os_family == 'RedHat']",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/dnf.yml",
+                        "line": 21,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_06c29882",
+                      "name": "b08x.devworkstation.base : Force refresh DNF metadata cache",
+                      "when": "[when: ansible_os_family == 'RedHat' and base_enable_fastestmirror.changed or base_configure_fastestmirror.changed]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/dnf.yml",
+                        "line": 36,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_2526c140",
+                  "name": "b08x.devworkstation.base : Include Distribution Specific Repository Tasks",
+                  "when": "[when: enable_third_party_repos | default(true) | bool]",
+                  "index": 5,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 25,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_1271a5b4",
+                  "name": "Install Base packages",
+                  "when": "",
+                  "index": 6,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 31,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_d8c5bf3e",
+                      "name": "b08x.devworkstation.base : Install Base packages",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                        "line": 34,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_9f8dd298",
+                  "name": "b08x.devworkstation.base : Enable and Start ssh service",
+                  "when": "",
+                  "index": 7,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 47,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_3a478356",
+                  "name": "b08x.devworkstation.base : Configure zram-generator",
+                  "when": "",
+                  "index": 8,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 53,
+                    "column": 3
+                  },
+                  "notify": [
+                    "Restart zram service"
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_f310c00d",
+                  "name": "b08x.devworkstation.base : Reload systemd",
+                  "when": "",
+                  "index": 9,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 66,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_c541f53e",
+                  "name": "b08x.devworkstation.base : Flush handlers meow",
+                  "when": "",
+                  "index": 10,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/main.yml",
+                    "line": 70,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_0d29ebde",
+                  "name": "Install Intel Graphics Drivers",
+                  "when": "",
+                  "index": 11,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_b8ef8bc1",
+                      "name": "b08x.devworkstation.base : Install Intel Graphics Drivers packages",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 5,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_fbea6970",
+                  "name": "Install Intel oneAPI Toolkit",
+                  "when": "[when: intel_oneapi_install | default(false) | bool]",
+                  "index": 12,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                    "line": 32,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_59f82ce4",
+                      "name": "b08x.devworkstation.base : Import Intel oneAPI GPG Key",
+                      "when": "[when: intel_oneapi_install | default(false) | bool]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 36,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_83c0f25c",
+                      "name": "b08x.devworkstation.base : Add Intel openAPI Repository",
+                      "when": "[when: intel_oneapi_install | default(false) | bool]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 42,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_554607f8",
+                      "name": "b08x.devworkstation.base : Update Package Cache",
+                      "when": "[when: intel_oneapi_install | default(false) | bool]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 51,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_1e6b3f3a",
+                      "name": "b08x.devworkstation.base : Install Intel oneAPI MKL",
+                      "when": "[when: intel_oneapi_install | default(false) | bool]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 55,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_ee55c89b",
+                      "name": "b08x.devworkstation.base : Create oneAPI Environment Profile Script",
+                      "when": "[when: intel_oneapi_install | default(false) | bool]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/intel.yml",
+                        "line": 118,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_ab7148cb",
+                  "name": "b08x.devworkstation.base : Clone gitflow-avh repository",
+                  "when": "",
+                  "index": 13,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/gitflow.yml",
+                    "line": 3,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_63f70ff2",
+                  "name": "b08x.devworkstation.base : Install git flow-avh",
+                  "when": "",
+                  "index": 14,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/gitflow.yml",
+                    "line": 13,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_68337bbe",
+                  "name": "b08x.devworkstation.base : Check current Go version",
+                  "when": "",
+                  "index": 15,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                    "line": 1,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_c88338a4",
+                  "name": "Install or update Go",
+                  "when": "[when: base_go_version_check.rc != 0 or ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout]",
+                  "index": 16,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                    "line": 8,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_3832b158",
+                      "name": "b08x.devworkstation.base : Download Go tarball",
+                      "when": "[when: base_go_version_check.rc != 0 or ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                        "line": 14,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_26a14de1",
+                      "name": "b08x.devworkstation.base : Remove existing Go installation",
+                      "when": "[when: base_go_version_check.rc != 0 or ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                        "line": 20,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_746c7207",
+                      "name": "b08x.devworkstation.base : Extract Go tarball",
+                      "when": "[when: base_go_version_check.rc != 0 or ('go' ~ base_go_version ~ ' ') not in base_go_version_check.stdout]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                        "line": 25,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e1e3a573",
+                  "name": "b08x.devworkstation.base : Configure Go environment variables",
+                  "when": "",
+                  "index": 17,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/go.yml",
+                    "line": 31,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_591cd200",
+                  "name": "b08x.devworkstation.base : Clone fzf repository",
+                  "when": "",
+                  "index": 18,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/fzf.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_d3793138",
+                  "name": "Install fzf",
+                  "when": "",
+                  "index": 19,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/fzf.yml",
+                    "line": 11,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_e09d50c4",
+                      "name": "b08x.devworkstation.base : Install fzf",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/fzf.yml",
+                        "line": 22,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_84ea3d72",
+                      "name": "b08x.devworkstation.base : Copy fzf binaries to /usr/local/bin",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/fzf.yml",
+                        "line": 29,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_ad67c472",
+                  "name": "Install inxi system information tool",
+                  "when": "",
+                  "index": 20,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/inxi.yml",
+                    "line": 4,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_d7242e7a",
+                      "name": "b08x.devworkstation.base : Check if inxi is installed",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/inxi.yml",
+                        "line": 7,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_87a38225",
+                      "name": "b08x.devworkstation.base : Install inxi using package manager",
+                      "when": "[when: base_inxi_check.rc != 0]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/inxi.yml",
+                        "line": 14,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_ae8ecdfe",
+                  "name": "Prepare Homebrew environment",
+                  "when": "",
+                  "index": 21,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_720e361e",
+                      "name": "b08x.devworkstation.base : Ensure linuxbrew group exists",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 5,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_55a010af",
+                      "name": "b08x.devworkstation.base : Ensure /home/linuxbrew exists",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 10,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_4f8cbd6e",
+                      "name": "b08x.devworkstation.base : Setup isolated Homebrew prefix",
+                      "when": "",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 18,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_4980bf92",
+                  "name": "Install Homebrew",
+                  "when": "",
+                  "index": 22,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                    "line": 26,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_ca5adf9a",
+                      "name": "b08x.devworkstation.base : Check if Homebrew is already installed",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 30,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_18381377",
+                      "name": "b08x.devworkstation.base : Download and run the official Homebrew installer",
+                      "when": "[when: not brew_stat.stat.exists]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 35,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_a581ef1b",
+                  "name": "Configure Homebrew user shell environment",
+                  "when": "",
+                  "index": 23,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                    "line": 41,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_7dd488e4",
+                      "name": "b08x.devworkstation.base : Deploy curl_wrapper.sh for Homebrew",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 44,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_2cd00161",
+                      "name": "b08x.devworkstation.base : Configure resource-limited alias for brew",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 56,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_bb8c3f1c",
+                      "name": "b08x.devworkstation.base : Add Homebrew to user environment shell RC",
+                      "when": "",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/homebrew.yml",
+                        "line": 69,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_bc0c8dfc",
+                  "name": "b08x.devworkstation.base : Check if oh-my-zsh is installed",
+                  "when": "",
+                  "index": 24,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_fed1d922",
+                  "name": "Oh-my-zsh installation",
+                  "when": "[when: not base_oh_my_zsh_stat.stat.exists]",
+                  "index": 25,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                    "line": 8,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_3eb422da",
+                      "name": "b08x.devworkstation.base : Download oh-my-zsh install script",
+                      "when": "[when: not base_oh_my_zsh_stat.stat.exists]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 14,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_0cf1dacd",
+                      "name": "b08x.devworkstation.base : Install oh-my-zsh",
+                      "when": "[when: not base_oh_my_zsh_stat.stat.exists]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 21,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c3834398",
+                      "name": "b08x.devworkstation.base : Clean up oh-my-zsh install script",
+                      "when": "[when: not base_oh_my_zsh_stat.stat.exists]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 30,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_77b1eddf",
+                  "name": "b08x.devworkstation.base : Check if zoxide is installed",
+                  "when": "",
+                  "index": 26,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                    "line": 35,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_ad80f8da",
+                  "name": "Install zoxide from GitHub releases",
+                  "when": "[when: not base_zoxide_stat.stat.exists]",
+                  "index": 27,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                    "line": 41,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_5e3b8b52",
+                      "name": "b08x.devworkstation.base : Download zoxide install script",
+                      "when": "[when: not base_zoxide_stat.stat.exists]",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 45,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_fdf422bb",
+                      "name": "b08x.devworkstation.base : Install zoxide",
+                      "when": "[when: not base_zoxide_stat.stat.exists]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 51,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_4a5f8029",
+                      "name": "b08x.devworkstation.base : Clean up zoxide install script",
+                      "when": "[when: not base_zoxide_stat.stat.exists]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/zsh.yml",
+                        "line": 57,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_d3a026b6",
+                  "name": "b08x.devworkstation.base : Install yadm",
+                  "when": "",
+                  "index": 28,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/devworkstation/roles/base/tasks/yadm.yml",
+                    "line": 2,
+                    "column": 3
+                  },
+                  "notify": []
+                }
+              ],
+              "handlers": [],
+              "include_role": false
+            }
+          ],
+          "tasks": [],
+          "post_tasks": [],
+          "handlers": [],
+          "hosts": [
+            "gir",
+            "tinybot",
+            "soundbot",
+            "almalinux-test.syncopated.dev"
+          ],
+          "colors": {
+            "main": "#c6064f",
+            "font": "#ffffff"
+          }
+        }
+      ]
+    }
+  ]
+}

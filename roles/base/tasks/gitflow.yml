@@ -1,0 +1,54 @@
+---
+# Fedora ships gitflow through a COPR. AlmaLinux has no package in its base
+# repositories or EPEL, so it keeps the source build.
+- name: Install gitflow from COPR
+  when: ansible_distribution == 'Fedora'
+  tags: ["gitflow", "base"]
+  block:
+    - name: Enable gitflow COPR repository
+      community.general.copr:
+        name: "{{ base_gitflow_copr }}"
+        state: enabled
+
+    - name: Install gitflow package
+      ansible.builtin.dnf:
+        name: gitflow
+        state: present
+
+- name: Check if git-flow is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/git-flow
+  register: base_gitflow_bin
+  when: ansible_distribution != 'Fedora'
+  tags: ["gitflow", "base"]
+
+- name: Deploy gitflow-avh from source
+  when:
+    - ansible_distribution != 'Fedora'
+    - not base_gitflow_bin.stat.exists
+  tags: ["gitflow", "base"]
+  block:
+    - name: Ensure clean state for clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent
+
+    - name: Clone gitflow-avh repository
+      ansible.builtin.git:
+        repo: https://github.com/b08x/gitflow-avh.git
+        dest: /tmp/gitflow-avh
+        clone: true
+        update: true
+        version: develop
+      become: false
+
+    - name: Install git flow-avh
+      ansible.builtin.command:
+        cmd: make install
+        chdir: /tmp/gitflow-avh
+        creates: /usr/local/bin/git-flow
+
+    - name: Clean up gitflow-avh clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent

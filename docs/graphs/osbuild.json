@@ -1,0 +1,1463 @@
+{
+  "version": 1,
+  "title": "Ansible Playbook Grapher",
+  "playbooks": [
+    {
+      "type": "PlaybookNode",
+      "id": "playbook_fb3eb8b8",
+      "name": "playbooks/osbuild.yml",
+      "when": "",
+      "index": 1,
+      "location": {
+        "type": "file",
+        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/osbuild.yml",
+        "line": 1,
+        "column": 1
+      },
+      "plays": [
+        {
+          "type": "PlayNode",
+          "id": "play_6e1e0d3a",
+          "name": "Build custom workstation image",
+          "when": "",
+          "index": 1,
+          "location": {
+            "type": "file",
+            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/osbuild.yml",
+            "line": 6,
+            "column": 3
+          },
+          "pre_tasks": [
+            {
+              "type": "TaskNode",
+              "id": "pre_task_09d68432",
+              "name": "Verify supported distribution",
+              "when": "",
+              "index": 1,
+              "location": {
+                "type": "file",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/playbooks/osbuild.yml",
+                "line": 19,
+                "column": 7
+              },
+              "notify": []
+            }
+          ],
+          "roles": [
+            {
+              "type": "RoleNode",
+              "id": "role_15da931f",
+              "name": "b08x.rhel_builder.osbuild",
+              "when": "",
+              "index": 2,
+              "location": {
+                "type": "folder",
+                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild",
+                "line": null,
+                "column": null
+              },
+              "tasks": [
+                {
+                  "type": "TaskNode",
+                  "id": "task_55f58ddf",
+                  "name": "b08x.rhel_builder.osbuild : Display role execution banner",
+                  "when": "",
+                  "index": 1,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 6,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_fe5120cf",
+                  "name": "b08x.rhel_builder.osbuild : Validate required variables",
+                  "when": "",
+                  "index": 2,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 26,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_28472a12",
+                  "name": "b08x.rhel_builder.osbuild : Check operating system compatibility",
+                  "when": "",
+                  "index": 3,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 37,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_7d922ad1",
+                  "name": "b08x.rhel_builder.osbuild : Load distribution-specific repository variables",
+                  "when": "",
+                  "index": 4,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 47,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_2f94964a",
+                  "name": "b08x.rhel_builder.osbuild : Load package taxonomy",
+                  "when": "",
+                  "index": 5,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 51,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_5294757a",
+                  "name": "b08x.rhel_builder.osbuild : Default input mode flags",
+                  "when": "",
+                  "index": 6,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/select_build_mode.yml",
+                    "line": 7,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e51189a2",
+                  "name": "b08x.rhel_builder.osbuild : Determine resolved build mode",
+                  "when": "",
+                  "index": 7,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/select_build_mode.yml",
+                    "line": 12,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_3a36c079",
+                  "name": "b08x.rhel_builder.osbuild : Fail on invalid build mode",
+                  "when": "",
+                  "index": 8,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/select_build_mode.yml",
+                    "line": 27,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_47828677",
+                  "name": "Fetch gpgkeys for osbuild-composer repositories",
+                  "when": "",
+                  "index": 9,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                    "line": 20,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_96ff31cb",
+                      "name": "b08x.rhel_builder.osbuild : Install distribution-gpg-keys package",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 23,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_ddc3c8d8",
+                      "name": "b08x.rhel_builder.osbuild : Ensure gpgkey cache directory exists",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 28,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_d7f56c2e",
+                      "name": "b08x.rhel_builder.osbuild : Fetch gpgkey for each repository",
+                      "when": "[when: item.value.gpgkey_url is defined and item.value.gpgkey_url | length > 0 and item.value.check_gpg | default(true)]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 34,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_000bec6e",
+                      "name": "b08x.rhel_builder.osbuild : Read fetched gpgkey content",
+                      "when": "[when: item.value.gpgkey_url is defined and item.value.gpgkey_url | length > 0 and item.value.check_gpg | default(true)]",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 50,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_e0851fab",
+                      "name": "b08x.rhel_builder.osbuild : Assert gpgkey contains valid PGP markers",
+                      "when": "[when: item is not skipped]",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 62,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_7384a5a8",
+                      "name": "b08x.rhel_builder.osbuild : Build in-memory repo_gpgkeys fact",
+                      "when": "",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/repo_keys.yml",
+                        "line": 78,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_69542530",
+                  "name": "b08x.rhel_builder.osbuild : Check all components are defined",
+                  "when": "",
+                  "index": 10,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/validate_components.yml",
+                    "line": 5,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_13d2d106",
+                  "name": "b08x.rhel_builder.osbuild : Check all components have required schema fields",
+                  "when": "",
+                  "index": 11,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/validate_components.yml",
+                    "line": 13,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_d6475997",
+                  "name": "b08x.rhel_builder.osbuild : Build list of selected component conflicts",
+                  "when": "",
+                  "index": 12,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/validate_components.yml",
+                    "line": 28,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_4cebbd12",
+                  "name": "b08x.rhel_builder.osbuild : Check for conflicting components selected together",
+                  "when": "[when: _selected_conflicts | default([]) | length > 0]",
+                  "index": 13,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/validate_components.yml",
+                    "line": 39,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_9998d544",
+                  "name": "b08x.rhel_builder.osbuild : Display validated components with metadata",
+                  "when": "",
+                  "index": 14,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/validate_components.yml",
+                    "line": 51,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_e0fe7bb7",
+                  "name": "b08x.rhel_builder.osbuild : Compute aggregated sources from selected components",
+                  "when": "",
+                  "index": 15,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 68,
+                    "column": 3
+                  },
+                  "notify": []
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_60d56174",
+                  "name": "Phase 1 - Infrastructure Setup",
+                  "when": "",
+                  "index": 16,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 81,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_0c9d968a",
+                      "name": "b08x.rhel_builder.osbuild : Display phase",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 83,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_20e51576",
+                      "name": "b08x.rhel_builder.osbuild : Check minimum disk space requirement",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                        "line": 5,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_b061c93f",
+                      "name": "b08x.rhel_builder.osbuild : Display available disk space",
+                      "when": "",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                        "line": 15,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_e15dd0f6",
+                      "name": "b08x.rhel_builder.osbuild : Install image-builder and related packages",
+                      "when": "",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                        "line": 19,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_76f915e3",
+                      "name": "b08x.rhel_builder.osbuild : Create output directories",
+                      "when": "",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                        "line": 25,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_57bf7fa5",
+                      "name": "Enable firewalld (optional)",
+                      "when": "",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                        "line": 34,
+                        "column": 3
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_de2e765d",
+                          "name": "b08x.rhel_builder.osbuild : Ensure firewalld is running",
+                          "when": "",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/install.yml",
+                            "line": 36,
+                            "column": 7
+                          },
+                          "notify": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_9e9e5dd8",
+                  "name": "Phase 2 - Repository Configuration",
+                  "when": "",
+                  "index": 17,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 96,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_192b5f8f",
+                      "name": "b08x.rhel_builder.osbuild : Display phase",
+                      "when": "",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 98,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_5a0a7179",
+                      "name": "b08x.rhel_builder.osbuild : Build extra repository URLs from component sources",
+                      "when": "",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/sources.yml",
+                        "line": 6,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_41cb4d3d",
+                      "name": "b08x.rhel_builder.osbuild : Display repository URLs",
+                      "when": "",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/sources.yml",
+                        "line": 21,
+                        "column": 3
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_93ee6a43",
+                  "name": "MODE bootc_image",
+                  "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                  "index": 18,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 111,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_24d0ee61",
+                      "name": "b08x.rhel_builder.osbuild : Install bootc prerequisites",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 6,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_856c7e88",
+                      "name": "b08x.rhel_builder.osbuild : Create bootc workspace",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 16,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_096b00e9",
+                      "name": "b08x.rhel_builder.osbuild : Create build_files subdirectory",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 22,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_72258e13",
+                      "name": "b08x.rhel_builder.osbuild : Template bootc Containerfile",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 28,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_d097dbc6",
+                      "name": "b08x.rhel_builder.osbuild : Template build.sh script",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 34,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_f30b0b45",
+                      "name": "b08x.rhel_builder.osbuild : Copy build-time Ansible playbook",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 40,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_0e5b5c9e",
+                      "name": "b08x.rhel_builder.osbuild : Copy Ansible templates directory",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 46,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c4ac319d",
+                      "name": "b08x.rhel_builder.osbuild : Template disk configuration",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 8,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 52,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_f6f50556",
+                      "name": "b08x.rhel_builder.osbuild : Build bootc container image",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 9,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 61,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_4398f44b",
+                      "name": "b08x.rhel_builder.osbuild : Display bootc container build result",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 10,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 72,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_77404538",
+                      "name": "b08x.rhel_builder.osbuild : Verify container image content locally",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 11,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 76,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_692753e5",
+                      "name": "b08x.rhel_builder.osbuild : Display package count in built container",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 12,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 83,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_fe8a6c04",
+                      "name": "Build bootable disk image using image-builder",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image' and osbuild_bootc_build_disk_image | default(false)]",
+                      "index": 13,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 87,
+                        "column": 3
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_12bde0bd",
+                          "name": "b08x.rhel_builder.osbuild : Create output directory",
+                          "when": "[when: osbuild_resolved_build_mode == 'bootc_image' and osbuild_bootc_build_disk_image | default(false)]",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                            "line": 90,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_b52565e9",
+                          "name": "b08x.rhel_builder.osbuild : Build bootable image with unified image-builder",
+                          "when": "[when: osbuild_resolved_build_mode == 'bootc_image' and osbuild_bootc_build_disk_image | default(false)]",
+                          "index": 2,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                            "line": 96,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_b81d7cc0",
+                          "name": "b08x.rhel_builder.osbuild : Display bootc disk image build result",
+                          "when": "[when: osbuild_resolved_build_mode == 'bootc_image' and osbuild_bootc_build_disk_image | default(false)]",
+                          "index": 3,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                            "line": 111,
+                            "column": 7
+                          },
+                          "notify": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_23fad9d1",
+                      "name": "b08x.rhel_builder.osbuild : Summary of bootc build",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 14,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/bootc.yml",
+                        "line": 115,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_054eb230",
+                      "name": "b08x.rhel_builder.osbuild : Set build status to finished",
+                      "when": "[when: osbuild_resolved_build_mode == 'bootc_image']",
+                      "index": 15,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 120,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_f25065ca",
+                  "name": "MODE generate_only",
+                  "when": "[when: osbuild_resolved_build_mode == 'generate_only']",
+                  "index": 19,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 129,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_9cd26845",
+                      "name": "b08x.rhel_builder.osbuild : Display configuration-only mode",
+                      "when": "[when: osbuild_resolved_build_mode == 'generate_only']",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 132,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_d5221e37",
+                      "name": "b08x.rhel_builder.osbuild : Set build status to generated",
+                      "when": "[when: osbuild_resolved_build_mode == 'generate_only']",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 149,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "BlockNode",
+                  "id": "block_71bf87c1",
+                  "name": "MODE traditional_iso",
+                  "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                  "index": 20,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 158,
+                    "column": 3
+                  },
+                  "tasks": [
+                    {
+                      "type": "TaskNode",
+                      "id": "task_98a1469e",
+                      "name": "b08x.rhel_builder.osbuild : Display phase",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 1,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 161,
+                        "column": 7
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_ba3b82ca",
+                      "name": "b08x.rhel_builder.osbuild : Render blueprint from Jinja2 template",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and use_blueprint_template | bool]",
+                      "index": 2,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                        "line": 5,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_f832372b",
+                      "name": "b08x.rhel_builder.osbuild : Copy static blueprint file",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and not use_blueprint_template | bool]",
+                      "index": 3,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                        "line": 12,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_e4965e6f",
+                      "name": "b08x.rhel_builder.osbuild : Set blueprint file path",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 4,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                        "line": 19,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_2b28f10d",
+                      "name": "b08x.rhel_builder.osbuild : Display blueprint path",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 5,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                        "line": 23,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_4a9f7368",
+                      "name": "Validate blueprint syntax (optional)",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 6,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                        "line": 27,
+                        "column": 3
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_86f0991a",
+                          "name": "b08x.rhel_builder.osbuild : TOML syntax check",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                            "line": 29,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_783503c4",
+                          "name": "b08x.rhel_builder.osbuild : Display validation success",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                          "index": 2,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/blueprint.yml",
+                            "line": 33,
+                            "column": 7
+                          },
+                          "notify": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_81be8c54",
+                      "name": "b08x.rhel_builder.osbuild : Display build configuration",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 7,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                        "line": 5,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_2d636f1f",
+                      "name": "b08x.rhel_builder.osbuild : Initialize build status",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 8,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                        "line": 14,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_739281ad",
+                      "name": "Execute image-builder build",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 9,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                        "line": 18,
+                        "column": 3
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_4ada6bcb",
+                          "name": "b08x.rhel_builder.osbuild : Build extra-repo flags",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 20,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_937db190",
+                          "name": "b08x.rhel_builder.osbuild : Display build command",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_verbose | bool]",
+                          "index": 2,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 27,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_c5907dfc",
+                          "name": "b08x.rhel_builder.osbuild : Run image-builder with repository sources",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                          "index": 3,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 37,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_b359b3cb",
+                          "name": "b08x.rhel_builder.osbuild : Set build status to finished",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                          "index": 4,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 51,
+                            "column": 7
+                          },
+                          "notify": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_38ade784",
+                      "name": "Handle successful build",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                      "index": 10,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                        "line": 80,
+                        "column": 3
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_1fd5e7cb",
+                          "name": "b08x.rhel_builder.osbuild : Display success message",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 83,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_ed1118f6",
+                          "name": "b08x.rhel_builder.osbuild : Find generated image file",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                          "index": 2,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 87,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_d6bd60c1",
+                          "name": "b08x.rhel_builder.osbuild : Verify image exists",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                          "index": 3,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 95,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_b84e2ed8",
+                          "name": "b08x.rhel_builder.osbuild : Rename image to friendly name",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\" and image_files.files | length > 0]",
+                          "index": 4,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 101,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_80f06067",
+                          "name": "b08x.rhel_builder.osbuild : Get image file info",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                          "index": 5,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 109,
+                            "column": 7
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_4a732f45",
+                          "name": "b08x.rhel_builder.osbuild : Display build summary",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FINISHED\"]",
+                          "index": 6,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 114,
+                            "column": 7
+                          },
+                          "notify": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_af428503",
+                      "name": "b08x.rhel_builder.osbuild : Finalize build failure",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and build_status == \"FAILED\"]",
+                      "index": 11,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                        "line": 128,
+                        "column": 3
+                      },
+                      "notify": []
+                    },
+                    {
+                      "type": "BlockNode",
+                      "id": "block_c79e1209",
+                      "name": "Build retry logic",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                      "index": 12,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 176,
+                        "column": 7
+                      },
+                      "tasks": [
+                        {
+                          "type": "TaskNode",
+                          "id": "task_ae992e75",
+                          "name": "b08x.rhel_builder.osbuild : Wait before retry",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                          "index": 1,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                            "line": 179,
+                            "column": 11
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_9d935d61",
+                          "name": "b08x.rhel_builder.osbuild : Display build configuration",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                          "index": 2,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 5,
+                            "column": 3
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_e4e18f95",
+                          "name": "b08x.rhel_builder.osbuild : Initialize build status",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                          "index": 3,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 14,
+                            "column": 3
+                          },
+                          "notify": []
+                        },
+                        {
+                          "type": "BlockNode",
+                          "id": "block_3ad62e3d",
+                          "name": "Execute image-builder build",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                          "index": 4,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 18,
+                            "column": 3
+                          },
+                          "tasks": [
+                            {
+                              "type": "TaskNode",
+                              "id": "task_8c8d5f8c",
+                              "name": "b08x.rhel_builder.osbuild : Build extra-repo flags",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                              "index": 1,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 20,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_02787fdf",
+                              "name": "b08x.rhel_builder.osbuild : Display build command",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and osbuild_verbose | bool]",
+                              "index": 2,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 27,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_490d65fb",
+                              "name": "b08x.rhel_builder.osbuild : Run image-builder with repository sources",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                              "index": 3,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 37,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_c4c15f48",
+                              "name": "b08x.rhel_builder.osbuild : Set build status to finished",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\"]",
+                              "index": 4,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 51,
+                                "column": 7
+                              },
+                              "notify": []
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BlockNode",
+                          "id": "block_327eda26",
+                          "name": "Handle successful build",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                          "index": 5,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 80,
+                            "column": 3
+                          },
+                          "tasks": [
+                            {
+                              "type": "TaskNode",
+                              "id": "task_efbd3500",
+                              "name": "b08x.rhel_builder.osbuild : Display success message",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                              "index": 1,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 83,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_58f80753",
+                              "name": "b08x.rhel_builder.osbuild : Find generated image file",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                              "index": 2,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 87,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_c22d45d1",
+                              "name": "b08x.rhel_builder.osbuild : Verify image exists",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                              "index": 3,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 95,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_ccd20f3e",
+                              "name": "b08x.rhel_builder.osbuild : Rename image to friendly name",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\" and image_files.files | length > 0]",
+                              "index": 4,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 101,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_5a460b47",
+                              "name": "b08x.rhel_builder.osbuild : Get image file info",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                              "index": 5,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 109,
+                                "column": 7
+                              },
+                              "notify": []
+                            },
+                            {
+                              "type": "TaskNode",
+                              "id": "task_6806c584",
+                              "name": "b08x.rhel_builder.osbuild : Display build summary",
+                              "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FINISHED\"]",
+                              "index": 6,
+                              "location": {
+                                "type": "file",
+                                "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                                "line": 114,
+                                "column": 7
+                              },
+                              "notify": []
+                            }
+                          ]
+                        },
+                        {
+                          "type": "TaskNode",
+                          "id": "task_ccaea415",
+                          "name": "b08x.rhel_builder.osbuild : Finalize build failure",
+                          "when": "[when: osbuild_resolved_build_mode == 'traditional_iso' and osbuild_build_retries | int > 0 and build_status != \"FINISHED\" and build_status == \"FAILED\"]",
+                          "index": 6,
+                          "location": {
+                            "type": "file",
+                            "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/build.yml",
+                            "line": 128,
+                            "column": 3
+                          },
+                          "notify": []
+                        }
+                      ]
+                    },
+                    {
+                      "type": "TaskNode",
+                      "id": "task_c30ceba0",
+                      "name": "b08x.rhel_builder.osbuild : Set build status to finished",
+                      "when": "[when: osbuild_resolved_build_mode == 'traditional_iso']",
+                      "index": 13,
+                      "location": {
+                        "type": "file",
+                        "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                        "line": 191,
+                        "column": 7
+                      },
+                      "notify": []
+                    }
+                  ]
+                },
+                {
+                  "type": "TaskNode",
+                  "id": "task_6e859dfa",
+                  "name": "b08x.rhel_builder.osbuild : Display completion summary",
+                  "when": "",
+                  "index": 21,
+                  "location": {
+                    "type": "file",
+                    "path": "/home/b08x/WorkspaceV3/Syncopated/ansible/collections/ansible_collections/b08x/rhel_builder/roles/osbuild/tasks/main.yml",
+                    "line": 200,
+                    "column": 3
+                  },
+                  "notify": []
+                }
+              ],
+              "handlers": [],
+              "include_role": false
+            }
+          ],
+          "tasks": [],
+          "post_tasks": [],
+          "handlers": [],
+          "hosts": [],
+          "colors": {
+            "main": "#749636",
+            "font": "#ffffff"
+          }
+        }
+      ]
+    }
+  ]
+}

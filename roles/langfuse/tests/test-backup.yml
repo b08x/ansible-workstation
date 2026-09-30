@@ -1,0 +1,14 @@
+---
+- name: Test langfuse backup tasks only
+  hosts: localhost
+  gather_facts: true
+  vars:
+    user:
+      home: /tmp
+    langfuse_container_runtime: podman
+    langfuse_backup_action: backup
+  tasks:
+    - name: Include backup tasks directly
+      ansible.builtin.include_role:
+        name: b08x.llmops.langfuse
+        tasks_from: backup.yml

@@ -1,0 +1,71 @@
+---
+# tasks file for b08x.devworkstation.coding_agents
+# Consolidates AI coding agent installation and configuration.
+
+- name: Starting coding_agents tasks
+  ansible.builtin.debug:
+    msg: "Starting coding_agents tasks"
+  tags: ["always"]
+
+- name: Load per-agent variable files
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+  loop:
+    - antigravity.yml
+    - claude.yml
+    - crush.yml
+    - opencode.yml
+    - vibe.yml
+  tags: ["always"]
+
+- name: Check for npm
+  ansible.builtin.command: which npm
+  register: coding_agents_npm_check
+  changed_when: false
+  failed_when: false
+  tags: ["always"]
+
+- name: Check for go
+  ansible.builtin.command: which go
+  register: coding_agents_go_check
+  changed_when: false
+  failed_when: false
+  tags: ["always"]
+
+- name: Configure npm global prefix
+  ansible.builtin.command: "npm config set prefix {{ coding_agents_npm_prefix }}"
+  when:
+    - coding_agents_npm_check.rc == 0
+    - not (coding_agents_uninstall | default(false) | bool)
+  changed_when: false
+  tags: ["install"]
+
+- name: Include Antigravity tasks
+  ansible.builtin.include_tasks: antigravity.yml
+  when: coding_agents_antigravity_state == 'present'
+  tags: ["antigravity"]
+
+- name: Include Claude Code tasks
+  ansible.builtin.include_tasks: claude.yml
+  when: coding_agents_claude_state == 'present'
+  tags: ["claude"]
+
+- name: Include Crush tasks
+  ansible.builtin.include_tasks: crush.yml
+  when: coding_agents_crush_state == 'present'
+  tags: ["crush"]
+
+- name: Include OpenCode tasks
+  ansible.builtin.include_tasks: opencode.yml
+  when: coding_agents_opencode_state == 'present'
+  tags: ["opencode"]
+
+- name: Include Vibe tasks
+  ansible.builtin.include_tasks: vibe.yml
+  when: coding_agents_vibe_state == 'present'
+  tags: ["vibe"]
+
+- name: Include skills management tasks
+  ansible.builtin.include_tasks: skills.yml
+  when: not (coding_agents_uninstall | default(false) | bool)
+  tags: ["skills"]

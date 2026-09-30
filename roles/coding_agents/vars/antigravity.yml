@@ -1,0 +1,9 @@
+---
+# Per-agent settings for Antigravity (IDE + CLI)
+# Config file: ~/.gemini/antigravity-cli/settings.json (JSON)
+# Agents dir: ~/.gemini/config/agents/ (.md files with YAML frontmatter)
+# Skills dir: ~/.gemini/antigravity-cli/skills/ (needs symlink to ~/.agents/skills/)
+# MCP config: ~/.gemini/config/mcp_config.json (separate file)
+
+coding_agents_antigravity_settings:
+  model: "gemini-2.5-pro"

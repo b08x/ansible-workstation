@@ -1,0 +1,14 @@
+---
+# NFS export directory management (direct exports)
+
+- name: Create NFS export directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default(nas_nfs_user_name) }}"
+    group: "{{ item.group | default(nas_nfs_user_group) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ nas_nfs_exports }}"
+  when:
+    - nas_nfs_exports is defined
+    - item.create_dir | default(false)

@@ -1,0 +1,80 @@
+---
+# Handlers for NAS role
+
+# =============================================================================
+# Firewall Handlers
+# =============================================================================
+
+- name: Reload firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: reloaded
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# =============================================================================
+# NFS Handlers
+# =============================================================================
+
+- name: Restart NFS server
+  ansible.builtin.service:
+    name: "{{ nas_service_nfs }}"
+    state: restarted
+  when: nas_enable_nfs | default(true)
+
+- name: Restart NFS idmapd
+  ansible.builtin.service:
+    name: "{{ nas_service_nfs_idmapd }}"
+    state: restarted
+  when: nas_enable_nfs | default(true)
+
+- name: Reload NFS exports
+  ansible.builtin.command: exportfs -arv
+  register: exportfs_result
+  changed_when: exportfs_result.rc == 0
+  when: nas_enable_nfs | default(true)
+
+- name: Restart rpcbind
+  ansible.builtin.service:
+    name: "{{ nas_service_rpcbind }}"
+    state: restarted
+  when: nas_enable_nfs | default(true)
+
+# =============================================================================
+# Samba Handlers
+# =============================================================================
+
+- name: Restart Samba
+  ansible.builtin.service:
+    name: "{{ nas_service_samba }}"
+    state: restarted
+  when: nas_enable_samba | default(true)
+
+- name: Restart Samba NetBIOS
+  ansible.builtin.service:
+    name: "{{ nas_service_nmb }}"
+    state: restarted
+  when:
+    - nas_enable_samba | default(true)
+    - nas_samba_enable_nmb | default(true)
+
+- name: Reload Samba
+  ansible.builtin.service:
+    name: "{{ nas_service_samba }}"
+    state: reloaded
+  when: nas_enable_samba | default(true)
+
+# =============================================================================
+# Rsync Daemon Handlers
+# =============================================================================
+
+- name: Restart rsync daemon
+  ansible.builtin.service:
+    name: rsyncd
+    state: restarted
+  when: nas_enable_rsync | default(false)
+
+- name: Reload rsync daemon
+  ansible.builtin.service:
+    name: rsyncd
+    state: reloaded
+  when: nas_enable_rsync | default(false)

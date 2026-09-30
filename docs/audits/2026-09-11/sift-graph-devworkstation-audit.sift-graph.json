@@ -1,0 +1,935 @@
+{
+ "claims": [
+  {
+   "claim_id": "c01",
+   "text": "base role uses dispatcher pattern: 11 include_tasks entries with role-name tags in tasks/main.yml",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 17,
+    "end_line": 105,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "- name: Include DNF configuration tasks"
+  },
+  {
+   "claim_id": "c02",
+   "text": "base/tasks/main.yml declares rescue block that only debug-prints on base package install failure (silent failure)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 33,
+    "end_line": 45,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "  block:"
+  },
+  {
+   "claim_id": "c03",
+   "text": "base role includes distro vars via include_vars '{{ ansible_distribution }}.yml' and distro repos via include_tasks 'distro/{{ ansible_distribution }}.yml'",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 9,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "- name: Include distribution package variables"
+  },
+  {
+   "claim_id": "c04",
+   "text": "roles/base/tasks/distro/Fedora.yml is empty (0 bytes) \u2014 third-party repo config for Fedora is a no-op",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 25,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "",
+   "audit_note": "target file roles/base/tasks/distro/Fedora.yml verified 0 bytes via filesystem"
+  },
+  {
+   "claim_id": "c05",
+   "text": "tuning role templates usr/lib/systemd/system/rtkit-daemon.service.j2 exists on disk but is excluded from git by the Python-packaging 'lib/' gitignore pattern",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/tasks/rtirq.yml",
+    "start_line": 22,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Install rtkit systemd file"
+  },
+  {
+   "claim_id": "c06",
+   "text": "tuning/tasks/rtirq.yml notifies handler 'Reload systemd' which exists in roles/tuning/handlers/main.yml",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/tasks/rtirq.yml",
+    "start_line": 27,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "  register: rtkit_systemd"
+  },
+  {
+   "claim_id": "c07",
+   "text": "tuning handlers define 'Restart rtirq' and 'Restart rtkit' handlers that no task notifies (dead handlers)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/handlers/main.yml",
+    "start_line": 6,
+    "end_line": 19,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Restart rtirq"
+  },
+  {
+   "claim_id": "c08",
+   "text": "tuning/tasks/sysctl.yml sets failed_when: false on every sysctl application, masking all failures",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/tasks/sysctl.yml",
+    "start_line": 2,
+    "end_line": 9,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Set sysctl parameters"
+  },
+  {
+   "claim_id": "c09",
+   "text": "ansible-lint reports 31 var-naming[no-role-prefix] violations across the collection",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "tox-ansible.ini",
+    "start_line": 1,
+    "end_line": 10,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "[ansible]"
+  },
+  {
+   "claim_id": "c10",
+   "text": "user role defaults define user_uv_python_version/user_rbenv_* but tasks reference base_uv_python_version/base_rbenv_* (undefined at runtime)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/defaults/main.yml",
+    "start_line": 8,
+    "end_line": 21,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "user_install_cargo: true"
+  },
+  {
+   "claim_id": "c11",
+   "text": "check-mode run with --tags cargo fails: base_cargo_packages is undefined (empirically reproduced)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/tasks/cargo.yml",
+    "start_line": 32,
+    "end_line": 37,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "    - name: Install cargo packages"
+  },
+  {
+   "claim_id": "c12",
+   "text": "check-mode run with --tags rbenv fails: environment field references undefined 'user', base_rbenv_gems is undefined (empirically reproduced)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/tasks/rbenv.yml",
+    "start_line": 16,
+    "end_line": 62,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Configure rbenv Ruby environment"
+  },
+  {
+   "claim_id": "c13",
+   "text": "user/tasks/uv.yml references base_uv_python_version while defaults define user_uv_python_version; the uv tag run failed with undefined vars (empirically reproduced)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/tasks/uv.yml",
+    "start_line": 32,
+    "end_line": 35,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Install Python 3.1x"
+  },
+  {
+   "claim_id": "c14",
+   "text": "desktop/tasks/main.yml loops desktop_packages.qt and desktop_packages.gtk",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/main.yml",
+    "start_line": 13,
+    "end_line": 25,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "- name: Install qt and gtk packages"
+  },
+  {
+   "claim_id": "c15",
+   "text": "roles/desktop/vars/Fedora.yml defines only desktop_packages.theme \u2014 no qt/gtk/gnome keys",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/vars/Fedora.yml",
+    "start_line": 1,
+    "end_line": 11,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c16",
+   "text": "check-mode run on host gir (Fedora) fails with \"'dict object' has no attribute 'qt'\" then \"'gnome'\" and silently rescues (empirically reproduced)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/main.yml",
+    "start_line": 14,
+    "end_line": 25,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "  block:"
+  },
+  {
+   "claim_id": "c17",
+   "text": "desktop/tasks/gnome.yml and theme.yml use block/rescue where rescue only emits a debug message, allowing broken installs to pass as green",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/gnome.yml",
+    "start_line": 2,
+    "end_line": 16,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Install GNOME packages"
+  },
+  {
+   "claim_id": "c18",
+   "text": "containerd role gates includes with bare '| default(true)' without bool filter while other roles use '| default(false) | bool' (mixed flag dialects)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/containerd/tasks/main.yml",
+    "start_line": 4,
+    "end_line": 12,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Patterns & Architecture",
+   "audit_valid": true,
+   "snippet": "- name: Install Podman and related packages"
+  },
+  {
+   "claim_id": "c19",
+   "text": "containerd daemon.json.j2 references virt_docker_daemon_config but the variable is defined nowhere in the collection (defaults define containerd_docker_daemon_config)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/containerd/templates/etc/docker/daemon.json.j2",
+    "start_line": 1,
+    "end_line": 1,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "{{ virt_docker_daemon_config | to_nice_json }}"
+  },
+  {
+   "claim_id": "c20",
+   "text": "containerd/tasks/docker.yml edits /usr/lib/systemd/system/docker.service via lineinfile (vendor unit mutation, systemd drop-in anti-pattern)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/containerd/tasks/docker.yml",
+    "start_line": 63,
+    "end_line": 68,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Set Docker Storage Location"
+  },
+  {
+   "claim_id": "c21",
+   "text": "libvirt role hardcodes libvirtd.conf template with auth_unix_rw=none defaults exposed via defaults/main.yml",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/libvirt/tasks/main.yml",
+    "start_line": 20,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "- name: Configure libvirtd"
+  },
+  {
+   "claim_id": "c22",
+   "text": "libvirt network_conflicts.yml inserts DOCKER-USER iptables rules but registers no change and no persistence across reboot (no iptables save/persistent)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/libvirt/tasks/network_conflicts.yml",
+    "start_line": 15,
+    "end_line": 37,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "- name: Ensure libvirt inbound traffic is accepted in DOCKER-USER chain"
+  },
+  {
+   "claim_id": "c23",
+   "text": "coding_agents crush.yml and opencode.yml have their config-deploy blocks commented out, leaving templates/claude|crush|opencode configs dead and skills.yml symlink only covering Antigravity",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/coding_agents/tasks/crush.yml",
+    "start_line": 76,
+    "end_line": 82,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "    # - name: Deploy Crush config"
+  },
+  {
+   "claim_id": "c24",
+   "text": "coding_agents antigravity uninstall block checks only coding_agents_uninstall, not coding_agents_antigravity_state, unlike every other agent's uninstall block",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/coding_agents/tasks/antigravity.yml",
+    "start_line": 5,
+    "end_line": 8,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "# -- Uninstall --"
+  },
+  {
+   "claim_id": "c25",
+   "text": "base role installs Go 1.27.1 via base_go_version in defaults; argspec for base does not declare base_go_version or any real option (only base_my_variable)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/meta/argument_specs.yml",
+    "start_line": 4,
+    "end_line": 12,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "argument_specs:"
+  },
+  {
+   "claim_id": "c26",
+   "text": "argument_specs.yml exist only for base, networking, run, tuning, user, desktop; missing for coding_agents, containerd, libvirt (verified via File graph inventory)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/libvirt/meta/main.yml",
+    "start_line": 1,
+    "end_line": 32,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c27",
+   "text": "galaxy.yml dependencies declare only ansible.utils while roles use community.general (flatpak, ini_file, cargo, gem, uv_python) and ansible.posix (sysctl)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "galaxy.yml",
+    "start_line": 20,
+    "end_line": 26,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "  \"ansible.utils\": \"*\" # note: \"*\" selects the latest version available"
+  },
+  {
+   "claim_id": "c28",
+   "text": "plugins/ layer contains only ansible-creator sample stubs (sample_action, sample_lookup, sample_filter, sample_test) \u2014 verified via Class nodes in the graph",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "plugins/filter/sample_filter.py",
+    "start_line": 51,
+    "end_line": 60,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "class FilterModule:"
+  },
+  {
+   "claim_id": "c29",
+   "text": "networking and run roles are 6-line stubs printing *_my_variable with no real tasks",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/networking/tasks/main.yml",
+    "start_line": 1,
+    "end_line": 6,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c30",
+   "text": "desktop/tasks/transcribe-cpp.yml contains only a comment; no implementation",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/transcribe-cpp.yml",
+    "start_line": 1,
+    "end_line": 4,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c31",
+   "text": "yadm.yml get_url installs yadm script without version pin or checksum",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/yadm.yml",
+    "start_line": 1,
+    "end_line": 7,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c32",
+   "text": "coding_agents antigravity CLI install fetches install.sh with validate_certs: false (TLS verification disabled)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/coding_agents/tasks/antigravity.yml",
+    "start_line": 97,
+    "end_line": 102,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "        - name: Download Antigravity CLI install script"
+  },
+  {
+   "claim_id": "c33",
+   "text": "base zsh.yml and go.yml download install scripts / tarballs without checksums (get_url without checksum)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/zsh.yml",
+    "start_line": 14,
+    "end_line": 19,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "    - name: Download oh-my-zsh install script"
+  },
+  {
+   "claim_id": "c34",
+   "text": "cargo.yml runs rustup via curl script without checksum and registers base_rustup_output in user role (no-role-prefix register)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/tasks/cargo.yml",
+    "start_line": 2,
+    "end_line": 14,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "- name: Download rustup-init script"
+  },
+  {
+   "claim_id": "c35",
+   "text": "fzf.yml clones master branch and make-installs to /usr/local \u2014 unpinned mutable ref",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/fzf.yml",
+    "start_line": 1,
+    "end_line": 9,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c36",
+   "text": "gitflow.yml clones b08x/gitflow-avh develop branch with update: true every run (mutable, non-idempotent ref)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/gitflow.yml",
+    "start_line": 1,
+    "end_line": 11,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "c37",
+   "text": "site.yml wires 7 of 9 collection roles via FQCN (networking and run are never used in any playbook)",
+   "provenance": {
+    "project": "home-b08x-WorkspaceV3-Syncopated-ansible",
+    "node_type": "File",
+    "file_path": "playbooks/site.yml",
+    "start_line": 38,
+    "end_line": 70,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Verified Facts",
+   "audit_valid": true,
+   "snippet": "",
+   "audit_note": "cross-repo: playbook lives in parent repo, separately indexed"
+  },
+  {
+   "claim_id": "c38",
+   "text": "cpupower.j2 template hardcodes hostnames soundbot/ninjab in the tuning role template instead of host_vars",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/templates/etc/default/cpupower.j2",
+    "start_line": 7,
+    "end_line": 15,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "{% if ansible_hostname == \"soundbot\" %}"
+  },
+  {
+   "claim_id": "c39",
+   "text": "tuning defaults system_tuning_tuned_profile is defined but no tuned.yml task consumes it (dead config)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/defaults/main.yml",
+    "start_line": 28,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "system_tuning_tuned_enabled: true"
+  },
+  {
+   "claim_id": "c40",
+   "text": "desktop/tasks/main.yml hardcodes a 17-item Flatpak list inline instead of a defaults-driven list (data-driven anti-pattern)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/main.yml",
+    "start_line": 52,
+    "end_line": 85,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "- name: Install Flatpak applications"
+  },
+  {
+   "claim_id": "c41",
+   "text": "containerd/tasks/docker.yml Fedora-only guards (users/service/storage tasks when ansible_distribution == 'Fedora') while AlmaLinux path exists for repo baseurl \u2014 asymmetric distro handling",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/containerd/tasks/docker.yml",
+    "start_line": 45,
+    "end_line": 51,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Patterns & Architecture",
+   "audit_valid": true,
+   "snippet": "- name: Add specified users to the docker group"
+  },
+  {
+   "claim_id": "c42",
+   "text": "tasks/base/tasks/main.yml flushes handlers mid-role with meta: flush_handlers after zram config \u2014 unusual mid-flow flush",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 70,
+    "end_line": 71,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "- name: Flush handlers meow"
+  },
+  {
+   "claim_id": "c43",
+   "text": "base/tasks/main.yml has no include_vars fallback for distributions other than Fedora/AlmaLinux; include of '{{ ansible_distribution }}.yml' would fail for e.g. Rocky",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 9,
+    "end_line": 11,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "- name: Include distribution package variables"
+  },
+  {
+   "claim_id": "c44",
+   "text": "graphify-out/ and .crush/ directories exist in the collection worktree but are gitignored \u2014 build artifacts leaking into repo",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": ".gitignore",
+    "start_line": 100,
+    "end_line": 110,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "#   This is especially recommended for binary packages to ensure reproducibility, and is m"
+  },
+  {
+   "claim_id": "c45",
+   "text": "grep found no checksum= parameter in any get_url task across roles \u2014 supply-chain hardening opportunity",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/yadm.yml",
+    "start_line": 3,
+    "end_line": 7,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "  ansible.builtin.get_url:"
+  },
+  {
+   "claim_id": "c46",
+   "text": "VS Code extension install via shell grep -Fqx in vscode.yml duplicates the later _extensions difference-based block \u2014 two divergent install strategies",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/vscode.yml",
+    "start_line": 12,
+    "end_line": 23,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "    - name: Install VS Code extensions"
+  },
+  {
+   "claim_id": "c47",
+   "text": "A prior SIFT-Graph report (sift-graph-devworkstation-report.md, commit 536ab0d) exists in repo root; this audit supersedes it",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "sift-graph-devworkstation-report.md",
+    "start_line": 1,
+    "end_line": 14,
+    "evidence_type": "Documentation"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "# SIFT-Graph Report: b08x.devworkstation Collection \u2014 Role Architecture Analysis"
+  },
+  {
+   "claim_id": "c48",
+   "text": "base/tasks/main.yml lines 47-51 restart sshd unconditionally on every run (state: restarted, not just enabled)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 47,
+    "end_line": 51,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 3,
+   "section": "Errors & Corrections",
+   "audit_valid": true,
+   "snippet": "- name: Enable and Start ssh service"
+  },
+  {
+   "claim_id": "c49",
+   "text": "Empty-file anti-pattern: roles/base/tasks/distro/Fedora.yml is committed empty \u2014 either populate or remove the include",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 25,
+    "end_line": 29,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "",
+   "audit_note": "target file roles/base/tasks/distro/Fedora.yml verified 0 bytes via filesystem"
+  },
+  {
+   "claim_id": "c50",
+   "text": "The .ansible/ vendored copy of the collection contains a pre-refactor base role with cargo/uv/rbenv defaults \u2014 stale duplicate that can shadow resolution via roles_path lookup",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": ".ansible/collections/ansible_collections/b08x/devworkstation/roles/base/defaults/main.yml",
+    "start_line": 1,
+    "end_line": 20,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "audit_valid": true,
+   "snippet": "---"
+  },
+  {
+   "claim_id": "k01",
+   "text": "input-remapper.yml runs 'python3 -m install --root /' which is not a valid Python module invocation (pip install . intended); empirically it failed in check-mode on gir",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/input-remapper.yml",
+    "start_line": 25,
+    "end_line": 30,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k02",
+   "text": "galaxy.yml retains ansible-creator scaffold placeholders: authors 'your name <example@domain.com>', description 'your collection description', repository 'http://example.com/repository'",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "galaxy.yml",
+    "start_line": 7,
+    "end_line": 14,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k03",
+   "text": "Every argument_specs.yml documents only the scaffold *_my_variable option while real role options (e.g. user_install_cargo, base_go_version) are undeclared \u2014 specs are scaffold residue, not validation",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/meta/argument_specs.yml",
+    "start_line": 4,
+    "end_line": 12,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k04",
+   "text": "base/tasks/main.yml handler flush is named 'Flush handlers meow' \u2014 leftover informal name in production code",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/base/tasks/main.yml",
+    "start_line": 70,
+    "end_line": 71,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k05",
+   "text": "tuning/tasks/rtirq.yml installs usr/lib/systemd/system/rtkit-daemon.service.j2 whose directory is gitignored \u2014 file is lost on fresh clone (verified via git ls-files)",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/tuning/tasks/rtirq.yml",
+    "start_line": 22,
+    "end_line": 29,
+    "evidence_type": "Test"
+   },
+   "credibility": 5,
+   "section": "Errors & Corrections",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k06",
+   "text": "user/tasks/ranger.yml rescue block installs via pipx but rescue triggers on ANY block failure, masking root cause",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/user/tasks/ranger.yml",
+    "start_line": 23,
+    "end_line": 28,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k07",
+   "text": "vscode.yml dnf path installs VS Code unconditionally even when desktop_vscode_flatpak is true \u2014 both paths can execute in one run",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/desktop/tasks/vscode.yml",
+    "start_line": 25,
+    "end_line": 53,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 5,
+   "section": "Potential Leads",
+   "critique_new": true,
+   "audit_valid": true
+  },
+  {
+   "claim_id": "k08",
+   "text": "coding_agents/tasks/main.yml loads all five per-agent var files unconditionally (tags always) even when agent state is absent",
+   "provenance": {
+    "project": "devworkstation-collection",
+    "node_type": "File",
+    "file_path": "roles/coding_agents/tasks/main.yml",
+    "start_line": 10,
+    "end_line": 19,
+    "evidence_type": "SourceCode"
+   },
+   "credibility": 4,
+   "section": "Potential Leads",
+   "critique_new": true,
+   "audit_valid": true
+  }
+ ]
+}

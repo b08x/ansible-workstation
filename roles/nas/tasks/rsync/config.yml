@@ -1,0 +1,18 @@
+---
+# Rsync daemon configuration
+
+- name: Deploy rsync daemon configuration
+  ansible.builtin.template:
+    src: etc/rsyncd.conf.j2
+    dest: /etc/rsyncd.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart rsync daemon
+
+- name: Enable and start rsync daemon service
+  ansible.builtin.service:
+    name: rsyncd
+    state: started
+    enabled: true

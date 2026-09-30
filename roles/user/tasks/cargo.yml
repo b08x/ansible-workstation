@@ -1,0 +1,38 @@
+---
+- name: Download rustup-init script
+  ansible.builtin.get_url:
+    url: https://sh.rustup.rs
+    dest: /tmp/rustup-init.sh
+    mode: "0755"
+  become: false
+
+- name: Run rustup-init
+  ansible.builtin.command:
+    cmd: /tmp/rustup-init.sh -y
+  become: false
+  register: user_rustup_output
+  changed_when: "'Rust is installed now' not in user_rustup_output.stdout"
+  tags: ["rust", "cargo", "base"]
+
+- name: Install cargo packages
+  tags: ["cargo", "base"]
+  when: user_install_cargo_packages | bool
+  become: false
+  environment:
+    PATH: "{{ ansible_user_dir }}/.cargo/bin:{{ ansible_user_dir }}/.local/bin:{{ ansible_env.PATH }}:/sbin:/bin"
+  block:
+    - name: Set cargo jobs to 4
+      ansible.builtin.copy:
+        content: |
+          [build]
+          jobs = 4
+        dest: "{{ ansible_user_dir }}/.cargo/config.toml"
+        mode: "0644"
+        backup: true
+
+    - name: Install cargo packages
+      community.general.cargo:
+        name: "{{ item }}"
+        state: present
+        locked: true
+      loop: "{{ user_cargo_packages }}"

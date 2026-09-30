@@ -1,0 +1,19 @@
+---
+- name: User Workstation Setup
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    path:
+      - "{{ ansible_user }}/.local/bin"
+      - "{{ ansible_user }}/.cargo/bin"
+      - "{{ ansible_user }}/go/bin"
+  environment:
+    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: user
+      tags: ["user", "system"]

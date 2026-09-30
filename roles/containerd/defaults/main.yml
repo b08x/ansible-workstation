@@ -1,0 +1,43 @@
+---
+# defaults file for containerd
+
+containerd_use_docker: false
+containerd_use_podman: true
+
+# defaults file for docker
+
+# Specifies the version of Docker CE to install.
+containerd_docker_version: ""
+
+# List of core Docker packages to install.
+containerd_docker_packages:
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - docker-model-plugin
+
+# URL for the Docker GPG key to verify package authenticity.
+containerd_docker_gpg_key_url: "https://download.docker.com/linux/fedora/gpg"
+
+# The name of the Docker systemd service.
+containerd_docker_service_name: "docker.service"
+
+# Whether to enable the Docker service to start on boot.
+containerd_docker_service_enabled: true
+
+# List of users to add to the 'docker' group.
+containerd_docker_users:
+  - "{{ user.name }}"
+
+containerd_docker_storage: "/var/lib/docker"
+
+# Dictionary of key-value pairs for /etc/docker/daemon.json.
+containerd_docker_daemon_config: {}
+# Whether to remove known conflicting packages (e.g., podman-docker).
+containerd_docker_remove_conflicting_packages: false
+
+# defaults file for podman
+containerd_podman_packages:
+  - podman
+  - podman-compose
+  - podman-docker

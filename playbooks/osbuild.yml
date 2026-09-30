@@ -1,0 +1,64 @@
+---
+# Build a custom image using image-builder CLI
+# Targets: Fedora, AlmaLinux
+# Tooling: image-builder (unified CLI), osbuild
+
+- name: Build custom workstation image
+  hosts: osbuild_targets
+  become: true
+  gather_facts: true
+
+  vars:
+    # Distribution & arch
+    osbuild_distro: >-
+      {{ 'fedora-' + ansible_distribution_major_version if ansible_distribution == 'Fedora'
+         else 'almalinux-' + ansible_distribution_major_version }}
+    osbuild_arch: "x86_64"
+    # Blueprint
+    osbuild_blueprint_name: "workstation"
+    osbuild_blueprint_version: "1.0.0"
+    osbuild_blueprint_description: "Custom Workstation"
+
+    # Build mode
+    osbuild_build_bootc: false
+    osbuild_only_generate: false
+
+    # Image type
+    osbuild_image_type: minimal-installer
+
+    # Components
+    osbuild_components:
+      - base
+      - anaconda
+      - gnome
+      - sway
+      - nvidia
+      - development
+      - container-tools
+
+    # Output
+    osbuild_output_dir: "/var/tmp/osbuild-images"
+
+    # bootc
+    osbuild_bootc_image_name: "quay.io/syncopated/workstation"
+    osbuild_bootc_base_image: "quay.io/fedora/fedora-bootc:43"
+
+    # Retry
+    osbuild_build_retries: 0
+
+    # Extra repos
+    osbuild_extra_repo_urls: []
+
+  pre_tasks:
+    - name: Verify supported distribution
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution in ["Fedora", "AlmaLinux"]
+        fail_msg: >-
+          Unsupported distribution '{{ ansible_distribution }}.
+          This playbook targets Fedora and AlmaLinux only.
+        success_msg: >-
+          Target distribution '{{ ansible_distribution }}' is supported.
+
+  roles:
+    - role: osbuild

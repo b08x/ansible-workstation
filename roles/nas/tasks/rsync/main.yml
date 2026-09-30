@@ -1,0 +1,5 @@
+---
+# Rsync daemon configuration orchestration
+
+- name: Deploy rsync daemon configuration
+  ansible.builtin.include_tasks: config.yml

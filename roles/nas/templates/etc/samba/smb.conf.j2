@@ -1,0 +1,89 @@
+# Samba Server Configuration
+# Managed by Ansible - NAS Role
+#
+# See smb.conf.example for a more detailed config file or
+# read the smb.conf manpage.
+# Run 'testparm' to verify the config is correct after modification.
+#
+# Note:
+# SMB1 is disabled by default. This means clients without support for SMB2 or
+# SMB3 are no longer able to connect to smbd (by default).
+
+[global]
+  # Server Identity
+  workgroup = {{ nas_samba_workgroup }}
+  server string = {{ nas_samba_server_string }}
+  netbios name = {{ nas_samba_netbios_name }}
+
+  # Protocol Versions
+  server min protocol = {{ nas_samba_server_min_protocol }}
+  client min protocol = {{ nas_samba_client_min_protocol }}
+  client max protocol = {{ nas_samba_client_max_protocol }}
+
+  # Authentication
+  ntlm auth = {{ nas_samba_ntlm_auth }}
+
+  # Network Access Control
+{% if nas_samba_hosts_allow is defined and nas_samba_hosts_allow | length > 0 %}
+  hosts allow = {{ nas_samba_hosts_allow | join(' ') }}
+{% endif %}
+
+  # File/Directory Permissions
+  create mask = {{ nas_samba_create_mask }}
+  directory mask = {{ nas_samba_directory_mask }}
+  force create mode = {{ nas_samba_force_create_mode }}
+  force directory mode = {{ nas_samba_force_directory_mode }}
+
+  # Browsing/Visibility
+  local master = yes
+  preferred master = yes
+
+{% if nas_samba_disable_printing | default(true) %}
+  # Disable Printer Sharing
+  printing = bsd
+  printcap name = /dev/null
+  load printers = no
+  disable spoolss = yes
+  show add printer wizard = no
+{% endif %}
+
+  # Performance
+  deadtime = 30
+
+{% if nas_samba_enable_homes | default(true) %}
+# Home Directories Share
+[homes]
+  comment = Home Directories
+  valid users = %S, %D%w%S
+  browseable = No
+  read only = No
+  inherit acls = Yes
+{% endif %}
+
+# Custom Shares
+{% for share in nas_samba_shares %}
+[{{ share.name }}]
+  path = {{ share.path }}
+{%   if share.comment is defined %}
+  comment = {{ share.comment }}
+{%   endif %}
+  browseable = {{ share.browseable | default(true) | string | lower }}
+  read only = {{ share.read_only | default(false) | string | lower }}
+  writeable = {{ (not (share.read_only | default(false))) | string | lower }}
+{%   if share.public is defined %}
+  public = {{ share.public | string | lower }}
+{%   endif %}
+{%   if share.valid_users is defined and share.valid_users | length > 0 %}
+  valid users = {{ share.valid_users | join(' ') }}
+{%   endif %}
+{%   if share.write_list is defined and share.write_list | length > 0 %}
+  write list = {{ share.write_list | join(' ') }}
+{%   endif %}
+{%   if share.inherit_permissions | default(true) %}
+  inherit permissions = yes
+{%   endif %}
+{%   if share.inherit_acls | default(false) %}
+  inherit acls = yes
+{%   endif %}
+
+{% endfor %}
