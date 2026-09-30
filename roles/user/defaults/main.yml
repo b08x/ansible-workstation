@@ -7,6 +7,10 @@ user_my_variable: "default_value"
 
 user_install_cargo: true
 
+# Building user_cargo_packages from source takes a long time, so it is opt-in.
+# user_install_cargo still installs the Rust toolchain through rustup.
+user_install_cargo_packages: false
+
 user_uv_python_version: 3.13
 
 # rbenv configuration

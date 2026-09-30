@@ -9,3 +9,7 @@ argument_specs:
         type: str
         description: A simple string argument for demonstration.
         default: "default_value"
+      user_install_cargo_packages:
+        type: bool
+        description: Build and install user_cargo_packages with cargo. Off by default because the builds are slow.
+        default: false

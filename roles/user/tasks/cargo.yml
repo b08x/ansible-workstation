@@ -16,6 +16,7 @@
 
 - name: Install cargo packages
   tags: ["cargo", "base"]
+  when: user_install_cargo_packages | bool
   become: false
   environment:
     PATH: "{{ ansible_user_dir }}/.cargo/bin:{{ ansible_user_dir }}/.local/bin:{{ ansible_env.PATH }}:/sbin:/bin"
