@@ -129,17 +129,6 @@
     - ansible_pkg_mgr == 'dnf'
   tags: ["hermes", "prerequisites", "packages", "install"]
 
-- name: Install missing prerequisites (YUM fallback)
-  ansible.builtin.dnf:
-    name: "{{ hermes_missing_prerequisites }}"
-    state: present
-    update_cache: true
-  become: true
-  when:
-    - hermes_missing_prerequisites | length > 0
-    - ansible_pkg_mgr == 'yum'
-  tags: ["hermes", "prerequisites", "packages", "install"]
-
 - name: Verify all prerequisites are installed
   ansible.builtin.package:
     name: "{{ hermes_all_prerequisites }}"
