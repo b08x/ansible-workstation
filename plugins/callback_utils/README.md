@@ -1,8 +1,11 @@
 # callback_utils
 
-Support modules for `plugins/callback/llm_analyzer.py`.
+Support modules for two consumers: the `llm_analyzer` callback
+(`plugins/callback/llm_analyzer.py`) and the remediation action plugins
+(`plugins/action/remediation_*.py`, documented in
+[`../action/README.md`](../action/README.md)).
 
-**These must not live in `plugins/callback/`.** A callback plugin directory is a
+**These must not live in `plugins/callback/` or `plugins/action/`.** A callback plugin directory is a
 plugin *namespace*, not a Python package: `PluginLoader.all()` globs `*.py` in
 every configured `callback_plugins` path, imports each match, and requires it to
 expose a `CallbackModule` class. Helper modules placed there are therefore
@@ -19,7 +22,8 @@ of every class and every piece of module-level state.
 
 The glob is not recursive and only `__init__` is a reserved basename, so no
 naming convention exempts a file. Living outside the scanned path is the only
-reliable fix.
+reliable fix. The action plugin loader behaves the same way: it imports every
+`*.py` in `plugins/action/` and expects an `ActionModule` class.
 
 ## Modules
 
@@ -41,3 +45,26 @@ Ansible's own thread. Everything reachable from a captured job lives here.
 Imports between these are by bare module name (`from llm_style import ...`),
 because the callback primes `sys.path` with this directory rather than
 importing them as a package.
+
+## Remediation modules
+
+These split along one line: which Python interpreter imports them. The action
+plugins run inside `ansible-playbook`, which cannot import `dspy` or `duckdb`.
+Modules the action plugins import therefore use only the standard library.
+Everything that needs `dspy`, `duckdb` or Ollama runs in a child process,
+`.venv/bin/python remediation_cli.py`, which exchanges one JSON document on
+stdin and one on stdout.
+
+| Module | Interpreter | Responsibility |
+| :--- | :--- | :--- |
+| `remediation_bridge.py` | `ansible-playbook` | Starts the CLI child, feeds stdin and drains stdout on threads, streams `REMEDIATION_PROGRESS` events from stderr, returns the parsed result or a `failed` result. |
+| `remediation_health.py` | both | `assess`: the healthy-host gate, from container and pod state only. `split_history`: moves journal entries older than the latest container start to `*_history` keys. |
+| `remediation_style.py` | `ansible-playbook` | Renders one progress event as a styled line (Charm palette, 24-bit colour) or as plain ASCII words. `color_enabled` honours `NO_COLOR`, Ansible colour and whether stdout is a terminal. |
+| `remediation_cli.py` | `.venv` | Subcommands `diagnose`, `verify` and `record`. Provider setup, both model calls, store access, guard runs, progress events. |
+| `remediation_signatures.py` | `.venv` | `DiagnoseIncident` and `GenerateRemediation` DSPy signatures, `SIGNATURE_VERSION`, the playbook skeleton, and `trim_diagnostics`. `dspy` is imported only inside `build()`. |
+| `remediation_store.py` | `.venv` | JSONL incidents and outcomes, Ollama `/api/embed` embeddings, in-memory DuckDB `vss` HNSW search, promotion into `index/`. |
+| `remediation_guard.py` | `.venv` | `scan_playbook`, the volume guard, and `scan_outage`, the prove-before-remove guard. Pure functions of the YAML text. |
+| `remediation_templates.py` | `.venv` | Hand-written remediations keyed on signature, service and role. |
+
+The CLI imports these by bare module name, like the callback modules above,
+because Python puts the script's own directory on `sys.path`.

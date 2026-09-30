@@ -328,6 +328,7 @@ service runs containerized rather than on the host directly.
 | `playbooks/ollama.yml` | ollama | workstations | — |
 | `playbooks/hermes.yml` | hermes | workstations | — |
 | `playbooks/tts.yml` | tts | workstations | — |
+| `playbooks/remediate.yml` | remediation plugins ([docs](plugins/action/README.md)) | `-e target=<host>` | Podman |
 
 **RHEL Builder Roles**
 
