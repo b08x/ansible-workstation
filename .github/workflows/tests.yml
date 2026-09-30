@@ -40,8 +40,13 @@ jobs:
 
       # Only the collections the scenario and the role call: containers.podman
       # for create/destroy and the podman connection, community.general for copr.
+      # Installed into the repository path that ANSIBLE_COLLECTIONS_PATH names,
+      # which is where the Molecule runs locally resolve them from.
       - name: Install collections
-        run: ansible-galaxy collection install containers.podman:1.20.2 community.general
+        run: >-
+          ansible-galaxy collection install
+          -p "$GITHUB_WORKSPACE/.ansible/collections"
+          containers.podman:1.20.2 community.general
 
       - name: Show Podman version
         run: podman version
@@ -50,5 +55,6 @@ jobs:
         working-directory: roles/${{ matrix.role }}
         run: molecule test
         env:
+          ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible/collections
           PY_COLORS: "1"
           ANSIBLE_FORCE_COLOR: "1"
