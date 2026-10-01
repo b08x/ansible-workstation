@@ -29,7 +29,9 @@
 - name: Validate blueprint syntax (optional)
   block:
     - name: TOML syntax check
-      ansible.builtin.command: python3 -c "import tomli; tomli.load(open('{{ blueprint_file_path }}', 'rb'))"
+      ansible.builtin.command: >-
+        python3 -c "import sys; toml = __import__('tomllib' if sys.version_info >= (3, 11) else 'tomli');
+        toml.load(open('{{ blueprint_file_path }}', 'rb'))"
       changed_when: false
 
     - name: Display validation success

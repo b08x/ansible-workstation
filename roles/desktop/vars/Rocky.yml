@@ -1,0 +1,35 @@
+---
+# Rocky 9/10 package set: identical to the AlmaLinux 10 list except where
+# noted. All entries verified inside rockylinux:9 (9.8) and rockylinux:10
+# (10.2) containers with BaseOS, AppStream, CRB, EPEL and RPM Fusion
+# enabled (2026-10-01).
+desktop_packages:
+  gnome:
+    - "@gnome-desktop"
+    - "@graphical-server-environment"
+    - gdm
+    - gnome-tweaks
+  theme:
+    - gtk3-devel
+    - gnome-tweaks
+    - sassc
+    - meson
+    - ninja-build
+  qt:
+    - qt6-qtbase
+    - qt6-qttools
+    - qt6-qtmultimedia
+    - qt6-qtdeclarative
+    - qt5-qtbase
+    - qt5-qttools
+    - qt5-qtquickcontrols2
+    - qt5-qtgraphicaleffects
+    - qscintilla-qt5
+    - qt5ct
+    - qt6ct
+  gtk:
+    - gtk4
+    - gtk3-devel
+    - gtksourceview4
+    # gtksourceview5 is not built for EL 9 (verified in the rockylinux:9
+    # container, 2026-10-01); dropped here so one list serves both majors.

@@ -1,0 +1,11 @@
+---
+# Verified inside rockylinux:9 (9.8) and rockylinux:10 (10.2) containers
+# with BaseOS, AppStream, CRB, EPEL and RPM Fusion enabled (2026-10-01):
+# all packages resolve and the virtualization-host-environment comps
+# environment exists on both majors.
+libvirt_packages:
+  - "@virtualization-host-environment"
+  - virt-manager
+  - qemu-kvm
+  - virt-install
+libvirt_bridge_conf_path: /etc/qemu-kvm/bridge.conf

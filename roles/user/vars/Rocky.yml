@@ -1,0 +1,5 @@
+---
+# Rocky Linux distribution variables for user role.
+# User configuration is driven by host/group vars and defaults; this file
+# exists to satisfy include_vars: "{{ ansible_distribution }}.yml" identically
+# to Fedora.yml and AlmaLinux.yml.

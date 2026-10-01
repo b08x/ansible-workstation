@@ -36,8 +36,8 @@
     - name: Report distrobox installation failure
       ansible.builtin.debug:
         msg: >-
-          Failed to install distrobox. On AlmaLinux this package comes from EPEL
-          - check that the base role enabled it.
+          Failed to install distrobox. On the EL family (AlmaLinux, Rocky)
+          this package comes from EPEL - check that the base role enabled it.
 
     - name: Fail the play on distrobox installation failure
       ansible.builtin.fail:

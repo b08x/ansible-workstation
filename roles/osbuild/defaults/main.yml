@@ -6,7 +6,11 @@
 # Build Configuration
 # =============================================================================
 
-# Distribution version (e.g., "fedora-43", "almalinux-10")
+# Distribution version (e.g., "fedora-43", "almalinux-10.2", "rocky-10.2")
+# EL distro names are point releases on the installed image-builder binary
+# (live `image-builder list` knows almalinux-9.8/10.2 and rocky-9.8/10.2;
+# major-only names do not resolve). See playbooks/osbuild.yml for the
+# default resolution per build host.
 osbuild_distro: "fedora-43"
 
 # Architecture (x86_64, aarch64)
@@ -28,13 +32,16 @@ osbuild_blueprint_version: "1.0.0"
 # Blueprint description
 osbuild_blueprint_description: "Custom Workstation"
 
-# Image type for osbuild-composer
+# Image type for image-builder
 # [COMPATIBILITY] Retained for backward compatibility.
 # Deprecated: composer-era concept; retained because existing tasks, playbooks, and tests
 # still reference `osbuild_image_type`. Migration guidance: keep overriding this variable
 # until every consumer migrates to the image-builder CLI type mapping.
-# Options: live-iso, workstation-live-installer, qcow2, ami, vhd, vmdk
-osbuild_image_type: minimal-installer
+# Live `image-builder list` (tinybot, AlmaLinux 10.2 build host, 2026-10-01):
+# `minimal-installer` exists only for Fedora (fedora-42 through 45); EL
+# distros (almalinux-*, rocky-*) build installer images as `image-installer`
+# or `network-installer`. Other options: qcow2, ami, vhd, vmdk.
+osbuild_image_type: "{{ 'minimal-installer' if ansible_distribution == 'Fedora' else 'image-installer' }}"
 
 # Only generate configuration files and output CLI command (do not execute build)
 # [COMPATIBILITY] Retained for backward compatibility.
@@ -67,6 +74,10 @@ osbuild_nvidia_driver_version: "*"
 
 _is_fedora: "{{ ansible_distribution == 'Fedora' }}"
 _distro_version: "{{ osbuild_distro | regex_replace('^[a-z]+-', '') }}"
+# Major version only (e.g. "10"): distribution-gpg-keys, RPM Fusion EL,
+# NVIDIA CUDA (rhel*), and Docker CE publish per-major artifacts. AlmaLinux
+# metalinks and EPEL point-release paths use the full _distro_version.
+_distro_major_version: "{{ _distro_version | regex_replace('\\..*', '') }}"
 
 _nvidia_sources: >-
   {{ _is_fedora | ternary(
@@ -77,12 +88,12 @@ _nvidia_sources: >-
     ],
     [
       'rpmfusion-nonfree-nvidia-driver',
-      'cuda-el' + _distro_version + '-x86_64',
+      'cuda-el' + _distro_major_version + '-x86_64',
       'nvidia-container-toolkit',
     ]
   ) }}
 
-_nvidia_bootc_repos: "{{ _is_fedora | ternary(_nvidia_bootc_repos_fedora, _nvidia_bootc_repos_almalinux) }}"
+_nvidia_bootc_repos: "{{ _is_fedora | ternary(_nvidia_bootc_repos_fedora, _nvidia_bootc_repos_el) }}"
 
 _nvidia_bootc_repos_fedora:
   - |
@@ -114,7 +125,13 @@ _nvidia_bootc_repos_fedora:
     gpgkey=https://nvidia.github.io/libnvidia-container/gpgkey
     REPOEOF
 
-_nvidia_bootc_repos_almalinux:
+# EL-family bootc NVIDIA repos (AlmaLinux and Rocky fall through to this
+# branch via the _is_fedora ternary above — same rhel-path CUDA and ELRepo
+# treatment for both). Name is `_el`, not `_almalinux`: the repo set is
+# identical for every EL-family distro. Rocky bootc builds remain
+# unverified and undocumented (deferred to a follow-up goal); only the
+# variable name was generalized here.
+_nvidia_bootc_repos_el:
   - |
     cat > /etc/yum.repos.d/rpmfusion-nonfree-nvidia-driver.repo << 'REPOEOF'
     [rpmfusion-nonfree-nvidia-driver]
@@ -127,12 +144,12 @@ _nvidia_bootc_repos_almalinux:
     REPOEOF
   - |
     cat > /etc/yum.repos.d/nvidia-cuda.repo << 'REPOEOF'
-    [cuda-el{{ _distro_version }}-x86_64]
-    name=CUDA for EL {{ _distro_version }}
-    baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel{{ _distro_version }}/x86_64/
+    [cuda-el{{ _distro_major_version }}-x86_64]
+    name=CUDA for EL {{ _distro_major_version }}
+    baseurl=https://developer.download.nvidia.com/compute/cuda/repos/rhel{{ _distro_major_version }}/x86_64/
     enabled=1
     gpgcheck=1
-    gpgkey=https://developer.download.nvidia.com/compute/cuda/repos/rhel{{ _distro_version }}/x86_64/D42D0682.pub
+    gpgkey=https://developer.download.nvidia.com/compute/cuda/repos/rhel{{ _distro_major_version }}/x86_64/CDF6BA43.pub
     REPOEOF
   - |
     cat > /etc/yum.repos.d/nvidia-container-toolkit.repo << 'REPOEOF'
@@ -545,6 +562,16 @@ osbuild_host_packages:
     - openscap-scanner
     - scap-security-guide
     - python3-tomli
+  # Rocky ships the same EL package set as AlmaLinux (verified against
+  # Rocky 9/10 AppStream repodata, 2026-10-01).
+  Rocky:
+    - osbuild
+    - image-builder
+    - bash-completion
+    - firewalld
+    - openscap-scanner
+    - scap-security-guide
+    - python3-tomli
 
 # Build timeout in seconds (default: 4 hours for oneAPI builds)
 # [COMPATIBILITY] Retained for backward compatibility.
@@ -565,8 +592,8 @@ osbuild_build_retries: 1
 # Repository Sources
 # =============================================================================
 
-# Directory containing source TOML files
-osbuild_sources_dir: "files/{{ ansible_distribution | lower }}/{{ osbuild_distro | regex_replace('^[a-z]+-', '') }}/{{ osbuild_arch }}/sources"
+# Directory containing source TOML files (major version based)
+osbuild_sources_dir: "files/{{ ansible_distribution | lower }}/{{ _distro_major_version }}/{{ osbuild_arch }}/sources"
 
 # Repository sources derived from selected components
 # Each component can define its required sources.
@@ -579,7 +606,11 @@ osbuild_distro_sources_fedora:
   - vscode
   - google-chrome
 
-osbuild_distro_sources_almalinux:
+# EL-family (AlmaLinux, Rocky) common sources. Both distros share the EL
+# repo topology — EPEL, RPM Fusion EL updates-only channels, VS Code,
+# Google Chrome — so one list serves both; per-distro URLs and GPG keys
+# live in vars/AlmaLinux.yml and vars/Rocky.yml.
+osbuild_distro_sources_el:
   - epel
   - rpmfusion-free-updates
   - rpmfusion-nonfree-updates
@@ -589,7 +620,7 @@ osbuild_distro_sources_almalinux:
 # Component-scoped sources are aggregated automatically from osbuild_component_defs
 osbuild_sources: >-
   {{ (ansible_distribution == 'Fedora') | ternary(osbuild_distro_sources_fedora,
-  osbuild_distro_sources_almalinux) + osbuild_component_sources }}
+  osbuild_distro_sources_el) + (osbuild_component_sources | default([])) }}
 
 # Optional sources (uncomment to add manually):
 # - docker-ce
@@ -706,7 +737,10 @@ osbuild_output_dir: "/var/tmp/osbuild-images"
 osbuild_output_filename: "{{ osbuild_blueprint_name }}-{{ osbuild_distro }}.iso"
 
 # Distro-specific osbuild-composer repository config template
-osbuild_repo_config_template: "{{ ansible_distribution | lower }}-{{ osbuild_distro | regex_replace('^[a-z]+-', '') }}.json.j2"
+# Major-version based: the template tree is files/almalinux/10/... and
+# files/rocky/10/..., so a point-release osbuild_distro (almalinux-10.2,
+# rocky-10.2) must resolve to the major-only template name.
+osbuild_repo_config_template: "{{ ansible_distribution | lower }}-{{ _distro_major_version }}.json.j2"
 
 # Keep build logs on failure
 # [COMPATIBILITY] Retained for backward compatibility.

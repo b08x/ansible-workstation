@@ -14,9 +14,10 @@ galaxy_info:
     - name: Fedora
       versions:
         - all
-    - name: EL # Enterprise Linux (Rocky, RHEL, AlmaLinux)
+    - name: EL # Enterprise Linux (RHEL, AlmaLinux, Rocky)
       versions:
         - "9"
+        - "10"
 
   galaxy_tags:
     - nas

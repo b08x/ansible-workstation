@@ -1,0 +1,462 @@
+name = "rocky-10-2-workstation"
+description = "Rocky Linux Workstation 10.2"
+version = "1.0.0"
+# `distro` must match a name the installed image-builder actually knows
+# (live `image-builder list` on tinybot, 2026-10-01: rocky-9.8 and
+# rocky-10.2 are known; major-only rocky-9/rocky-10 are not).
+distro = "rocky-10.2"
+
+# Derived from the AlmaLinux 10.2 workstation blueprint — Rocky Linux is a
+# RHEL-compatible clone shipping the same EL package names. Package names
+# verified against live Rocky 10 BaseOS/AppStream/CRB, EPEL 10, and RPM
+# Fusion for EL 10 repodata (2026-10-01): every package in the AlmaLinux
+# blueprint also resolves on Rocky 10. Packages with no equivalent are
+# omitted rather than guessed. Comps groups verified the same way
+# (2026-10-01): all blueprint groups exist in Rocky 10 BaseOS/AppStream
+# comps; "@virtualization-host-environment" is a comps environment (not a
+# group) on both Rocky 10 and AlmaLinux 10, so it is kept for parity with
+# the AlmaLinux blueprint.
+#
+# sway and the wlroots/Wayland-compositor stack are not built for EPEL 10
+# (same situation as AlmaLinux) and are intentionally excluded; GNOME's
+# own Wayland session is the desktop here.
+#
+# RPM Fusion for EL only publishes an "updates" channel — there is no
+# el/releases/10 or el/nvidia-driver/10 path (both 404). ffmpeg/x264/x265
+# come from rpmfusion-free-updates and intel-media-driver from
+# rpmfusion-nonfree-updates. GPG keys for the RPM Fusion EL repos use the
+# distribution-gpg-keys "-el-10" naming.
+
+packages = [
+    { name = "@graphical-admin-tools", version = "*" },
+    { name = "@development", version = "*" },
+    { name = "@container-management", version = "*" },
+    { name = "@rpm-development-tools", version = "*" },
+    { name = "@headless-management", version = "*" },
+    { name = "@system-tools", version = "*" },
+    { name = "NetworkManager", version = "*" },
+    { name = "NetworkManager-l2tp-gnome", version = "*" },
+    { name = "NetworkManager-libreswan-gnome", version = "*" },
+    { name = "NetworkManager-openconnect-gnome", version = "*" },
+    { name = "NetworkManager-openvpn-gnome", version = "*" },
+    { name = "alsa-lib-devel", version = "*" },
+    { name = "alsa-utils", version = "*" },
+    { name = "anaconda", version = "*" },
+    { name = "anaconda-dracut", version = "*" },
+    { name = "anaconda-gui", version = "*" },
+    { name = "ansible-core", version = "*" },
+    { name = "ansible-collection-ansible-posix", version = "*" },
+    { name = "aria2", version = "*" },
+    { name = "bash", version = "*" },
+    { name = "bind-utils", version = "*" },
+    { name = "bluez", version = "*" },
+    { name = "bolt", version = "*" },
+    { name = "btrfs-progs", version = "*" },
+    { name = "btrfs-progs-devel", version = "*" },
+    { name = "cargo", version = "*" },
+    { name = "chrony", version = "*" },
+    { name = "chromium-headless", version = "*" },
+    { name = "cockpit", version = "*" },
+    { name = "cockpit-bridge", version = "*" },
+    { name = "cockpit-machines", version = "*" },
+    { name = "cockpit-podman", version = "*" },
+    { name = "cockpit-packagekit", version = "*" },
+    { name = "cockpit-storaged", version = "*" },
+    { name = "cockpit-ws", version = "*" },
+    { name = "cockpit-ws-selinux", version = "*" },
+    { name = "coreutils", version = "*" },
+    { name = "distrobox", version = "*" },
+    { name = "default-fonts-cjk-mono", version = "*" },
+    { name = "default-fonts-cjk-sans", version = "*" },
+    { name = "default-fonts-cjk-serif", version = "*" },
+    { name = "default-fonts-core-emoji", version = "*" },
+    { name = "default-fonts-core-math", version = "*" },
+    { name = "default-fonts-core-mono", version = "*" },
+    { name = "default-fonts-core-sans", version = "*" },
+    { name = "default-fonts-core-serif", version = "*" },
+    { name = "default-fonts-other-mono", version = "*" },
+    { name = "default-fonts-other-sans", version = "*" },
+    { name = "default-fonts-other-serif", version = "*" },
+    { name = "fontawesome-fonts-web", version = "*" },
+    { name = "fontawesome-6-free-fonts", version = "*" },
+    { name = "dracut", version = "*" },
+    { name = "dracut-config-rescue", version = "*" },
+    { name = "dracut-live", version = "*" },
+    { name = "dracut-network", version = "*" },
+    { name = "efi-filesystem", version = "*" },
+    { name = "erofs-utils", version = "*" },
+    { name = "fastfetch", version = "*" },
+    { name = "fd-find", version = "*" },
+    { name = "ffmpeg", version = "*" },
+    { name = "firewalld", version = "*" },
+    { name = "fontawesome-6-brands-fonts", version = "*" },
+    { name = "fontconfig", version = "*" },
+    { name = "fonts-filesystem", version = "*" },
+    { name = "fprintd-pam", version = "*" },
+    { name = "fwupd", version = "*" },
+    { name = "fwupd-efi", version = "*" },
+    { name = "fzf", version = "*" },
+    { name = "gcc", version = "*" },
+    { name = "gcc-c++", version = "*" },
+    { name = "gdm", version = "*" },
+    { name = "google-droid-sans-fonts", version = "*" },
+    { name = "google-noto-color-emoji-fonts", version = "*" },
+    { name = "google-noto-fonts-common", version = "*" },
+    { name = "google-noto-naskh-arabic-vf-fonts", version = "*" },
+    { name = "google-noto-sans-arabic-vf-fonts", version = "*" },
+    { name = "google-noto-sans-armenian-vf-fonts", version = "*" },
+    { name = "google-noto-sans-bengali-vf-fonts", version = "*" },
+    { name = "google-noto-sans-canadian-aboriginal-vf-fonts", version = "*" },
+    { name = "google-noto-sans-cherokee-vf-fonts", version = "*" },
+    { name = "google-noto-sans-cjk-vf-fonts", version = "*" },
+    { name = "google-noto-sans-devanagari-vf-fonts", version = "*" },
+    { name = "google-noto-sans-ethiopic-vf-fonts", version = "*" },
+    { name = "google-noto-sans-georgian-vf-fonts", version = "*" },
+    { name = "google-noto-sans-gothic-fonts", version = "*" },
+    { name = "google-noto-sans-gujarati-vf-fonts", version = "*" },
+    { name = "google-noto-sans-gurmukhi-vf-fonts", version = "*" },
+    { name = "google-noto-sans-hebrew-vf-fonts", version = "*" },
+    { name = "google-noto-sans-kannada-vf-fonts", version = "*" },
+    { name = "google-noto-sans-khmer-vf-fonts", version = "*" },
+    { name = "google-noto-sans-lao-vf-fonts", version = "*" },
+    { name = "google-noto-sans-math-fonts", version = "*" },
+    { name = "google-noto-sans-meetei-mayek-vf-fonts", version = "*" },
+    { name = "google-noto-sans-mono-cjk-vf-fonts", version = "*" },
+    { name = "google-noto-sans-mono-vf-fonts", version = "*" },
+    { name = "google-noto-sans-nko-fonts", version = "*" },
+    { name = "google-noto-sans-ol-chiki-vf-fonts", version = "*" },
+    { name = "google-noto-sans-oriya-vf-fonts", version = "*" },
+    { name = "google-noto-sans-sinhala-vf-fonts", version = "*" },
+    { name = "google-noto-sans-symbols-2-fonts", version = "*" },
+    { name = "google-noto-sans-symbols-vf-fonts", version = "*" },
+    { name = "google-noto-sans-syriac-vf-fonts", version = "*" },
+    { name = "google-noto-sans-tamil-vf-fonts", version = "*" },
+    { name = "google-noto-sans-telugu-vf-fonts", version = "*" },
+    { name = "google-noto-sans-thaana-vf-fonts", version = "*" },
+    { name = "google-noto-sans-thai-vf-fonts", version = "*" },
+    { name = "google-noto-sans-vf-fonts", version = "*" },
+    { name = "google-noto-serif-armenian-vf-fonts", version = "*" },
+    { name = "google-noto-serif-bengali-vf-fonts", version = "*" },
+    { name = "google-noto-serif-cjk-vf-fonts", version = "*" },
+    { name = "google-noto-serif-devanagari-vf-fonts", version = "*" },
+    { name = "google-noto-serif-ethiopic-vf-fonts", version = "*" },
+    { name = "google-noto-serif-georgian-vf-fonts", version = "*" },
+    { name = "google-noto-serif-gujarati-vf-fonts", version = "*" },
+    { name = "google-noto-serif-gurmukhi-vf-fonts", version = "*" },
+    { name = "google-noto-serif-hebrew-vf-fonts", version = "*" },
+    { name = "google-noto-serif-kannada-vf-fonts", version = "*" },
+    { name = "google-noto-serif-khmer-vf-fonts", version = "*" },
+    { name = "google-noto-serif-lao-vf-fonts", version = "*" },
+    { name = "google-noto-serif-oriya-vf-fonts", version = "*" },
+    { name = "google-noto-serif-sinhala-vf-fonts", version = "*" },
+    { name = "google-noto-serif-tamil-vf-fonts", version = "*" },
+    { name = "google-noto-serif-telugu-vf-fonts", version = "*" },
+    { name = "google-noto-serif-thai-vf-fonts", version = "*" },
+    { name = "google-noto-serif-vf-fonts", version = "*" },
+    { name = "gnu-free-mono-fonts", version = "*" },
+    { name = "gnu-free-sans-fonts", version = "*" },
+    { name = "gnu-free-serif-fonts", version = "*" },
+    { name = "google-noto-emoji-fonts", version = "*" },
+    { name = "fontawesome-fonts-all", version = "*" },
+    { name = "fira-code-fonts", version = "*" },
+    { name = "jetbrains-mono-fonts", version = "*" },
+    { name = "liberation-fonts", version = "*" },
+    { name = "gnome-keyring-pam", version = "*" },
+    { name = "gnome-online-accounts", version = "*" },
+    { name = "gnome-session-wayland-session", version = "*" },
+    { name = "gnome-software", version = "*" },
+    { name = "gnome-text-editor", version = "*" },
+    { name = "gnome-tweaks", version = "*" },
+    { name = "golang", version = "*" },
+    { name = "gum", version = "*" },
+    { name = "gvfs", version = "*" },
+    { name = "gvfs-smb", version = "*" },
+    { name = "htop", version = "*" },
+    { name = "intel-media-driver", version = "*" },
+    { name = "ipxe-roms-qemu", version = "*" },
+    { name = "kernel", version = "*" },
+    { name = "kernel-devel", version = "*" },
+    { name = "kernel-headers", version = "*" },
+    { name = "kernel-modules", version = "*" },
+    { name = "kernel-modules-core", version = "*" },
+    { name = "kernel-modules-extra", version = "*" },
+    { name = "kernel-tools", version = "*" },
+    { name = "kernel-tools-libs", version = "*" },
+    { name = "kitty", version = "*" },
+    { name = "libvirt-daemon", version = "*" },
+    { name = "rhel-system-roles", version = "*" },
+    { name = "lm_sensors-devel", version = "*" },
+    { name = "lnav", version = "*" },
+    { name = "micro", version = "*" },
+    { name = "nautilus", version = "*" },
+    { name = "nbd", version = "*" },
+    { name = "net-tools", version = "*" },
+    { name = "nfs-utils", version = "*" },
+    { name = "pavucontrol", version = "*" },
+    { name = "pinentry-gnome3", version = "*" },
+    { name = "pipewire", version = "*" },
+    { name = "pipewire-alsa", version = "*" },
+    { name = "pipewire-devel", version = "*" },
+    { name = "pipewire-gstreamer", version = "*" },
+    { name = "pipewire-jack-audio-connection-kit-devel", version = "*" },
+    { name = "pipewire-jack-audio-connection-kit-libs", version = "*" },
+    { name = "pipewire-pulseaudio", version = "*" },
+    { name = "pipewire-utils", version = "*" },
+    { name = "plymouth-system-theme", version = "*" },
+    { name = "podman", version = "*" },
+    { name = "podman-compose", version = "*" },
+    { name = "podman-docker", version = "*" },
+    { name = "polkit", version = "*" },
+    { name = "postgresql-server", version = "*" },
+    { name = "postgresql-contrib", version = "*" },
+    { name = "pgvector", version = "*" },
+    { name = "pulseaudio-utils", version = "*" },
+    { name = "python3-firewall", version = "*" },
+    { name = "qemu-kvm", version = "*" },
+    { name = "ranger", version = "*" },
+    { name = "rsync", version = "*" },
+    { name = "ruby-devel", version = "*" },
+    { name = "tar", version = "*" },
+    { name = "tuned", version = "*" },
+    { name = "tuned-ppd", version = "*" },
+    { name = "urw-base35-bookman-fonts", version = "*" },
+    { name = "urw-base35-c059-fonts", version = "*" },
+    { name = "urw-base35-d050000l-fonts", version = "*" },
+    { name = "urw-base35-fonts", version = "*" },
+    { name = "urw-base35-fonts-common", version = "*" },
+    { name = "urw-base35-gothic-fonts", version = "*" },
+    { name = "urw-base35-nimbus-mono-ps-fonts", version = "*" },
+    { name = "urw-base35-nimbus-roman-fonts", version = "*" },
+    { name = "urw-base35-nimbus-sans-fonts", version = "*" },
+    { name = "urw-base35-p052-fonts", version = "*" },
+    { name = "urw-base35-standard-symbols-ps-fonts", version = "*" },
+    { name = "urw-base35-z003-fonts", version = "*" },
+    { name = "uv", version = "*" },
+    { name = "virt-install", version = "*" },
+    { name = "@virtualization-host-environment", version = "*" },
+    { name = "virt-viewer", version = "*" },
+    { name = "wireplumber", version = "*" },
+    { name = "wl-clipboard", version = "*" },
+    { name = "x264", version = "*" },
+    { name = "x265", version = "*" },
+    { name = "xdg-desktop-portal", version = "*" },
+    { name = "xdg-desktop-portal-gtk", version = "*" },
+    { name = "xorg-x11-server-Xwayland", version = "*" },
+    { name = "yad", version = "*" },
+    { name = "zsh", version = "*" },
+    { name = "yq", version = "*" },
+    { name = "intel-audio-firmware", version = "*" },
+    { name = "intel-gmmlib", version = "*" },
+    { name = "intel-gpu-firmware", version = "*" },
+    { name = "intel-vpl-gpu-rt", version = "*" },
+    { name = "intel-vsc-firmware", version = "*" },
+]
+
+[customizations]
+hostname = "syncopated-dx"
+
+[customizations.installer]
+sudo-nopasswd = ["b08x", "%wheel"]
+
+[customizations.installer.modules]
+enable = ["org.fedoraproject.Anaconda.Modules.Users"]
+disable = ["org.fedoraproject.Anaconda.Modules.Subscription"]
+
+[customizations.services]
+enabled = ["sshd", "NetworkManager", "firewalld", "gdm", "chronyd"]
+
+[customizations.firewall]
+ports = ["24800:tcp"]
+
+[customizations.firewall.services]
+enabled = ["ssh", "ntp", "samba-client", "rsyncd"]
+
+[customizations.timezone]
+timezone = "America/New_York"
+ntpservers = ["2.rhel.pool.ntp.org"]
+
+[customizations.locale]
+languages = ["en_US.UTF-8"]
+keyboard = "us"
+
+[[customizations.user]]
+name = "b08x"
+description = "b08x Workstation User"
+password = "$6$CwKesa938P1Lmjak$1f2OovSggypMwegO/VVYN1AxgN2g6ZvfhYFFr/kL6Kh82CobwmG2MZKDYGateLzTItqTUvoPsGYMgHikZzG181"
+groups = ["wheel", "audio", "video", "input", "render", "mock"]
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHHmjWwIbKqZ0TV+BxmHPVD3CV3eFdduB3JhYj2BzTAt rwpannick@gmail.com"
+shell = "/usr/bin/zsh"
+
+[[customizations.files]]
+path = "/etc/dnf/dnf.conf"
+mode = "0755"
+data = """
+# see `man dnf.conf` for defaults and possible options
+
+[main]
+fastestmirror=1
+max_parallel_downloads=10
+clean_requirements_on_remove=True
+"""
+
+[[customizations.files]]
+path = "/usr/local/sbin/custom-first-boot"
+mode = "0755"
+data = """
+#!/bin/bash
+# First boot configuration dashboard for OSBuild images
+
+set -euo pipefail
+
+# Check if gum is available, fallback to echo if not
+GUM=$(command -v gum || true)
+
+function banner() {
+    if [ -n "$GUM" ]; then
+        $GUM style \\
+            --foreground 212 --border-foreground 212 --border double \\
+            --align center --width 60 --padding "1 2" \\
+            "ROCKY LINUX WORKSTATION BUILDER" "First Boot Configuration"
+    else
+        echo "============================================================"
+        echo "   ROCKY LINUX WORKSTATION BUILDER - First Boot Configuration   "
+        echo "============================================================"
+    fi
+}
+
+function status_msg() {
+    local msg="$1"
+    if [ -n "$GUM" ]; then
+        $GUM style --foreground 123 "➜ $msg"
+    else
+        echo "➜ $msg"
+    fi
+}
+
+function success_msg() {
+    local msg="$1"
+    if [ -n "$GUM" ]; then
+        $GUM style --foreground 46 "✓ $msg"
+    else
+        echo "✓ $msg"
+    fi
+}
+
+# Clear screen for TUI
+clear
+banner
+echo ""
+
+# 0. Install yadm (user-level)
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6 || echo "/home/$REAL_USER")
+
+status_msg "Installing yadm for user $REAL_USER..."
+if sudo -u "$REAL_USER" bash -c 'mkdir -p ~/.local/bin && curl -fLo ~/.local/bin/yadm https://github.com/yadm-dev/yadm/raw/master/yadm && chmod a+x ~/.local/bin/yadm'; then
+    success_msg "yadm successfully installed in $REAL_HOME/.local/bin/yadm"
+else
+    echo "Warning: Failed to install yadm"
+fi
+echo ""
+
+# 1. Set Graphical Target
+status_msg "Checking display manager and setting target..."
+if systemctl list-unit-files | grep -qE "^(gdm|lightdm|sddm)\\.service"; then
+    if [ -n "$GUM" ]; then
+        $GUM spin --spinner dot --title "Setting default target to graphical.target..." -- systemctl set-default graphical.target
+    else
+        systemctl set-default graphical.target
+    fi
+    success_msg "Default target set to graphical.target"
+fi
+
+# 4. Verify component installation
+echo ""
+status_msg "Final System Verification"
+CHECK_TOOLS=("ansible" "git" "podman" "virt-install" "cockpit-bridge" "zsh" "nvidia-smi" "flatpak" "gum")
+REPORTS=()
+
+for tool in "${CHECK_TOOLS[@]}"; do
+    if command -v "$tool" &>/dev/null; then
+        REPORTS+=("✓ $tool is ready")
+    else
+        REPORTS+=("✗ $tool is MISSING")
+    fi
+done
+
+if [ -n "$GUM" ]; then
+    printf "%s\\n" "${REPORTS[@]}" | $GUM style --foreground 250 --border rounded --padding "0 2"
+else
+    printf "%s\\n" "${REPORTS[@]}"
+fi
+
+echo ""
+if [ -n "$GUM" ]; then
+    $GUM style --foreground 46 --bold "Configuration Complete. Enjoy your new workstation!"
+else
+    echo "Configuration Complete. Enjoy your new workstation!"
+fi
+sleep 5
+
+# Clean up first-boot files to prevent running on subsequent logins
+if [ -f /usr/local/sbin/custom-first-boot ]; then
+    mv /usr/local/sbin/custom-first-boot /usr/local/sbin/custom-first-boot-done
+fi
+if [ -f /usr/local/bin/custom-first-boot-launcher ]; then
+    rm -f /usr/local/bin/custom-first-boot-launcher
+fi
+if [ -f /etc/xdg/autostart/custom-first-boot.desktop ]; then
+    rm -f /etc/xdg/autostart/custom-first-boot.desktop
+fi
+"""
+
+[[customizations.files]]
+path = "/usr/local/bin/custom-first-boot-launcher"
+mode = "0755"
+data = """
+#!/bin/bash
+# Find a terminal emulator and launch the custom first boot script in it.
+for term in xdg-terminal-exec gnome-terminal kitty terminator xterm; do
+    if command -v "$term" &>/dev/null; then
+        case "$term" in
+            xdg-terminal-exec)
+                exec xdg-terminal-exec bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
+                ;;
+            gnome-terminal)
+                exec gnome-terminal -- bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
+                ;;
+            kitty)
+                exec kitty bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
+                ;;
+            terminator)
+                exec terminator -e "bash -c 'sudo /usr/local/sbin/custom-first-boot; echo Press Enter to close...; read'"
+                ;;
+            xterm)
+                exec xterm -e "bash -c 'sudo /usr/local/sbin/custom-first-boot; echo Press Enter to close...; read'"
+                ;;
+        esac
+    fi
+done
+"""
+
+[[customizations.files]]
+path = "/etc/xdg/autostart/custom-first-boot.desktop"
+mode = "0644"
+data = """
+[Desktop Entry]
+Type=Application
+Name=First Boot Setup
+Comment=Rocky Linux Workstation Builder First Boot Configuration
+Exec=/usr/local/bin/custom-first-boot-launcher
+Terminal=false
+Categories=System;Utility;
+X-GNOME-Autostart-enabled=true
+"""
+
+[[customizations.repositories]]
+id = "docker-ce-stable"
+name = "Docker CE Stable - x86_64"
+baseurls = ["https://download.docker.com/linux/centos/10/x86_64/stable"]
+gpgcheck = false
+gpgkeys = ["https://download.docker.com/linux/centos/gpg"]
+enabled = true

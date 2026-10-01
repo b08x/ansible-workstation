@@ -538,8 +538,7 @@ system_flatpaks:
 
 system_copr_repos:
   # COPR for EL targets uses different naming
-  audio:
-    []
+  audio: []
     # - "@audinux/stable-audio"
 
   tools: []

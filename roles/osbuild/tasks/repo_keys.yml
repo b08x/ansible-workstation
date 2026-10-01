@@ -35,6 +35,34 @@
         state: directory
         mode: "0755"
 
+    - name: Verify local gpgkey files exist before fetching
+      ansible.builtin.stat:
+        path: "{{ item.value.gpgkey_url | urlsplit('path') }}"
+      loop: "{{ repo | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      when:
+        - item.value.gpgkey_url is defined
+        - item.value.gpgkey_url | length > 0
+        - item.value.check_gpg | default(true)
+        - item.value.gpgkey_url is match('file://')
+      register: local_gpgkey_stats
+
+    - name: Fail early on missing local gpgkey files
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+        fail_msg: >-
+          gpgkey for '{{ item.item.key }}' points at
+          {{ item.item.value.gpgkey_url }}, which does not exist on this
+          host. Install or update the distribution-gpg-keys package, or
+          override the repo's gpgkey_url with a bundled or remote key.
+        success_msg: "Local gpgkey present for '{{ item.item.key }}'"
+      loop: "{{ local_gpgkey_stats.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+      when: item is not skipped
+
     - name: Fetch gpgkey for each repository
       ansible.builtin.get_url:
         url: "{{ item.value.gpgkey_url }}"

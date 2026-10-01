@@ -1,0 +1,78 @@
+---
+# Rocky 9 package set: derived from the Rocky 10 list, verified inside a
+# rockylinux:9 (9.8) container with BaseOS, AppStream, CRB, EPEL 9 and RPM
+# Fusion EL 9 enabled (2026-10-01). EL 9 differences vs Rocky 10:
+#  - zlib-ng-compat-devel does not exist on EL 9; the classic zlib-devel
+#    name is used instead.
+#  - Dropped, no EL 9 build (verified in the container): just,
+#    kernel-modules-extra-matched, python3-nbconvert, uv,
+#    zram-generator-defaults.
+base_packages:
+  - aria2
+  - bat
+  - bind-utils
+  - bridge-utils
+  - bsdtar
+  - caca-utils
+  - coreutils
+  - dnsmasq
+  - fd-find
+  - ffmpeg
+  - ffmpegthumbnailer
+  - flatpak
+  - fzf
+  - gettext
+  - git
+  - gmp-devel
+  - gobject-introspection-devel
+  - gtksourceview4
+  - highlight
+  - htop
+  - iptables-nft
+  - jq
+  - kernel-devel
+  - kernel-headers
+  - kernel-modules
+  - kernel-modules-core
+  - kernel-modules-extra
+  - kernel-tools
+  - kernel-tools-libs
+  - kitty
+  - libffi-devel
+  - libyaml-devel
+  - lm_sensors
+  - lm_sensors-devel
+  - lnav
+  - lsb_release
+  - make
+  - mediainfo
+  - meson
+  - micro
+  - mpv
+  - ninja-build
+  - nodejs
+  - openssh-server
+  - openssl-devel
+  - perl-FindBin
+  - perl-IPC-Cmd
+  - perl-Time-Piece
+  - pipewire-alsa
+  - pipewire-jack-audio-connection-kit-devel
+  - pipewire-jack-audio-connection-kit-libs
+  - pipewire-utils
+  - pipx
+  - python-unversioned-command
+  - python3-devel
+  - python3-gobject-devel
+  - python3-pip
+  - rbenv
+  - readline-devel
+  - ruby-build
+  - sqlite
+  - vala
+  - wayland-devel
+  - wayland-protocols-devel
+  - wireplumber
+  - zlib-devel
+  - zram-generator
+  - zsh

@@ -7,9 +7,12 @@ import sys
 
 import yaml
 
+import os
+
 JINJA2_RE = re.compile(r"\{\{.*\}\}")
 
-with open("/home/b08x/.hermes/kanban/workspaces/t_3b0b47a4/defaults_main.yml") as f:
+defaults_path = os.path.join(os.path.dirname(__file__), "../defaults/main.yml")
+with open(defaults_path) as f:
     data = yaml.safe_load(f)
 
 defs = data["osbuild_component_defs"]

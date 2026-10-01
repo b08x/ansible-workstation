@@ -1,9 +1,9 @@
-name = "almalinux-10-3-workstation-nvidia"
-description = "AlmaLinux Workstation 10.3 (NVIDIA)"
+name = "almalinux-10-2-workstation-nvidia"
+description = "AlmaLinux Workstation 10.2 (NVIDIA)"
 version = "1.0.0"
-# image-builder 52.1 has no almalinux-10.3 distro definition yet (only up to
-# 10.2); this field must match a distro `image-builder list` actually knows,
-# so it targets 10.2 for now even though the file/name stay "10-3".
+# image-builder 52.1 on tinybot only ships distro definitions up to
+# almalinux-10.2 (no almalinux-10.3); this field must match a distro
+# `image-builder list` actually knows, so it targets 10.2.
 distro = "almalinux-10.2"
 
 # Package names verified against live AlmaLinux 10 BaseOS/AppStream/CRB, EPEL 10,

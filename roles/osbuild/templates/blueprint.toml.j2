@@ -25,13 +25,13 @@ name = "{{ g }}"
 # Packages (from selected components)
 # =============================================================================
 
-{%- for c in osbuild_components %}
+{% for c in osbuild_components %}
 {%- if c in osbuild_component_defs and osbuild_component_defs[c].packages is defined %}
 {%-   for package in osbuild_component_defs[c].packages %}
 [[packages]]
 name = "{{ package }}"
 version = "{{ osbuild_package_pins.get(package, '*') }}"
-{%-   endfor %}
+{%   endfor %}
 {%- endif %}
 {%- endfor %}
 
@@ -39,7 +39,7 @@ version = "{{ osbuild_package_pins.get(package, '*') }}"
 [[packages]]
 name = "{{ package }}"
 version = "{{ osbuild_package_pins.get(package, '*') }}"
-{%- endfor %}
+{% endfor %}
 
 # =============================================================================
 # Kernel Arguments

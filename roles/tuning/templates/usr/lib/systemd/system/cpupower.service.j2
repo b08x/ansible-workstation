@@ -11,8 +11,9 @@ Type=oneshot
 EnvironmentFile=-/etc/default/cpupower.conf
 {% if ansible_distribution == "Fedora" %}
 ExecStart=/usr/libexec/cpupower
-{% endif %}
-{% if ansible_distribution == "AlmaLinux" %}
+{% elif ansible_distribution in ["AlmaLinux", "Rocky"] %}
+{# /usr/bin/cpupower on both EL clones: verified inside rockylinux:9 and
+   rockylinux:10 containers (provided by kernel-tools, 2026-10-01). #}
 ExecStart=/usr/bin/cpupower
 {% endif %}
 RemainAfterExit=yes

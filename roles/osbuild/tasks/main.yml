@@ -45,9 +45,9 @@
   ansible.builtin.assert:
     that:
       - ansible_os_family == "RedHat"
-      - ansible_distribution in ["Fedora", "AlmaLinux"]
+      - ansible_distribution in ["Fedora", "AlmaLinux", "Rocky"]
     fail_msg: |
-      This role requires Fedora or AlmaLinux as the build host.
+      This role requires Fedora, AlmaLinux, or Rocky Linux as the build host.
       Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}
     success_msg: "Running on {{ ansible_distribution }} {{ ansible_distribution_version }}"
 
@@ -142,6 +142,11 @@
   tags:
     - always
   block:
+    - name: Import blueprint management tasks
+      ansible.builtin.import_tasks: blueprint.yml
+      tags:
+        - blueprint
+
     - name: Display configuration-only mode
       ansible.builtin.debug:
         msg: |

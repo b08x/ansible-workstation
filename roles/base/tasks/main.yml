@@ -7,7 +7,13 @@
   tags: ["base", "always"]
 
 - name: Include distribution package variables
-  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  # Per-major file wins when present (EL 9 and EL 10 package names diverge,
+  # e.g. zlib-devel vs zlib-ng-compat-devel); otherwise the distro-wide file.
+  ansible.builtin.include_vars:
+    file: "{{ base_distro_vars }}"
+  vars:
+    base_distro_vfile: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+    base_distro_vars: "{{ lookup('ansible.builtin.first_found', files=[base_distro_vfile, ansible_distribution ~ '.yml'], paths=role_path ~ '/vars') }}"
   tags: ["packages", "distro"]
 
 # ----------------------------------------------------------------------------
@@ -23,7 +29,13 @@
 # ----------------------------------------------------------------------------
 
 - name: Include Distribution Specific Repository Tasks
-  ansible.builtin.include_tasks: "distro/{{ ansible_distribution }}.yml"
+  # EL-family distributions (AlmaLinux, Rocky) share distro/EL.yml; each
+  # distro-specific file wins when one exists (e.g. Fedora.yml). The lookup
+  # lives in vars: because include_tasks parses its argument for k=v options
+  # and would trip over "files=" inside the template string.
+  ansible.builtin.include_tasks: "{{ base_distro_repo_tasks }}"
+  vars:
+    base_distro_repo_tasks: "{{ lookup('ansible.builtin.first_found', files=[ansible_distribution ~ '.yml', 'EL.yml'], paths=role_path ~ '/tasks/distro') }}"
   when:
     - enable_third_party_repos | default(true) | bool
   tags: ["repos", "base"]
