@@ -153,9 +153,7 @@ def test_playbook_exists_with_required_gates():
         "become",
         "args",
     }
-    modules = [
-        next(key for key in task if key not in reserved) for task in tasks
-    ]
+    modules = [next(key for key in task if key not in reserved) for task in tasks]
     assert "remediation_diagnose" in modules
     assert "ansible.builtin.pause" in modules
     assert "ansible.builtin.fail" in modules
@@ -165,11 +163,14 @@ def test_playbook_exists_with_required_gates():
     order = {}
     for i, module in enumerate(modules):
         order.setdefault(module, i)
-    assert order["remediation_diagnose"] < order["ansible.builtin.pause"] < order[
-        "ansible.builtin.command"
-    ] < order["remediation_gather"] < order["remediation_verify"] < order[
-        "remediation_record"
-    ]
+    assert (
+        order["remediation_diagnose"]
+        < order["ansible.builtin.pause"]
+        < order["ansible.builtin.command"]
+        < order["remediation_gather"]
+        < order["remediation_verify"]
+        < order["remediation_record"]
+    )
 
 
 def test_unapproved_run_stops_before_execution(tmp_path):
@@ -185,12 +186,18 @@ def test_unapproved_run_stops_before_execution(tmp_path):
 def test_approved_run_executes_and_records_success(tmp_path):
     server = http.server.HTTPServer(
         ("127.0.0.1", 0),
-        lambda *a, **kw: type("H", (http.server.BaseHTTPRequestHandler,), {
-            "do_GET": lambda self: (
-                self.send_response(200), self.end_headers(), self.wfile.write(b"ok")
-            ),
-            "log_message": lambda self, *a: None,
-        })(*a, **kw),
+        lambda *a, **kw: type(
+            "H",
+            (http.server.BaseHTTPRequestHandler,),
+            {
+                "do_GET": lambda self: (
+                    self.send_response(200),
+                    self.end_headers(),
+                    self.wfile.write(b"ok"),
+                ),
+                "log_message": lambda self, *a: None,
+            },
+        )(*a, **kw),
     )
     port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)

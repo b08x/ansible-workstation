@@ -107,10 +107,13 @@ def test_journal_before_latest_start_moves_to_history():
         "old": {"ok": True, "data": [{"State": {"StartedAt": "0001-01-01T00:00:00Z"}}]},
     }
     before = str(int(1790782100 * 1e6))  # 2026-09-30T15:28:20Z, before the start
-    after = str(int(1790782300 * 1e6))   # 2026-09-30T15:31:40Z, after the start
+    after = str(int(1790782300 * 1e6))  # 2026-09-30T15:31:40Z, after the start
     journal = {
         "system": [
-            {"__REALTIME_TIMESTAMP": before, "MESSAGE": "creating /etc/mtab symlink: operation not permitted"},
+            {
+                "__REALTIME_TIMESTAMP": before,
+                "MESSAGE": "creating /etc/mtab symlink: operation not permitted",
+            },
             {"__REALTIME_TIMESTAMP": after, "MESSAGE": "ollama serving"},
         ],
         "user": None,

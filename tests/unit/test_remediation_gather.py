@@ -64,7 +64,7 @@ CANNED = {
     ),
     ("podman", "logs", "--tail", "200", "langfuse-web"): (
         0,
-        "level=error msg=\"container state improper: shm mount EINVAL\"\n"
+        'level=error msg="container state improper: shm mount EINVAL"\n'
         "connecting to postgresql://langfuse:logpw2@localhost:5432/langfuse\n"
         "env NEXTAUTH_SECRET=logsecret3 loaded\n",
         "",
@@ -98,7 +98,11 @@ CANNED = {
 
 JOURNAL_LINES = [
     {"__REALTIME_TIMESTAMP": "1", "PRIORITY": "3", "MESSAGE": "conmon: error binding shm"},
-    {"__REALTIME_TIMESTAMP": "2", "PRIORITY": "3", "MESSAGE": "redis://:journalpw4@redis:6379 refused"},
+    {
+        "__REALTIME_TIMESTAMP": "2",
+        "PRIORITY": "3",
+        "MESSAGE": "redis://:journalpw4@redis:6379 refused",
+    },
 ]
 
 
@@ -268,7 +272,9 @@ def test_host_security_section(facts_gather):
 
 def test_host_security_tolerates_missing_tools(facts_gather, monkeypatch):
     def no_tools(self, args, **kwargs):
-        if args[0] in ("getenforce", "last", "loginctl") or (args[0] == "journalctl" and "-k" in args):
+        if args[0] in ("getenforce", "last", "loginctl") or (
+            args[0] == "journalctl" and "-k" in args
+        ):
             return 127, "", f"{args[0]}: command not found"
         return _fake_run_command(self, args, **kwargs)
 

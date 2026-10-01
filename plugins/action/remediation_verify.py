@@ -14,9 +14,10 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-from ansible.plugins.action import ActionBase
 from ansible.utils.color import ANSIBLE_COLOR
 from ansible.utils.display import Display
+
+from ansible.plugins.action import ActionBase
 
 __metaclass__ = type
 
@@ -32,7 +33,6 @@ import remediation_bridge  # noqa: E402
 import remediation_style  # noqa: E402
 
 display = Display()
-
 
 
 class ActionModule(ActionBase):
@@ -83,7 +83,5 @@ class ActionModule(ActionBase):
         return remediation_bridge.run_cli(
             subcommand,
             payload,
-            on_progress=lambda event: display.display(
-                remediation_style.render(host, event, color)
-            ),
+            on_progress=lambda event: display.display(remediation_style.render(host, event, color)),
         )

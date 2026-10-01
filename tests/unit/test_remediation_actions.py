@@ -8,8 +8,8 @@ import subprocess
 from types import SimpleNamespace
 
 import pytest
-from ansible.plugins.action import ActionBase
 
+from ansible.plugins.action import ActionBase
 from tests.conftest import load_module_file
 
 DIAGNOSE_PATH = "plugins/action/remediation_diagnose.py"
@@ -176,7 +176,10 @@ def test_record_success_returns_indexed(capture, monkeypatch):
 
     def fake_run(cmd, input=None, capture_output=True, text=True, env=None, cwd=None):
         return subprocess.CompletedProcess(
-            cmd, 0, stdout=json.dumps({"incident_id": "inc-1", "result": "success", "indexed": True}), stderr=""
+            cmd,
+            0,
+            stdout=json.dumps({"incident_id": "inc-1", "result": "success", "indexed": True}),
+            stderr="",
         )
 
     monkeypatch.setattr(subprocess, "Popen", _popen_from(fake_run))
@@ -266,7 +269,10 @@ def test_diagnose_streams_cli_progress_to_display(capture, monkeypatch):
 HEALTHY_DIAGNOSTICS = {
     "containers": {
         "ok": True,
-        "data": {"list": [{"Names": ["ollama"], "State": "running", "Status": "Up"}], "inspect": {}},
+        "data": {
+            "list": [{"Names": ["ollama"], "State": "running", "Status": "Up"}],
+            "inspect": {},
+        },
         "error": None,
     },
     "pods": {"ok": True, "data": {"list": [], "inspect": {}}, "error": None},

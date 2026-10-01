@@ -237,7 +237,13 @@ def _run_guards(store, incident_id: str, playbook_yaml: str) -> tuple[str, list[
             ]
         with _Stage("ansible-lint --profile production"):
             lint = subprocess.run(
-                [_tool("ansible-lint", "ansible-lint"), "--profile", "production", "--nocolor", str(pending)],
+                [
+                    _tool("ansible-lint", "ansible-lint"),
+                    "--profile",
+                    "production",
+                    "--nocolor",
+                    str(pending),
+                ],
                 capture_output=True,
                 text=True,
                 cwd=REPO_ROOT,

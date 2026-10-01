@@ -18,9 +18,10 @@ import os
 import sys
 
 from ansible.module_utils.parsing.convert_bool import boolean
-from ansible.plugins.action import ActionBase
 from ansible.utils.color import ANSIBLE_COLOR
 from ansible.utils.display import Display
+
+from ansible.plugins.action import ActionBase
 
 __metaclass__ = type
 
@@ -41,7 +42,6 @@ display = Display()
 GATHER_ARGS = ("pod", "log_lines", "journal_units", "since")
 
 
-
 class ActionModule(ActionBase):
 
     _supports_check_mode = True
@@ -53,11 +53,7 @@ class ActionModule(ActionBase):
         if task_vars is None:
             task_vars = {}
 
-        module_args = {
-            key: value
-            for key, value in self._task.args.items()
-            if key in GATHER_ARGS
-        }
+        module_args = {key: value for key, value in self._task.args.items() if key in GATHER_ARGS}
         gather = self._execute_module(
             module_name="remediation_gather",
             module_args=module_args,
@@ -117,7 +113,5 @@ class ActionModule(ActionBase):
         return remediation_bridge.run_cli(
             subcommand,
             payload,
-            on_progress=lambda event: display.display(
-                remediation_style.render(host, event, color)
-            ),
+            on_progress=lambda event: display.display(remediation_style.render(host, event, color)),
         )
