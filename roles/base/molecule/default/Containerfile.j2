@@ -1,4 +1,10 @@
 FROM {{ container_base_image }}
+# ip_resolve=4: dev hosts without IPv6 routing still get AAAA records from DNS,
+# and libdnf can exhaust a repo's mirror list on unreachable IPv6 addresses
+# ("All mirrors were tried"), making the scenario flap. CI runners and these
+# test images only need IPv4. Test image only; dnf4 and dnf5 both honor the
+# option (verified on rockylinux:9 and fedora:43, 2026-10-01).
+RUN echo 'ip_resolve=4' >> /etc/dnf/dnf.conf
 # !pam_acct_mgmt: on GitHub's Ubuntu runners, sudo's PAM account check fails
 # inside rootless Podman ("Authentication service cannot retrieve
 # authentication info") before NOPASSWD applies. Test image only.
