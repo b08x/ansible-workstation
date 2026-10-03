@@ -5,8 +5,8 @@
 A deliberately boring foundation under a fast-moving ecosystem.
 
 Ansible control repository for provisioning Fedora and AlmaLinux machines —
-system configuration, virtualisation, container runtimes, custom image
-builds, and a local LLM ops stack — from a single inventory.
+system configuration, virtualisation, container runtimes, and a local
+LLM ops stack — from a single inventory.
 
 Kept as a working notebook: the roles, playbooks, and plugins are the current
 entries of a decade's experiments, and the git history keeps the earlier
@@ -95,13 +95,15 @@ can be picked up and pointed at any host list, not only mine.
 
 The state of the entries, facet by facet:
 
-- **Image builds run on all three targets.** The `osbuild` role composes
-  Fedora, AlmaLinux, and Rocky Linux ISOs from declarative blueprints —
-  Fedora and AlmaLinux through `playbooks/osbuild.yml`, Rocky through
-  `playbooks/osbuild-rocky-iso.yml`. Repository GPG keys are fetched locally
-  and verified before any compose; the target distribution is asserted
-  before anything touches the host. The base image as a reproducible
-  artifact instead of a live-edited system.
+- **Image builds live in a dedicated standalone repository.** The `osbuild`
+  machinery — composing Fedora, AlmaLinux, and Rocky Linux ISOs, appliances,
+  and container disks from declarative blueprints — has been extracted to
+  the standalone [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository
+  alongside the package taxonomy and `package_tracker.py` management tooling.
+  Repository GPG keys are fetched locally and verified before any compose;
+  the target distribution is asserted before anything touches the host. The base
+  image remains the reproducible artifact floor beneath this fleet, decoupled so
+  image composition evolves without entangling host configuration runs.
 - **Full workstation provisioning runs on Fedora and AlmaLinux.** `site.yml`
   imports four plays — base, system, user, coding agents — against the
   `workstations` group, with roles living natively in `roles/` after a
@@ -142,7 +144,9 @@ explicitly, layer by layer, because the parts only make sense as a whole.
 
 - **The image — the floor.** Kernel, drivers, the base package set. Built,
   never mutated in place; a change is a new artifact with rollback, not a
-  live edit to a running system.
+  live edit to a running system. Declarative blueprint generation and image
+  composing are maintained in the companion
+  [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository.
 - **Ansible — the system above the floor.** Repositories, services, container
   runtimes, system-wide capability toggles. Idempotent by contract —
   re-running a playbook against a converged host should report zero changes —

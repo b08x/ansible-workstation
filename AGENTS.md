@@ -16,12 +16,10 @@ All playbooks live in `playbooks/`, not at the repo root:
   desktop, libvirt, containerd) and an unprivileged user play (user,
   coding_agents).
 - `base.yml` — the system play of `site.yml` on its own, for base-only runs.
-- `osbuild.yml` — custom image builds via `b08x.rhel_builder.osbuild`. Asserts
-  Fedora or AlmaLinux. Targets `osbuild_targets`, defined in
-  `inventory/hosts.ini` as a children-group of `builder` (tinybot, gir). The
-  group name matches the collection's own `playbooks/osbuild.yml`; its sibling
-  `composer_cli.yml` expects `composer_cli_builders`, which this repo does not
-  define.
+- `composer_cli.yml` — provisions the `osbuild-composer` service on `builder`
+  hosts (gir, tinybot). Custom image builds (ISOs, appliances, containers)
+  and blueprints have been extracted into the standalone `osbuild` repo at
+  `~/WorkspaceV3/Syncopated/osbuild`.
 - `dify-docker-ninjabot.yml`, `langfuse-podman-tinybot.yml` — standalone
   single-host deployments.
 
@@ -36,9 +34,6 @@ ansible-playbook playbooks/site.yml
 
 # Run specific role only
 ansible-playbook playbooks/site.yml --tags "base"
-
-# Build a custom image
-ansible-playbook playbooks/osbuild.yml
 
 # Lint (from collection dir)
 ansible-lint
