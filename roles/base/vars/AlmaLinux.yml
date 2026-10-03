@@ -8,7 +8,10 @@ base_packages:
   - caca-utils
   - coreutils
   - dnsmasq
-  - ebtables
+  # EL 10 (Fedora 40 lineage) removed ebtables; iptables-nft is the
+  # nftables-backed replacement that symlinks /usr/sbin/ebtables-nft
+  # (https://almalinux.pkgs.org/10/almalinux-appstream-x86_64/iptables-nft-services-1.8.11-13.el10_1.noarch.rpm.html)
+  - iptables-nft
   - fd-find
   - ffmpeg
   - ffmpegthumbnailer
@@ -69,7 +72,10 @@ base_packages:
   - wayland-devel
   - wayland-protocols-devel
   - wireplumber
-  - zlib-devel
+  # EL 10 dropped zlib/zlib-devel; zlib-ng-compat-devel is the ABI-compatible
+  # zlib-ng replacement (https://github.com/rvm/rvm/issues/5478). Rocky 9 still
+  # ships zlib-devel, which is why the base role loads per-major vars for Rocky.
+  - zlib-ng-compat-devel
   - zram-generator
   - zram-generator-defaults
   - zsh

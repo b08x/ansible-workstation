@@ -388,6 +388,7 @@ def gather_mounts(module):
     if not result["ok"]:
         return result
     selected = []
+
     def walk(node):
         for fs in node or []:
             target = fs.get("target", "")
@@ -400,6 +401,7 @@ def gather_mounts(module):
             elif target.startswith("/run/user"):
                 selected.append(fs)
             walk(fs.get("children"))
+
     walk(result["data"].get("filesystems"))
     return {"ok": True, "data": selected, "error": None}
 

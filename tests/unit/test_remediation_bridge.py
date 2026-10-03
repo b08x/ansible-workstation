@@ -24,7 +24,10 @@ def test_progress_lines_reach_callback_in_order(tmp_path):
     )
     seen = []
     outcome = run_cli(
-        "diagnose", {}, python=sys.executable, cli_path=cli,
+        "diagnose",
+        {},
+        python=sys.executable,
+        cli_path=cli,
         on_progress=lambda event: seen.append(event["text"]),
     )
     assert seen == ["diagnosing", "generating"]
@@ -47,7 +50,9 @@ def test_progress_arrives_before_the_child_exits(tmp_path):
         # delivered at exit, the child would never finish.
         marker.write_text(line["text"])
 
-    assert run_cli("diagnose", {}, python=sys.executable, cli_path=cli, on_progress=on_progress) == {}
+    assert (
+        run_cli("diagnose", {}, python=sys.executable, cli_path=cli, on_progress=on_progress) == {}
+    )
     assert marker.read_text() == "started"
 
 
@@ -58,7 +63,9 @@ def test_failure_message_excludes_progress_lines(tmp_path):
         "print('LLM provider openrouter is not usable', file=sys.stderr)\n"
         "sys.exit(3)\n",
     )
-    outcome = run_cli("diagnose", {}, python=sys.executable, cli_path=cli, on_progress=lambda _: None)
+    outcome = run_cli(
+        "diagnose", {}, python=sys.executable, cli_path=cli, on_progress=lambda _: None
+    )
     assert outcome["failed"] is True
     assert outcome["rc"] == 3
     assert outcome["msg"] == "LLM provider openrouter is not usable"

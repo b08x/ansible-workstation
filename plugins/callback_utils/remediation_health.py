@@ -39,9 +39,7 @@ def assess(diagnostics):
         containers = (containers_section.get("data") or {}).get("list") or []
 
     down = [_name(c) for c in containers if str(c.get("State", "")).lower() != "running"]
-    unhealthy = [
-        _name(c) for c in containers if "unhealthy" in str(c.get("Status", "")).lower()
-    ]
+    unhealthy = [_name(c) for c in containers if "unhealthy" in str(c.get("Status", "")).lower()]
     pods = ((diagnostics.get("pods") or {}).get("data") or {}).get("list") or []
     pods_down = [
         str(p.get("Name") or p.get("name"))
@@ -127,9 +125,7 @@ def _host_warnings(diagnostics):
 
 
 def _latest_start(diagnostics):
-    inspects = (
-        ((diagnostics.get("containers") or {}).get("data") or {}).get("inspect") or {}
-    )
+    inspects = ((diagnostics.get("containers") or {}).get("data") or {}).get("inspect") or {}
     latest = None
     for entry in inspects.values():
         records = (entry or {}).get("data") if isinstance(entry, dict) else None

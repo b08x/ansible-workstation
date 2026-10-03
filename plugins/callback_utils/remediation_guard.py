@@ -126,9 +126,7 @@ def _collect_vars(node: Any, found: dict | None = None) -> dict[str, str]:
 def _resolve(text: str, variables: dict[str, str]) -> str:
     text = HOME_TEMPLATE_RE.sub("~", text)
     for _ in range(MAX_RESOLVE_PASSES):
-        resolved = VAR_TEMPLATE_RE.sub(
-            lambda m: variables.get(m.group(1), m.group(0)), text
-        )
+        resolved = VAR_TEMPLATE_RE.sub(lambda m: variables.get(m.group(1), m.group(0)), text)
         resolved = HOME_TEMPLATE_RE.sub("~", resolved)
         if resolved == text:
             break
@@ -145,9 +143,7 @@ def _scan_structures(node: Any, variables: dict[str, str]) -> list[str]:
             short = name.split(".")[-1]
             if short == "podman_volume" and isinstance(value, dict):
                 if str(value.get("state", "")).lower() == "absent":
-                    violations.append(
-                        f"task removes a podman volume via {name} with state: absent"
-                    )
+                    violations.append(f"task removes a podman volume via {name} with state: absent")
             if short == "podman_prune" and isinstance(value, dict):
                 for option in ("volume", "system_volumes"):
                     if _truthy(value.get(option), variables):
@@ -204,7 +200,7 @@ def _check_command(text: str, variables: dict[str, str]) -> list[str]:
             (COMPOSE_DOWN_RE, "podman compose down"),
         ):
             match = command_re.search(segment)
-            if match and VOLUME_FLAG_RE.search(segment[match.end():]):
+            if match and VOLUME_FLAG_RE.search(segment[match.end() :]):
                 violations.append(f"command removes volumes via {what} -v/--volumes: {shown}")
     for statement in STATEMENT_SPLIT_RE.split(resolved):
         if RM_RE.search(statement) or FIND_DELETE_RE.search(statement):

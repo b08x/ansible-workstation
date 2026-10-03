@@ -192,7 +192,6 @@ argspec_validation_plays.yml
 ansible-playbooks-workstation.code-workspace
 ansible.code-workspace
 /site.json
-Gemfile.lock
 Gemfile
 .pre-commit-config.yaml
 devfile.yaml

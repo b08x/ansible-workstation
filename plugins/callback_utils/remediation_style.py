@@ -16,10 +16,10 @@ import os
 __metaclass__ = type
 
 # Charm palette (lipgloss defaults and the charm.sh brand colours).
-PURPLE = (125, 86, 244)   # #7D56F4
-GREEN = (4, 181, 117)     # #04B575
-PINK = (255, 95, 135)     # #FF5F87
-GRAY = (98, 98, 98)       # #626262
+PURPLE = (125, 86, 244)  # #7D56F4
+GREEN = (4, 181, 117)  # #04B575
+PINK = (255, 95, 135)  # #FF5F87
+GRAY = (98, 98, 98)  # #626262
 YELLOW = (236, 253, 101)  # #ECFD65
 WHITE = (250, 250, 250)
 

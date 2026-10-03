@@ -32,9 +32,7 @@ CLI_PATH = os.path.join(REPO_ROOT, "plugins", "callback_utils", "remediation_cli
 
 def default_python():
     """The venv interpreter, overridable with REMEDIATION_PYTHON."""
-    return os.environ.get("REMEDIATION_PYTHON") or os.path.join(
-        REPO_ROOT, ".venv", "bin", "python"
-    )
+    return os.environ.get("REMEDIATION_PYTHON") or os.path.join(REPO_ROOT, ".venv", "bin", "python")
 
 
 def _event(raw):
@@ -96,7 +94,7 @@ def run_cli(subcommand, payload, python=None, cli_path=CLI_PATH, on_progress=Non
         line = line.rstrip("\n")
         if line.startswith(PROGRESS_PREFIX):
             if on_progress is not None:
-                on_progress(_event(line[len(PROGRESS_PREFIX):]))
+                on_progress(_event(line[len(PROGRESS_PREFIX) :]))
         elif line.strip():
             errors.append(line)
     returncode = proc.wait()
@@ -108,8 +106,7 @@ def run_cli(subcommand, payload, python=None, cli_path=CLI_PATH, on_progress=Non
         return {
             "failed": True,
             "rc": returncode,
-            "msg": "\n".join(errors).strip()
-            or f"remediation_cli {subcommand} exited {returncode}",
+            "msg": "\n".join(errors).strip() or f"remediation_cli {subcommand} exited {returncode}",
         }
     try:
         return json.loads(stdout)

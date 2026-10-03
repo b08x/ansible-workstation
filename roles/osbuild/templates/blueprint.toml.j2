@@ -25,13 +25,13 @@ name = "{{ g }}"
 # Packages (from selected components)
 # =============================================================================
 
-{%- for c in osbuild_components %}
+{% for c in osbuild_components %}
 {%- if c in osbuild_component_defs and osbuild_component_defs[c].packages is defined %}
 {%-   for package in osbuild_component_defs[c].packages %}
 [[packages]]
 name = "{{ package }}"
 version = "{{ osbuild_package_pins.get(package, '*') }}"
-{%-   endfor %}
+{%   endfor %}
 {%- endif %}
 {%- endfor %}
 
@@ -39,7 +39,7 @@ version = "{{ osbuild_package_pins.get(package, '*') }}"
 [[packages]]
 name = "{{ package }}"
 version = "{{ osbuild_package_pins.get(package, '*') }}"
-{%- endfor %}
+{% endfor %}
 
 # =============================================================================
 # Kernel Arguments
@@ -87,20 +87,15 @@ languages = ["{{ osbuild_locale }}"]
 keyboard = "{{ osbuild_keyboard }}"
 
 # =============================================================================
-# User Configuration
+# Installer
 # =============================================================================
+# No [[customizations.user]]: Anaconda creates the user (see
+# files/kickstart/syncopated.ks). The Users module must be enabled explicitly
+# because image-builder only adds it when the blueprint defines users.
 
-[[customizations.user]]
-name = "{{ osbuild_user_name }}"
-description = "{{ osbuild_user_description }}"
-password = "{{ osbuild_user_password }}"
-groups = {{ osbuild_user_groups | to_json }}
-shell = "/usr/bin/zsh"
-
-[[customizations.files]]
-path = "/etc/sudoers.d/99-user"
-data = "{{ osbuild_user_name }} ALL=(ALL) NOPASSWD: ALL"
-mode = "0440"
+[customizations.installer.modules]
+enable = ["org.fedoraproject.Anaconda.Modules.Users"]
+disable = ["org.fedoraproject.Anaconda.Modules.Subscription"]
 
 # =============================================================================
 # Component File Injections
@@ -118,24 +113,6 @@ path = "{{ f.path }}"
 {% endfor %}
 {% endif %}
 {% endfor %}
-
-[[customizations.files]]
-path = "/usr/local/sbin/custom-first-boot"
-mode = "0755"
-data = '''
-{% include 'snippets/custom-first-boot.sh.j2' %}'''
-
-[[customizations.files]]
-path = "/usr/local/bin/custom-first-boot-launcher"
-mode = "0755"
-data = '''
-{% include 'snippets/custom-first-boot-launcher.sh.j2' %}'''
-
-[[customizations.files]]
-path = "/etc/xdg/autostart/custom-first-boot.desktop"
-mode = "0644"
-data = '''
-{% include 'snippets/custom-first-boot.desktop.j2' %}'''
 
 {% if 'nvidia' in osbuild_components %}
 # =============================================================================

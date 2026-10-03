@@ -1,6 +1,6 @@
 ---
 # Build a custom image using image-builder CLI
-# Targets: Fedora, AlmaLinux
+# Targets: Fedora, AlmaLinux, Rocky Linux
 # Tooling: image-builder (unified CLI), osbuild
 
 - name: Build custom workstation image
@@ -10,21 +10,32 @@
 
   vars:
     # Distribution & arch
-    osbuild_distro: >-
-      {{ 'fedora-' + ansible_distribution_major_version if ansible_distribution == 'Fedora'
-         else 'almalinux-' + ansible_distribution_major_version }}
+    # image-builder resolves point-release distro names on EL — the installed
+    # binary (live `image-builder list` on tinybot, 2026-10-01) knows
+    # almalinux-9.8/10.2 and rocky-9.8/10.2 but no major-only `almalinux-10`
+    # or `rocky-10` entry. Fedora uses major-version names (fedora-43).
+    # Override per host/group vars when a different point release is wanted.
+    osbuild_distro_default:
+      Fedora: "fedora-{{ ansible_distribution_major_version }}"
+      AlmaLinux: "almalinux-{{ '9.8' if ansible_distribution_major_version == '9' else '10.2' }}"
+      Rocky: "rocky-{{ '9.8' if ansible_distribution_major_version == '9' else '10.2' }}"
+    osbuild_distro: "{{ osbuild_distro_default[ansible_distribution] }}"
     osbuild_arch: "x86_64"
     # Blueprint
     osbuild_blueprint_name: "workstation"
     osbuild_blueprint_version: "1.0.0"
     osbuild_blueprint_description: "Custom Workstation"
 
-    # Build mode
+    # Build mode. Generates blueprint + build script by default;
+    # -e osbuild_only_generate=false builds in the play.
     osbuild_build_bootc: false
-    osbuild_only_generate: false
 
     # Image type
-    osbuild_image_type: minimal-installer
+    # Live `image-builder list` (tinybot, 2026-10-01): `minimal-installer`
+    # exists only for Fedora (42–45); EL distros (almalinux-*, rocky-*)
+    # build installer images as `image-installer`/`network-installer`.
+    # Mirrors the role default in roles/osbuild/defaults/main.yml.
+    osbuild_image_type: "{{ 'minimal-installer' if ansible_distribution == 'Fedora' else 'image-installer' }}"
 
     # Components
     osbuild_components:
@@ -53,10 +64,10 @@
     - name: Verify supported distribution
       ansible.builtin.assert:
         that:
-          - ansible_distribution in ["Fedora", "AlmaLinux"]
+          - ansible_distribution in ["Fedora", "AlmaLinux", "Rocky"]
         fail_msg: >-
           Unsupported distribution '{{ ansible_distribution }}.
-          This playbook targets Fedora and AlmaLinux only.
+          This playbook targets Fedora, AlmaLinux, and Rocky Linux only.
         success_msg: >-
           Target distribution '{{ ansible_distribution }}' is supported.
 

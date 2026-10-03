@@ -34,7 +34,8 @@
 
     - name: Set fact for installed extensions list
       ansible.builtin.set_fact:
-        desktop_installed_extensions_list: "{{ (desktop_system_ext_dirs.files + desktop_user_ext_dirs.files) |
+        desktop_installed_extensions_list:
+          "{{ (desktop_system_ext_dirs.files + desktop_user_ext_dirs.files) |
           map(attribute='path') | map('basename') | list }}"
 
     - name: Read currently enabled extensions via gsettings
@@ -50,7 +51,8 @@
     - name: Enable installed GNOME extensions via dconf
       community.general.dconf:
         key: "/org/gnome/shell/enabled-extensions"
-        value: "{{ desktop_enabled_extensions_list | union(desktop_system_extension_ids) |
+        value:
+          "{{ desktop_enabled_extensions_list | union(desktop_system_extension_ids) |
           union(desktop_gnome_user_extensions | default([])) |
           intersect(desktop_installed_extensions_list) | unique | to_json }}"
       tags: ["enable"]

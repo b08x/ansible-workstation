@@ -50,8 +50,9 @@ def _utcnow() -> str:
 class OllamaEmbedder:
     """Ollama /api/embed client for ``embeddinggemma:latest``."""
 
-    def __init__(self, host: Optional[str] = None, model: str = EMBEDDING_MODEL,
-                 timeout: float = 60.0):
+    def __init__(
+        self, host: Optional[str] = None, model: str = EMBEDDING_MODEL, timeout: float = 60.0
+    ):
         host = host or os.environ.get("OLLAMA_HOST") or "http://localhost:11434"
         if "://" not in host:
             host = "http://" + host
@@ -81,8 +82,7 @@ class OllamaEmbedder:
             ) from e
         except (urllib.error.URLError, OSError, ValueError) as e:
             raise RemediationError(
-                f"Ollama embedding service unreachable at {self.base} "
-                f"(model {self.model}): {e}"
+                f"Ollama embedding service unreachable at {self.base} " f"(model {self.model}): {e}"
             ) from e
         embeddings = body.get("embeddings")
         if not embeddings or len(embeddings) != len(texts):
@@ -168,9 +168,7 @@ class RemediationStore:
     ) -> dict[str, Any]:
         """Append one outcome record and promote the playbook on success."""
         if result not in RESULT_VALUES:
-            raise RemediationError(
-                f"outcome result must be one of {RESULT_VALUES}, got {result!r}"
-            )
+            raise RemediationError(f"outcome result must be one of {RESULT_VALUES}, got {result!r}")
         record = {
             "incident_id": incident_id,
             "schema_version": SCHEMA_VERSION,
@@ -196,8 +194,7 @@ class RemediationStore:
         """Indexed playbook for an incident, if the remediation succeeded."""
         outcomes = self._read_jsonl(self.outcomes_path)
         succeeded = any(
-            o.get("incident_id") == incident_id and o.get("result") == "success"
-            for o in outcomes
+            o.get("incident_id") == incident_id and o.get("result") == "success" for o in outcomes
         )
         target = self.index_dir / f"{incident_id}.yml"
         if succeeded and target.is_file():
@@ -275,9 +272,7 @@ class RemediationStore:
             f"error_signature VARCHAR, summary VARCHAR, embedding_model VARCHAR, "
             f"embedding FLOAT[{dim}])"
         )
-        con.executemany(
-            "INSERT INTO incidents VALUES (?, ?, ?, ?, ?, ?)", rows
-        )
+        con.executemany("INSERT INTO incidents VALUES (?, ?, ?, ?, ?, ?)", rows)
         con.execute(
             "CREATE INDEX incidents_hnsw ON incidents USING HNSW (embedding) "
             "WITH (metric = 'cosine')"

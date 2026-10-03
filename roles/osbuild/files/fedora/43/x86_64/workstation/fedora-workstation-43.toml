@@ -287,9 +287,6 @@ packages = [
 [customizations]
 hostname = "syncopated-dx"
 
-[customizations.installer]
-sudo-nopasswd = ["b08x", "%wheel"]
-
 [customizations.installer.modules]
 enable = ["org.fedoraproject.Anaconda.Modules.Users"]
 disable = ["org.fedoraproject.Anaconda.Modules.Subscription"]
@@ -317,14 +314,6 @@ ntpservers = ["2.fedora.pool.ntp.org"]
 [customizations.locale]
 languages = ["en_US.UTF-8"]
 keyboard = "us"
-
-[[customizations.user]]
-name = "b08x"
-description = "b08x Workstation User"
-password = "$6$CwKesa938P1Lmjak$1f2OovSggypMwegO/VVYN1AxgN2g6ZvfhYFFr/kL6Kh82CobwmG2MZKDYGateLzTItqTUvoPsGYMgHikZzG181"
-groups = ["wheel", "audio", "video", "input", "render", "mock"]
-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHHmjWwIbKqZ0TV+BxmHPVD3CV3eFdduB3JhYj2BzTAt rwpannick@gmail.com"
-shell = "/usr/bin/zsh"
 
 [[customizations.files]]
 path = "/etc/dnf/dnf.conf"
@@ -357,183 +346,6 @@ clean_requirements_on_remove=True
 # # Uncomment the line below to turn on debugging
 # #Enable=true
 # """
-
-[[customizations.files]]
-path = "/usr/local/sbin/custom-first-boot"
-mode = "0755"
-data = """
-#!/bin/bash
-# First boot configuration dashboard for OSBuild images
-
-set -euo pipefail
-
-# Check if gum is available, fallback to echo if not
-GUM=$(command -v gum || true)
-
-function banner() {
-    if [ -n "$GUM" ]; then
-        $GUM style \\
-            --foreground 212 --border-foreground 212 --border double \\
-            --align center --width 60 --padding "1 2" \\
-            "FEDORA WORKSTATION BUILDER" "First Boot Configuration"
-    else
-        echo "============================================================"
-        echo "   FEDORA WORKSTATION BUILDER - First Boot Configuration   "
-        echo "============================================================"
-    fi
-}
-
-function status_msg() {
-    local msg="$1"
-    if [ -n "$GUM" ]; then
-        $GUM style --foreground 123 "➜ $msg"
-    else
-        echo "➜ $msg"
-    fi
-}
-
-function success_msg() {
-    local msg="$1"
-    if [ -n "$GUM" ]; then
-        $GUM style --foreground 46 "✓ $msg"
-    else
-        echo "✓ $msg"
-    fi
-}
-
-# Clear screen for TUI
-clear
-banner
-echo ""
-
-# 0. Install yadm (user-level)
-REAL_USER="${SUDO_USER:-$USER}"
-REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6 || echo "/home/$REAL_USER")
-
-status_msg "Installing yadm for user $REAL_USER..."
-if sudo -u "$REAL_USER" bash -c 'mkdir -p ~/.local/bin && curl -fLo ~/.local/bin/yadm https://github.com/yadm-dev/yadm/raw/master/yadm && chmod a+x ~/.local/bin/yadm'; then
-    success_msg "yadm successfully installed in $REAL_HOME/.local/bin/yadm"
-else
-    echo "Warning: Failed to install yadm"
-fi
-echo ""
-
-# 1. Set Graphical Target
-status_msg "Checking display manager and setting target..."
-if systemctl list-unit-files | grep -qE "^(gdm|lightdm|sddm)\\.service"; then
-    if [ -n "$GUM" ]; then
-        $GUM spin --spinner dot --title "Setting default target to graphical.target..." -- systemctl set-default graphical.target
-    else
-        systemctl set-default graphical.target
-    fi
-    success_msg "Default target set to graphical.target"
-fi
-
-# 2. Configure Repository Priorities
-status_msg "Configuring repository priorities..."
-if [ -n "$GUM" ]; then
-    $GUM spin --spinner dot --title "Optimizing DNF repository priorities..." -- bash -c "dnf config-manager setopt \\
-        fedora.priority=0 \\
-        updates.priority=0 \\
-        cuda-fedora*.priority=80 \\
-        rpmfusion-*.priority=90 || true"
-else
-    dnf config-manager setopt \\
-        fedora.priority=0 \\
-        updates.priority=0 \\
-        cuda-fedora*.priority=80 \\
-        rpmfusion-*.priority=90 || true
-fi
-success_msg "Repository priorities optimized"
-
-# 4. Verify component installation
-echo ""
-status_msg "Final System Verification"
-CHECK_TOOLS=("ansible" "git" "podman" "virt-install" "cockpit-bridge" "zsh" "nvidia-smi" "flatpak" "gum")
-REPORTS=()
-
-for tool in "${CHECK_TOOLS[@]}"; do
-    if command -v "$tool" &>/dev/null; then
-        REPORTS+=("✓ $tool is ready")
-    else
-        REPORTS+=("✗ $tool is MISSING")
-    fi
-done
-
-if [ -n "$GUM" ]; then
-    printf "%s\\n" "${REPORTS[@]}" | $GUM style --foreground 250 --border rounded --padding "0 2"
-else
-    printf "%s\\n" "${REPORTS[@]}"
-fi
-
-echo ""
-if [ -n "$GUM" ]; then
-    $GUM style --foreground 46 --bold "Configuration Complete. Enjoy your new workstation!"
-else
-    echo "Configuration Complete. Enjoy your new workstation!"
-fi
-sleep 5
-
-# Clean up first-boot files to prevent running on subsequent logins
-if [ -f /usr/local/sbin/custom-first-boot ]; then
-    mv /usr/local/sbin/custom-first-boot /usr/local/sbin/custom-first-boot-done
-fi
-if [ -f /usr/local/bin/custom-first-boot-launcher ]; then
-    rm -f /usr/local/bin/custom-first-boot-launcher
-fi
-if [ -f /etc/xdg/autostart/custom-first-boot.desktop ]; then
-    rm -f /etc/xdg/autostart/custom-first-boot.desktop
-fi
-"""
-
-[[customizations.files]]
-path = "/usr/local/bin/custom-first-boot-launcher"
-mode = "0755"
-data = """
-#!/bin/bash
-# Find a terminal emulator and launch the custom first boot script in it.
-for term in xdg-terminal-exec gnome-terminal kitty foot alacritty terminator xterm; do
-    if command -v "$term" &>/dev/null; then
-        case "$term" in
-            xdg-terminal-exec)
-                exec xdg-terminal-exec bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
-                ;;
-            gnome-terminal)
-                exec gnome-terminal -- bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
-                ;;
-            kitty)
-                exec kitty bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
-                ;;
-            foot)
-                exec foot bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
-                ;;
-            alacritty)
-                exec alacritty -e bash -c "sudo /usr/local/sbin/custom-first-boot; echo 'Press Enter to close...'; read"
-                ;;
-            terminator)
-                exec terminator -e "bash -c 'sudo /usr/local/sbin/custom-first-boot; echo Press Enter to close...; read'"
-                ;;
-            xterm)
-                exec xterm -e "bash -c 'sudo /usr/local/sbin/custom-first-boot; echo Press Enter to close...; read'"
-                ;;
-        esac
-    fi
-done
-"""
-
-[[customizations.files]]
-path = "/etc/xdg/autostart/custom-first-boot.desktop"
-mode = "0644"
-data = """
-[Desktop Entry]
-Type=Application
-Name=First Boot Setup
-Comment=Fedora Workstation Builder First Boot Configuration
-Exec=/usr/local/bin/custom-first-boot-launcher
-Terminal=false
-Categories=System;Utility;
-X-GNOME-Autostart-enabled=true
-"""
 
 [[customizations.repositories]]
 id = "docker-ce-stable"

@@ -45,9 +45,9 @@
   ansible.builtin.assert:
     that:
       - ansible_os_family == "RedHat"
-      - ansible_distribution in ["Fedora", "AlmaLinux"]
+      - ansible_distribution in ["Fedora", "AlmaLinux", "Rocky"]
     fail_msg: |
-      This role requires Fedora or AlmaLinux as the build host.
+      This role requires Fedora, AlmaLinux, or Rocky Linux as the build host.
       Detected: {{ ansible_distribution }} {{ ansible_distribution_version }}
     success_msg: "Running on {{ ansible_distribution }} {{ ansible_distribution_version }}"
 
@@ -61,8 +61,10 @@
   ansible.builtin.include_vars:
     # role_path (not playbook_dir): this file lives in the collection's own
     # vars/packages/, two levels above roles/osbuild/, regardless of which
-    # playbook or directory depth invoked this role.
-    file: "{{ role_path }}/../../vars/packages/{{ ansible_distribution }}.yml"
+    # playbook or directory depth invoked this role. Keyed by the build
+    # target (osbuild_distro), not the host, so cross-distro builds get the
+    # target's package names.
+    file: "{{ role_path }}/../../vars/packages/{{ osbuild_target_distribution }}.yml"
 
   tags: ["osbuild"]
 - name: Resolve build mode
@@ -89,6 +91,12 @@
       {%-   endif -%}
       {%- endfor -%}
       {{ ns.sources | unique | list }}
+  tags:
+    - always
+
+- name: Load blueprint components
+  ansible.builtin.import_tasks: components.yml
+  when: osbuild_blueprint_components | length > 0
   tags:
     - always
 
@@ -142,6 +150,17 @@
   tags:
     - always
   block:
+    - name: Import blueprint management tasks
+      ansible.builtin.import_tasks: blueprint.yml
+      tags:
+        - blueprint
+
+    - name: Write image-builder build script
+      ansible.builtin.template:
+        src: image-builder-build.sh.j2
+        dest: "{{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh"
+        mode: "0755"
+
     - name: Display configuration-only mode
       ansible.builtin.debug:
         msg: |
@@ -149,15 +168,14 @@
           ║              IMAGE BUILD CONFIGURATION GENERATED               ║
           ╚════════════════════════════════════════════════════════════════╝
 
-          The configuration files and blueprint have been generated.
-          Blueprint location: {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
+          Blueprint:    {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
+          Build script: {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
 
-          To build the image manually, run the following command on the builder host:
+          To build the image, run on {{ inventory_hostname }}:
 
-          cd {{ osbuild_output_dir }} && sudo image-builder build {{ osbuild_image_type }} \
-            --distro {{ osbuild_distro }} \
-            --blueprint {{ osbuild_blueprint_name }}.toml \
-            {% for url in osbuild_extra_repo_urls | default([]) %}--extra-repo "{{ url }}" {% endfor %}
+            bash {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
+
+          To build inside the play instead, pass -e osbuild_only_generate=false.
 
     - name: Set build status to generated
       ansible.builtin.set_fact:
@@ -238,11 +256,8 @@
       Configuration ready in: {{ osbuild_output_dir }}
       Blueprint: {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
 
-      To build manually, run:
-      cd {{ osbuild_output_dir }} && sudo image-builder build {{ osbuild_image_type }} \
-        --distro {{ osbuild_distro }} \
-        --blueprint {{ osbuild_blueprint_name }}.toml \
-        {% for url in osbuild_extra_repo_urls | default([]) %}--extra-repo "{{ url }}" {% endfor %}
+      To build, run on {{ inventory_hostname }}:
+        bash {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
 
       {% else %}
       Build did not complete successfully.

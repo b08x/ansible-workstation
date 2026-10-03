@@ -5,12 +5,7 @@ from __future__ import absolute_import, division, print_function
 import json
 
 import pytest
-
-from remediation_store import (
-    OllamaEmbedder,
-    RemediationError,
-    RemediationStore,
-)
+from remediation_store import OllamaEmbedder, RemediationError, RemediationStore
 
 SUMMARY_A = (
     "podman langfuse pod degraded container state improper shm tmpfs mount "
@@ -76,7 +71,8 @@ def test_failed_and_unconfirmed_not_indexed(tmp_path, stub_embedder, result):
     store = _store(tmp_path, stub_embedder)
     incident_id = _record(store)
     store.record_outcome(
-        incident_id=incident_id, playbook_path=_write_pending(store, incident_id),
+        incident_id=incident_id,
+        playbook_path=_write_pending(store, incident_id),
         result=result,
     )
     assert store.remediation_for(incident_id) is None
@@ -108,10 +104,10 @@ def test_search_returns_matches_with_scores_and_remediations(tmp_path, stub_embe
     store = _store(tmp_path, stub_embedder)
     promoted_id = _record(store, host="tinybot")
     pending = _write_pending(store, promoted_id)
-    store.record_outcome(
-        incident_id=promoted_id, playbook_path=str(pending), result="success"
+    store.record_outcome(incident_id=promoted_id, playbook_path=str(pending), result="success")
+    other_id = _record(
+        store, host="gir", summary="unrelated kernel panic oom", signature="kernel:oom"
     )
-    other_id = _record(store, host="gir", summary="unrelated kernel panic oom", signature="kernel:oom")
     store.record_outcome(
         incident_id=other_id,
         playbook_path=str(_write_pending(store, other_id)),
@@ -123,9 +119,7 @@ def test_search_returns_matches_with_scores_and_remediations(tmp_path, stub_embe
     top = matches[0]
     assert top["incident_id"] == promoted_id
     assert top["score"] > 0.5
-    assert top["remediation_playbook"] == str(
-        tmp_path / "store" / "index" / f"{promoted_id}.yml"
-    )
+    assert top["remediation_playbook"] == str(tmp_path / "store" / "index" / f"{promoted_id}.yml")
     # The failed incident is searchable as context but carries no remediation.
     by_id = {m["incident_id"]: m for m in matches}
     assert by_id[other_id]["remediation_playbook"] is None
@@ -136,9 +130,7 @@ def test_host_b_query_returns_host_a_remediation(tmp_path, stub_embedder):
     store_a = _store(tmp_path, stub_embedder)
     incident_id = _record(store_a, host="tinybot")
     pending = _write_pending(store_a, incident_id)
-    store_a.record_outcome(
-        incident_id=incident_id, playbook_path=str(pending), result="success"
-    )
+    store_a.record_outcome(incident_id=incident_id, playbook_path=str(pending), result="success")
 
     store_b = RemediationStore(tmp_path / "store", stub_embedder)
     matches = store_b.search(SUMMARY_B_QUERY, k=5)

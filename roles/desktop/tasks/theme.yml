@@ -29,11 +29,11 @@
       ansible.builtin.fail:
         msg: "Yaru theme package installation failed - see the preceding task output."
 
-- name: Build Yaru theme from source (AlmaLinux)
+- name: Build Yaru theme from source (EL family)
   tags: ["theme", "packages", "build"]
-  when: ansible_distribution == "AlmaLinux"
+  when: ansible_distribution in ["AlmaLinux", "Rocky"]
   block:
-    - name: Install build dependencies (AlmaLinux)
+    - name: Install build dependencies (EL family)
       ansible.builtin.dnf:
         name: "{{ desktop_packages.theme }}"
         state: present
@@ -82,13 +82,13 @@
   rescue:
     # Shape 1 (add context, then re-raise): same contract as the Fedora branch.
     # A half-built theme is a failure, not a warning.
-    - name: Report AlmaLinux theme build failure
+    - name: Report EL theme build failure
       ansible.builtin.debug:
         msg: >-
           Failed to build the Yaru theme from source. Check that meson, ninja and
           the build dependencies in desktop_packages.theme are installed, and
           that /tmp/yaru cloned cleanly.
 
-    - name: Fail the play on AlmaLinux theme build failure
+    - name: Fail the play on EL theme build failure
       ansible.builtin.fail:
         msg: "Yaru theme source build failed - see the preceding task output."

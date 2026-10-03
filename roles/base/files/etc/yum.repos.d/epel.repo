@@ -1,8 +1,9 @@
 [epel]
 name=Extra Packages for Enterprise Linux $releasever - $basearch
 # It is much more secure to use the metalink, but if you wish to use a local mirror
-# place its address here.
-baseurl=https://mirror.us.leaseweb.net/epel/10/Everything/$basearch/
+# place its address here. $releasever expands to the EL major (9 or 10), so the
+# same file serves both (mirror.us.leaseweb.net/epel/{9,10}/Everything/ verified 2026-10-01).
+baseurl=https://mirror.us.leaseweb.net/epel/$releasever/Everything/$basearch/
 #metalink=https://mirrors.fedoraproject.org/metalink?repo=epel${releasever_minor:+-z}-$releasever&arch=$basearch
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-$releasever_major
 gpgcheck=1

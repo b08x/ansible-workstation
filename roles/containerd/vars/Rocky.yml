@@ -1,0 +1,9 @@
+---
+containerd_docker_distro_packages: []
+# Docker publishes a native rocky repo path, verified live for both
+# majors: https://download.docker.com/linux/rocky/{9,10}/x86_64/stable/
+# (200, 2026-10-01).
+containerd_docker_repo_os: "rocky"
+containerd_docker_service_enabled: false
+containerd_docker_manage_users: false
+containerd_docker_manage_storage: false
