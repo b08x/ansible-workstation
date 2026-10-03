@@ -1,18 +1,40 @@
 ---
-- name: Download rustup-init script
-  ansible.builtin.get_url:
-    url: https://sh.rustup.rs
-    dest: /tmp/rustup-init.sh
-    mode: "0755"
+- name: Check if rustup is installed
+  ansible.builtin.stat:
+    path: "{{ ansible_user_dir }}/.cargo/bin/rustup"
+  register: user_rustup_stat
   become: false
-
-- name: Run rustup-init
-  ansible.builtin.command:
-    cmd: /tmp/rustup-init.sh -y
-  become: false
-  register: user_rustup_output
-  changed_when: "'Rust is installed now' not in user_rustup_output.stdout"
   tags: ["rust", "cargo", "base"]
+
+- name: Install rustup
+  when: not user_rustup_stat.stat.exists
+  become: false
+  tags: ["rust", "cargo", "base"]
+  block:
+    - name: Create a temporary file for the rustup-init script
+      ansible.builtin.tempfile:
+        state: file
+        suffix: -rustup-init.sh
+      register: user_rustup_script
+
+    - name: Download rustup-init script
+      ansible.builtin.get_url:
+        url: https://sh.rustup.rs
+        dest: "{{ user_rustup_script.path }}"
+        mode: "0755"
+        force: true
+
+    - name: Run rustup-init
+      ansible.builtin.command:
+        cmd: "{{ user_rustup_script.path }} -y"
+        creates: "{{ ansible_user_dir }}/.cargo/bin/rustup"
+
+  always:
+    - name: Clean up rustup-init script
+      ansible.builtin.file:
+        path: "{{ user_rustup_script.path }}"
+        state: absent
+      when: user_rustup_script.path is defined
 
 - name: Install cargo packages
   tags: ["cargo", "base"]
@@ -30,9 +52,26 @@
         mode: "0644"
         backup: true
 
-    - name: Install cargo packages
+    - name: List installed cargo crates
+      ansible.builtin.command: cargo install --list
+      register: user_cargo_installed
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Work out which cargo crates are missing
+      ansible.builtin.set_fact:
+        user_cargo_missing: >-
+          {{ user_cargo_packages | difference(
+               user_cargo_installed.stdout_lines
+               | select('match', '^[^ ]')
+               | map('split', ' ')
+               | map('first')
+               | list) }}
+
+    - name: Install missing cargo packages
       community.general.cargo:
         name: "{{ item }}"
         state: present
         locked: true
-      loop: "{{ user_cargo_packages }}"
+      loop: "{{ user_cargo_missing }}"

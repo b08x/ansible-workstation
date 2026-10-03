@@ -26,7 +26,6 @@ user_rbenv_gems:
 user_cargo_packages:
   - bottom
   - choose
-  - exa
   - git-cliff
   - gping
   - ripgrep_all

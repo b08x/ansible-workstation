@@ -1,36 +1,51 @@
 ---
-- name: Check if oh-my-zsh is installed
+- name: Check if oh-my-zsh is installed for the user
+  ansible.builtin.stat:
+    path: "{{ user.home }}/.oh-my-zsh"
+  register: base_user_omz_stat
+  tags: ["zsh", "oh-my-zsh"]
+
+- name: Check if oh-my-zsh is installed system-wide
   ansible.builtin.stat:
     path: "/usr/share/oh-my-zsh"
-  register: base_oh_my_zsh_stat
+  register: base_system_omz_stat
   tags: ["zsh", "oh-my-zsh"]
 
 - name: Oh-my-zsh installation
-  when: not base_oh_my_zsh_stat.stat.exists
+  when: not (base_user_omz_stat.stat.exists or base_system_omz_stat.stat.exists)
+  become: false
   tags: ["zsh", "oh-my-zsh"]
   environment:
-    ZSH: "/usr/share/oh-my-zsh"
+    ZSH: "{{ user.home }}/.oh-my-zsh"
+    KEEP_ZSHRC: "yes"
+    CHSH: "no"
+    RUNZSH: "no"
   block:
+    - name: Create a temporary file for the oh-my-zsh install script
+      ansible.builtin.tempfile:
+        state: file
+        suffix: -oh-my-zsh-install.sh
+      register: base_oh_my_zsh_install_script
+
     - name: Download oh-my-zsh install script
       ansible.builtin.get_url:
         url: "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
-        dest: "/tmp/oh-my-zsh-install.sh"
+        dest: "{{ base_oh_my_zsh_install_script.path }}"
         mode: "0755"
-      register: base_oh_my_zsh_install_script
+        force: true
 
     - name: Install oh-my-zsh
       ansible.builtin.command:
-        cmd: "/tmp/oh-my-zsh-install.sh --unattended"
-        creates: "/usr/share/oh-my-zsh"
-      environment:
-        ZSH: "/usr/share/oh-my-zsh"
-      tags: ["zsh", "oh-my-zsh"]
+        cmd: "{{ base_oh_my_zsh_install_script.path }} --unattended"
+        creates: "{{ user.home }}/.oh-my-zsh"
       register: base_oh_my_zsh_install
 
+  always:
     - name: Clean up oh-my-zsh install script
       ansible.builtin.file:
-        path: "/tmp/oh-my-zsh-install.sh"
+        path: "{{ base_oh_my_zsh_install_script.path }}"
         state: absent
+      when: base_oh_my_zsh_install_script.path is defined
 
 - name: Check if zoxide is installed
   ansible.builtin.stat:
@@ -38,8 +53,18 @@
   register: base_zoxide_stat
   tags: ["zsh", "zoxide"]
 
+- name: Check if zoxide is on PATH
+  ansible.builtin.command:
+    argv: [sh, -c, "command -v zoxide"]
+  become: false
+  register: base_zoxide_which
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["zsh", "zoxide"]
+
 - name: Install zoxide from GitHub releases
-  when: not base_zoxide_stat.stat.exists
+  when: not base_zoxide_stat.stat.exists and base_zoxide_which.rc != 0
   tags: ["zsh", "zoxide"]
   block:
     - name: Download zoxide install script
