@@ -80,7 +80,9 @@
       - "http://download1.rpmfusion.org/nonfree/el/updates/10/x86_64"
 
     osbuild_output_dir: "/var/tmp/osbuild-images"
-    osbuild_output_filename: "rocky-10-2-workstation-nvidia.iso"
+    # _git_commit is set in pre_tasks: short HEAD hash of this repo, with a
+    # "-dirty" suffix when the working tree has uncommitted changes.
+    osbuild_output_filename: "rocky-10-2-workstation-nvidia-{{ _git_commit }}.iso"
 
     osbuild_build_retries: 1
 
@@ -102,6 +104,15 @@
           run on a Fedora or EL 10 host. Detected: {{ ansible_distribution }}
           {{ ansible_distribution_version }}.
         success_msg: "Build host '{{ ansible_distribution }} {{ ansible_distribution_version }}' is supported."
+      tags: ["always"]
+
+    # Lookups run on the controller; set_fact evaluates this once, so every
+    # role task sees the same image name.
+    - name: Set image name commit
+      ansible.builtin.set_fact:
+        _git_commit: >-
+          {{ lookup('ansible.builtin.pipe',
+             'git -C ' ~ (playbook_dir | quote) ~ ' describe --always --abbrev=7 --dirty --exclude "*"') }}
       tags: ["always"]
 
     - name: List image types known to the installed image-builder

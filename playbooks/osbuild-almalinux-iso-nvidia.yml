@@ -51,7 +51,9 @@
       - anaconda
 
     osbuild_output_dir: "/var/tmp/osbuild-images"
-    osbuild_output_filename: "almalinux-10-2-workstation-nvidia.iso"
+    # _git_commit is set in pre_tasks: short HEAD hash of this repo, with a
+    # "-dirty" suffix when the working tree has uncommitted changes.
+    osbuild_output_filename: "almalinux-10-2-workstation-nvidia-{{ _git_commit }}.iso"
 
     osbuild_build_retries: 1
 
@@ -70,6 +72,15 @@
       - "https://nvidia.github.io/libnvidia-container/stable/rpm/x86_64"
 
   pre_tasks:
+    # Lookups run on the controller; set_fact evaluates this once, so every
+    # role task sees the same image name.
+    - name: Set image name commit
+      ansible.builtin.set_fact:
+        _git_commit: >-
+          {{ lookup('ansible.builtin.pipe',
+             'git -C ' ~ (playbook_dir | quote) ~ ' describe --always --abbrev=7 --dirty --exclude "*"') }}
+      tags: ["always"]
+
     - name: Gather facts as unprivileged connection user
       ansible.builtin.setup:
       become: false

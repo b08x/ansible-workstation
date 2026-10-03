@@ -48,12 +48,23 @@
       - container-tools
 
     osbuild_output_dir: "/var/tmp/osbuild-images"
-    osbuild_output_filename: "rocky-10-2-workstation.iso"
+    # _git_commit is set in pre_tasks: short HEAD hash of this repo, with a
+    # "-dirty" suffix when the working tree has uncommitted changes.
+    osbuild_output_filename: "rocky-10-2-workstation-{{ _git_commit }}.iso"
 
     osbuild_build_retries: 1
     osbuild_extra_repo_urls: []
 
   pre_tasks:
+    # Lookups run on the controller; set_fact evaluates this once, so every
+    # role task sees the same image name.
+    - name: Set image name commit
+      ansible.builtin.set_fact:
+        _git_commit: >-
+          {{ lookup('ansible.builtin.pipe',
+             'git -C ' ~ (playbook_dir | quote) ~ ' describe --always --abbrev=7 --dirty --exclude "*"') }}
+      tags: ["always"]
+
     - name: Gather facts as unprivileged connection user
       ansible.builtin.setup:
       become: false
