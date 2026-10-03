@@ -121,7 +121,7 @@ This role supports two build modes:
 ✅ **NVIDIA Support**: Proprietary drivers, CUDA toolkit, Container Device Interface (CDI)
 ✅ **Intel oneAPI**: Configurable image-time or first-boot installation
 ✅ **Container Tooling**: Podman, Docker CE, GPU-accelerated containers
-✅ **Development Tools**: GCC, Python, Node.js, Ansible collections
+✅ **Development Tools**: GCC, Python, Node.js, rbenv + ruby-build, Ansible collections
 ✅ **Virtualization**: libvirt, QEMU/KVM, Vagrant
 ✅ **First-Boot Automation**: Embedded Ansible playbook for post-install configuration
 ✅ **Comprehensive Error Handling**: Detailed logging, retry logic, helpful diagnostics
@@ -811,6 +811,8 @@ The script runs these steps in order:
 6. Prints a ready/missing report for `git yadm gum ansible podman zsh flatpak nvidia-smi`. Missing tools do not change the exit status.
 
 Without `gum`, the script uses plain-text prompts and output.
+
+**Splash.** The script first clears the terminal and draws the Syncopated logo as ASCII art, centered and revealed row by row. The mark is violet and the wordmark is ember. It then waits at a pulsing `press enter to begin` prompt. Colors are 24-bit when `COLORTERM` is `truecolor` or `24bit`, and 256-color otherwise. A terminal narrower than the art shows only the mark. When stdin or stdout is not a terminal, the script prints the art uncolored and continues without waiting. `SYNCOPATED_NO_ANIM=1` removes the row-by-row delay. The same palette colors `gum` prompts and borders. Any `GUM_CHOOSE_*` or `GUM_INPUT_*` variable already set in the environment overrides it.
 
 **Marker.** `~/.local/state/syncopated/firstboot.done` (or `$XDG_STATE_HOME/syncopated/firstboot.done`). The script writes it after a successful bootstrap or after **Never ask again**. While it exists, the launcher does nothing at login, for that user only. **Skip for now** and a failed clone or bootstrap leave no marker, so the splash opens again at the next login.
 
