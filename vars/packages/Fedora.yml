@@ -209,6 +209,7 @@ system_packages:
       - nodejs-npm
       - rbenv
       - ruby-build-rbenv
+      - bats
     vcs:
       - git
     rpm_build:
@@ -594,6 +595,7 @@ osbuild_legacy:
     - dkms
 
   development_packages:
+    - bats
     - cmake
     - gcc
     - gcc-c++

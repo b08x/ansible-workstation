@@ -15,6 +15,7 @@ kernel_args: []
 packages:
   - "@development"
   - "@rpm-development-tools"
+  - "bats"
   - "btrfs-progs-devel"
   - "cargo"
   - "chromium-headless"

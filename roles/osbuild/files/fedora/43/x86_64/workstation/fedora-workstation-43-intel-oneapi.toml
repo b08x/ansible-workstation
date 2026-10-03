@@ -32,6 +32,7 @@ packages = [
     { name = "ansible-collection-community-postgresql", version = "*" },
     { name = "aria2", version = "*" },
     { name = "bash", version = "*" },
+    { name = "bats", version = "*" },
     { name = "bind-utils", version = "*" },
     { name = "blueman", version = "*" },
     { name = "bluez", version = "*" },

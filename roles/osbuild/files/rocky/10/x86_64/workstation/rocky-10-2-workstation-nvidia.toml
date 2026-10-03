@@ -55,6 +55,7 @@ packages = [
     { name = "ansible-collection-ansible-posix", version = "*" },
     { name = "aria2", version = "*" },
     { name = "bash", version = "*" },
+    { name = "bats", version = "*" },
     { name = "bind-utils", version = "*" },
     { name = "bluez", version = "*" },
     { name = "bolt", version = "*" },
