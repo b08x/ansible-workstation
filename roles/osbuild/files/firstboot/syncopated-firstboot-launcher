@@ -15,13 +15,14 @@ script=${SYNCOPATED_FIRSTBOOT:-/usr/local/bin/syncopated-firstboot}
 cmd="$(printf '%q' "$script"); read -rp 'Press Enter to close…' _"
 
 for term in xdg-terminal-exec ptyxis kgx gnome-terminal kitty foot alacritty xterm; do
-  command -v "$term" >/dev/null 2>&1 || continue
-  case $term in
-    xdg-terminal-exec | kitty | foot) exec "$term" bash -c "$cmd" ;;
-    ptyxis) exec ptyxis --new-window -- bash -c "$cmd" ;;
-    kgx | gnome-terminal) exec "$term" -- bash -c "$cmd" ;;
-    alacritty | xterm) exec "$term" -e bash -c "$cmd" ;;
-  esac
+    command -v "$term" >/dev/null 2>&1 || continue
+    case $term in
+        kitty) exec "$term" --start-as fullscreen bash -c "$cmd" ;;
+        xdg-terminal-exec | foot) exec "$term" bash -c "$cmd" ;;
+        ptyxis) exec ptyxis --new-window -- bash -c "$cmd" ;;
+        kgx | gnome-terminal) exec "$term" -- bash -c "$cmd" ;;
+        alacritty | xterm) exec "$term" -e bash -c "$cmd" ;;
+    esac
 done
 
 echo "syncopated-firstboot-launcher: no terminal emulator found; run $script manually." >&2
