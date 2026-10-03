@@ -162,7 +162,7 @@ _nvidia_bootc_repos_el:
 #   gnome             — GNOME desktop environment + GDM
 #   sway              — Sway tiling window manager
 #   nvidia            — NVIDIA proprietary driver + CUDA stack
-#   development       — GCC, Python, Node.js, CMake, Git
+#   development       — GCC, Python, Node.js, rbenv + ruby-build, CMake, Git
 #   container-tools   — Podman, Buildah, Skopeo, podman-compose
 #   oneapi            — Intel oneAPI BaseKit + HPCKit (adds ~15GB ISO)
 #   cli-tools         — Modern CLI utilities (fd, dust, zoxide, micro, etc.)

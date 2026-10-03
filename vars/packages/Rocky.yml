@@ -216,6 +216,8 @@ system_packages:
       - python3-pip
       - nodejs
       - npm
+      - rbenv
+      - ruby-build-rbenv
     vcs:
       - git
     rpm_build:
@@ -544,7 +546,8 @@ system_flatpaks:
 
 system_copr_repos:
   # COPR for EL targets uses different naming
-  audio: []
+  audio:
+    []
     # - "@audinux/stable-audio"
 
   tools: []
