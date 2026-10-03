@@ -731,6 +731,15 @@ osbuild_extra_kernel_args: ""
 # Directory to store final ISO/image
 osbuild_output_dir: "/var/tmp/osbuild-images"
 
+# =============================================================================
+# First-Login Splash
+# =============================================================================
+
+# Append files/firstboot/ (syncopated-firstboot, its launcher, and the XDG
+# autostart entry) to every prepared blueprint. At first graphical login it
+# clones a dotfiles repository with yadm and runs `yadm bootstrap`.
+osbuild_firstboot_enabled: true
+
 # [COMPATIBILITY] Retained for backward compatibility.
 # Deprecated: composer-era output naming convention carried over for backward compatibility.
 # Filename for the final image (UUID will be prepended)

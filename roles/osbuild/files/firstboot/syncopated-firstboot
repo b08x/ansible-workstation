@@ -1,0 +1,390 @@
+#!/usr/bin/env bash
+# syncopated-firstboot: first-login splash that clones a dotfiles repository
+# with yadm and runs `yadm bootstrap`, as the logged-in user.
+#
+# The autostart launcher (syncopated-firstboot-launcher) stops opening this
+# script once the per-user marker exists. Running it by name always shows the
+# splash, so setup can be repeated at any time.
+#
+# Overrides (used by the bats tests): SYNCOPATED_OS_RELEASE,
+# SYNCOPATED_YADM_URL, SYNCOPATED_DOTFILES_URL, SYNCOPATED_CHECK_TOOLS,
+# SYNCOPATED_NO_ANIM=1 (skip the intro animation).
+
+OS_RELEASE=${SYNCOPATED_OS_RELEASE:-/etc/os-release}
+STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/syncopated
+MARKER=$STATE_DIR/firstboot.done
+YADM_URL=${SYNCOPATED_YADM_URL:-https://github.com/yadm-dev/yadm/raw/master/yadm}
+DOTFILES_URL=${SYNCOPATED_DOTFILES_URL:-https://github.com/b08x/dots.git}
+read -r -a CHECK_TOOLS <<<"${SYNCOPATED_CHECK_TOOLS:-git yadm gum ansible podman zsh flatpak nvidia-smi}"
+
+# Step return codes.
+RC_OK=0
+RC_FAILED=1
+RC_SKIPPED=2
+
+STEPS=(yadm clone bootstrap system 'done')
+declare -A STEP_STATE=()
+
+LOGO=(
+  ' ___ _   _ _  _  ___ ___  ___  _ _____ ___ ___  '
+  '/ __| | | | \| |/ __/ _ \| _ \/_\_   _| __|   \ '
+  '\__ \ |_| | .` | (_| (_) |  _/ _ \| | | _|| |) |'
+  '|___/\__, |_|\_|\___\___/|_|/_/ \_\_| |___|___/ '
+  '     |___/                                      '
+)
+
+# --- output ------------------------------------------------------------------
+
+have_gum() {
+  command -v gum >/dev/null 2>&1
+}
+
+# style COLOR LINE... : print lines in a 256-color foreground.
+style() {
+  local color=$1
+  shift
+  if have_gum; then
+    gum style --foreground "$color" "$@"
+  else
+    printf '%s\n' "$@"
+  fi
+}
+
+info() { style 123 "➜ $*"; }
+ok() { style 46 "✓ $*"; }
+warn() { style 214 "! $*" >&2; }
+err() { style 196 "✗ $*" >&2; }
+
+# os_field KEY : print the value of KEY from os-release, without quotes.
+os_field() {
+  local key=$1 line value
+  [[ -r $OS_RELEASE ]] || return 1
+  while IFS= read -r line || [[ -n $line ]]; do
+    [[ $line == "$key="* ]] || continue
+    value=${line#*=}
+    value=${value#[\"\']}
+    value=${value%[\"\']}
+    printf '%s\n' "$value"
+    return 0
+  done <"$OS_RELEASE"
+  return 1
+}
+
+os_label() {
+  local name version
+  name=$(os_field NAME) || name=Linux
+  version=$(os_field VERSION_ID) || version=
+  printf '%s\n' "$name${version:+ $version}"
+}
+
+restore_terminal() {
+  [[ -t 1 ]] || return 0
+  tput sgr0 2>/dev/null
+  tput cnorm 2>/dev/null
+  return 0
+}
+
+# Typewriter sweep across the logo, then a color cycle. Prints the logo once,
+# without animation, when stdout is not a terminal or SYNCOPATED_NO_ANIM=1.
+intro() {
+  if [[ ! -t 1 || -n ${SYNCOPATED_NO_ANIM:-} ]] || ! tput cup 0 0 >/dev/null 2>&1; then
+    printf '%s\n' "${LOGO[@]}"
+    return 0
+  fi
+  local colors=(201 165 129 93 57 63 69 75 81 87 123 159 195 231 212) width=${#LOGO[0]} col color line
+  clear
+  tput civis 2>/dev/null
+  tput setaf 212 2>/dev/null
+  for ((col = 4; col <= width + 4; col += 4)); do
+    tput cup 0 0
+    for line in "${LOGO[@]}"; do
+      printf '%s\n' "${line:0:col}"
+    done
+    sleep 0.03
+  done
+  for color in "${colors[@]}"; do
+    tput cup 0 0
+    tput setaf "$color"
+    printf '%s\n' "${LOGO[@]}"
+    sleep 0.06
+  done
+  tput sgr0
+  tput cnorm
+}
+
+banner() {
+  local label
+  label=$(os_label)
+  if have_gum; then
+    gum style --border double --border-foreground 212 --foreground 212 \
+      --align center --width 60 --padding "1 2" \
+      "SYNCOPATED" "$label" "First login setup"
+  else
+    printf '%s\n' \
+      "============================================================" \
+      "  SYNCOPATED  |  $label  |  First login setup" \
+      "============================================================"
+  fi
+}
+
+draw_steps() {
+  local step state icon lines=()
+  for step in "${STEPS[@]}"; do
+    state=${STEP_STATE[$step]:-pending}
+    case $state in
+      ok) icon='✓' ;;
+      failed) icon='✗' ;;
+      skipped) icon='-' ;;
+      *) icon='·' ;;
+    esac
+    lines+=("$icon $step ($state)")
+  done
+  if have_gum; then
+    gum style --border rounded --border-foreground 240 --padding "0 2" "${lines[@]}"
+  else
+    printf '  %s\n' "${lines[@]}"
+  fi
+}
+
+# --- prompts -------------------------------------------------------------------
+
+# choose HEADER OPTION... : print the selected option. Fails on cancel/EOF.
+choose() {
+  local header=$1 reply opt i
+  shift
+  if have_gum; then
+    gum choose --header "$header" "$@"
+    return
+  fi
+  printf '%s\n' "$header" >&2
+  for ((i = 1; i <= $#; i++)); do
+    printf '  %d) %s\n' "$i" "${!i}" >&2
+  done
+  while :; do
+    read -r -p "Choose [1-$#]: " reply || return 1
+    if [[ $reply =~ ^[0-9]+$ ]] && ((reply >= 1 && reply <= $#)); then
+      printf '%s\n' "${!reply}"
+      return 0
+    fi
+    for opt in "$@"; do
+      [[ $reply == "$opt" ]] && { printf '%s\n' "$opt"; return 0; }
+    done
+    printf 'Enter a number from 1 to %d.\n' "$#" >&2
+  done
+}
+
+# prompt_url DEFAULT : print the URL the user entered. Fails on cancel/EOF.
+prompt_url() {
+  local default=$1 reply
+  if have_gum; then
+    gum input --header "Dotfiles repository URL" --value "$default" --width 70
+    return
+  fi
+  read -r -e -i "$default" -p "Dotfiles repository URL: " reply || return 1
+  printf '%s\n' "${reply:-$default}"
+}
+
+# --- steps ---------------------------------------------------------------------
+
+acquire_lock() {
+  command -v flock >/dev/null 2>&1 || return 0
+  local dir=${XDG_RUNTIME_DIR:-$STATE_DIR}
+  mkdir -p "$dir" 2>/dev/null || return 0
+  exec {LOCK_FD}>"$dir/syncopated-firstboot.lock" || return 0
+  flock -n "$LOCK_FD"
+}
+
+write_marker() {
+  mkdir -p "$STATE_DIR" && date -Is >"$MARKER"
+}
+
+wait_for_network() {
+  command -v nm-online >/dev/null 2>&1 || return 0
+  info "Waiting for the network (up to 30 s)"
+  nm-online -q -t 30 || warn "The network is not online yet."
+}
+
+ensure_yadm() {
+  if command -v yadm >/dev/null 2>&1; then
+    ok "yadm found: $(command -v yadm)"
+    return "$RC_OK"
+  fi
+  local bin=$HOME/.local/bin tmp
+  mkdir -p "$bin" || return "$RC_FAILED"
+  while :; do
+    info "Downloading yadm from $YADM_URL"
+    tmp=$(mktemp "$bin/.yadm.XXXXXX") || return "$RC_FAILED"
+    if curl -fsSL --connect-timeout 15 -o "$tmp" "$YADM_URL"; then
+      chmod 0755 "$tmp" && mv -f "$tmp" "$bin/yadm" || return "$RC_FAILED"
+      [[ :$PATH: == *":$bin:"* ]] || PATH=$bin:$PATH
+      ok "yadm installed: $bin/yadm"
+      return "$RC_OK"
+    fi
+    rm -f "$tmp"
+    err "GitHub is unreachable: could not download yadm."
+    [[ $(choose "Download failed. Retry?" "Retry" "Skip") == Retry ]] || return "$RC_SKIPPED"
+  done
+}
+
+clone_dotfiles() {
+  local repo url
+  repo=$(yadm introspect repo 2>/dev/null)
+  if [[ -n $repo && -d $repo ]]; then
+    case $(choose "A yadm repository already exists at $repo." "Run bootstrap only" "Skip") in
+      "Run bootstrap only") return "$RC_OK" ;;
+      *) return "$RC_SKIPPED" ;;
+    esac
+  fi
+  url=$DOTFILES_URL
+  while :; do
+    url=$(prompt_url "$url") || return "$RC_SKIPPED"
+    if [[ -z $url ]]; then
+      warn "Enter a repository URL."
+      url=$DOTFILES_URL
+      continue
+    fi
+    info "Checking $url"
+    git ls-remote -q "$url" >/dev/null 2>&1 && break
+    err "Cannot read repository $url. Check the URL and the network, then try again."
+  done
+  if ! yadm clone --no-bootstrap "$url"; then
+    err "yadm clone failed."
+    return "$RC_FAILED"
+  fi
+  ok "Cloned $url"
+}
+
+run_bootstrap() {
+  info "Running yadm bootstrap. Answer its prompts in this terminal."
+  if ! yadm bootstrap; then
+    err "yadm bootstrap exited with an error."
+    return "$RC_FAILED"
+  fi
+  ok "yadm bootstrap finished"
+}
+
+# The only system change: boot to the display manager when one is installed.
+set_graphical_target() {
+  local units
+  units=$(systemctl list-unit-files --no-legend gdm.service lightdm.service sddm.service 2>/dev/null)
+  if [[ -z $units ]]; then
+    info "No display manager installed; default target unchanged."
+    return "$RC_OK"
+  fi
+  if [[ $(systemctl get-default 2>/dev/null) == graphical.target ]]; then
+    ok "Default target is already graphical.target"
+    return "$RC_OK"
+  fi
+  if sudo systemctl set-default graphical.target; then
+    ok "Default target set to graphical.target"
+  else
+    warn "Could not set graphical.target (sudo failed). Run: sudo systemctl set-default graphical.target"
+  fi
+  return "$RC_OK"
+}
+
+# run_step NAME COMMAND... : run a step, record its state, redraw the list.
+run_step() {
+  local name=$1 rc
+  shift
+  "$@"
+  rc=$?
+  case $rc in
+    "$RC_OK") STEP_STATE[$name]=ok ;;
+    "$RC_SKIPPED") STEP_STATE[$name]=skipped ;;
+    *) STEP_STATE[$name]=failed ;;
+  esac
+  draw_steps
+  return "$rc"
+}
+
+report() {
+  local tool rows=()
+  for tool in "${CHECK_TOOLS[@]}"; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      rows+=("✓ ready    $tool")
+    else
+      rows+=("✗ missing  $tool")
+    fi
+  done
+  if have_gum; then
+    gum style --border rounded --border-foreground 250 --padding "0 2" "Tool check" "${rows[@]}"
+  else
+    printf '%s\n' "Tool check" "${rows[@]/#/  }"
+  fi
+}
+
+main() {
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    err "Run syncopated-firstboot as your own user, not as root."
+    return 1
+  fi
+  if ! acquire_lock; then
+    warn "syncopated-firstboot is already running."
+    return 0
+  fi
+  trap restore_terminal EXIT
+
+  intro
+  banner
+  [[ -e $MARKER ]] && info "Setup was completed before ($(<"$MARKER")). Running again."
+  draw_steps
+
+  local action rc step
+  action=$(choose "Clone your dotfiles with yadm and run yadm bootstrap?" \
+    "Set up dotfiles" "Skip for now" "Never ask again") || action="Skip for now"
+  case $action in
+    "Set up dotfiles") ;;
+    "Never ask again")
+      write_marker
+      ok "The splash will not open at login again. Run syncopated-firstboot to start it manually."
+      return 0
+      ;;
+    *)
+      info "Skipped. The splash opens again at the next login, or run syncopated-firstboot."
+      return 0
+      ;;
+  esac
+
+  wait_for_network
+  run_step yadm ensure_yadm &&
+    run_step clone clone_dotfiles &&
+    run_step bootstrap run_bootstrap &&
+    run_step system set_graphical_target
+  rc=$?
+  for step in "${STEPS[@]}"; do
+    [[ -n ${STEP_STATE[$step]:-} ]] || STEP_STATE[$step]=skipped
+  done
+
+  case $rc in
+    "$RC_OK")
+      STEP_STATE[done]=ok
+      write_marker
+      ;;
+    "$RC_SKIPPED") ;;
+    *) STEP_STATE[done]=failed ;;
+  esac
+  draw_steps
+  report
+
+  case $rc in
+    "$RC_OK")
+      ok "Setup complete. The splash will not open at login again."
+      return 0
+      ;;
+    "$RC_SKIPPED")
+      info "Setup skipped. The splash opens again at the next login, or run syncopated-firstboot."
+      return 0
+      ;;
+    *)
+      err "Setup did not finish. The splash opens again at the next login, or run syncopated-firstboot."
+      return 1
+      ;;
+  esac
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  set -uo pipefail
+  main "$@"
+  exit
+fi

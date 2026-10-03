@@ -685,15 +685,42 @@ vars:
     - my-custom-repo
 ```
 
-### First-Boot Customization
+### First-Login Splash (yadm dotfiles)
 
-The role embeds an Ansible playbook that runs on first boot. Customize it by modifying the template or using a static blueprint.
+One plain bash script, `files/firstboot/syncopated-firstboot`, runs at the first graphical login of each user. It shows a splash and asks for a dotfiles repository URL (pre-filled with `https://github.com/b08x/dots.git`). It then clones that repository with `yadm` and runs `yadm bootstrap` as the logged-in user. The script contains no build-time substitutions; it reads `NAME` and `VERSION_ID` from `/etc/os-release` when it runs, so the same bytes go into every distro's image.
 
-Default first-boot tasks:
+`tasks/blueprint.yml` appends the three files to every prepared blueprint, static or templated, inside one `blockinfile` block (`# BEGIN/END syncopated-firstboot`). The blueprints in `files/` and `templates/blueprint.toml.j2` do not contain copies. Edit only `files/firstboot/`.
 
-- Install Intel oneAPI (if not in image)
-- Configure repository priorities
-- Set graphical target
+| Installed path | Mode | Purpose |
+|---|---|---|
+| `/usr/local/bin/syncopated-firstboot` | 0755 | Splash, yadm install/clone/bootstrap, tool report |
+| `/usr/local/bin/syncopated-firstboot-launcher` | 0755 | Opens a terminal running the script unless the user's marker exists |
+| `/etc/xdg/autostart/syncopated-firstboot.desktop` | 0644 | Starts the launcher at graphical login |
+
+The script runs these steps in order:
+
+1. Offers **Set up dotfiles**, **Skip for now**, or **Never ask again**.
+2. Uses `yadm` from `PATH`. If `yadm` is absent, downloads it to `~/.local/bin/yadm` and offers Retry or Skip if GitHub is unreachable.
+3. Checks the URL with `git ls-remote` and asks again if the check fails. Then runs `yadm clone --no-bootstrap`. If a yadm repository already exists, offers "Run bootstrap only" instead.
+4. Runs `yadm bootstrap` in the same terminal, so the bootstrap's own prompts and `sudo` calls work.
+5. If `gdm`, `lightdm`, or `sddm` is installed and the default target is not `graphical.target`, runs `sudo systemctl set-default graphical.target`. This is the only system change. The script does not set DNF repo priorities or install flatpaks.
+6. Prints a ready/missing report for `git yadm gum ansible podman zsh flatpak nvidia-smi`. Missing tools do not change the exit status.
+
+Without `gum`, the script uses plain-text prompts and output.
+
+**Marker.** `~/.local/state/syncopated/firstboot.done` (or `$XDG_STATE_HOME/syncopated/firstboot.done`). The script writes it after a successful bootstrap or after **Never ask again**. While it exists, the launcher does nothing at login, for that user only. **Skip for now** and a failed clone or bootstrap leave no marker, so the splash opens again at the next login.
+
+**Rerun.** Run `syncopated-firstboot` from any terminal. The marker does not block a manual run. To restore the login splash, delete the marker.
+
+**Disable.** Set `osbuild_firstboot_enabled: false` to prepare blueprints without these files.
+
+**Tests.**
+
+```bash
+shellcheck -x roles/osbuild/files/firstboot/syncopated-firstboot{,-launcher}
+bats roles/osbuild/tests/firstboot/                                  # stubbed git/yadm/curl/gum/sudo/systemctl
+ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml  # all blueprints, run twice
+```
 
 ## Troubleshooting
 

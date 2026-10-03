@@ -22,6 +22,34 @@
   ansible.builtin.set_fact:
     blueprint_file_path: "{{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml"
 
+# The first-login splash lives once in files/firstboot/ and is appended to
+# every blueprint here, after the copy/template step, so static and templated
+# blueprints carry identical bytes. TOML ''' literal strings need no escaping
+# but cannot contain ''' themselves.
+- name: Inject first-login splash files
+  when: osbuild_firstboot_enabled | bool
+  vars:
+    _osbuild_firstboot_files:
+      - { src: syncopated-firstboot, path: /usr/local/bin/syncopated-firstboot, mode: "0755" }
+      - { src: syncopated-firstboot-launcher, path: /usr/local/bin/syncopated-firstboot-launcher, mode: "0755" }
+      - { src: syncopated-firstboot.desktop, path: /etc/xdg/autostart/syncopated-firstboot.desktop, mode: "0644" }
+  block:
+    - name: Assert first-login files fit in TOML literal strings
+      ansible.builtin.assert:
+        that: "\"'''\" not in lookup('ansible.builtin.file', 'firstboot/' ~ item.src, rstrip=false)"
+        fail_msg: "files/firstboot/{{ item.src }} contains ''' and cannot be embedded in a TOML literal string"
+        quiet: true
+      loop: "{{ _osbuild_firstboot_files }}"
+      loop_control:
+        label: "{{ item.src }}"
+
+    - name: Append first-login files to blueprint
+      ansible.builtin.blockinfile:
+        path: "{{ blueprint_file_path }}"
+        marker: "# {mark} syncopated-firstboot"
+        block: "{{ lookup('ansible.builtin.template', 'firstboot-files.toml.j2') }}"
+        insertafter: EOF
+
 - name: Display blueprint path
   ansible.builtin.debug:
     msg: "Blueprint ready: {{ blueprint_file_path }}"

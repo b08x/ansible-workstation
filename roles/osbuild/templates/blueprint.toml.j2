@@ -119,24 +119,6 @@ path = "{{ f.path }}"
 {% endif %}
 {% endfor %}
 
-[[customizations.files]]
-path = "/usr/local/sbin/custom-first-boot"
-mode = "0755"
-data = '''
-{% include 'snippets/custom-first-boot.sh.j2' %}'''
-
-[[customizations.files]]
-path = "/usr/local/bin/custom-first-boot-launcher"
-mode = "0755"
-data = '''
-{% include 'snippets/custom-first-boot-launcher.sh.j2' %}'''
-
-[[customizations.files]]
-path = "/etc/xdg/autostart/custom-first-boot.desktop"
-mode = "0644"
-data = '''
-{% include 'snippets/custom-first-boot.desktop.j2' %}'''
-
 {% if 'nvidia' in osbuild_components %}
 # =============================================================================
 # NVIDIA CDI (Container Device Interface) — podman GPU passthrough
