@@ -28,7 +28,7 @@
 # osbuild_sources is emptied and the one non-base repo is passed explicitly.
 
 - name: Prepare Rocky Linux 10.2 CUDA application container
-  hosts: gir
+  hosts: builder
   become: true
   gather_facts: false
   vars:

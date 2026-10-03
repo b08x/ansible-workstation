@@ -38,7 +38,7 @@ Default to generate-only: the role writes files, the user runs the build.
 Hard rules (each was a real failure or verified behavior):
 
 - `roles: - role: osbuild` — not `b08x.rhel_builder.osbuild`.
-- `hosts: gir` (this Fedora 43 machine) or `tinybot` (EL 10). Not `localhost`:
+- `hosts: builder` (gir, Fedora 43, and tinybot, EL 10) for cross-distro playbooks; `tinybot` only when the play asserts an EL host. Not `localhost`:
   the role needs facts and `become`.
 - **Cross-distro target:** the role takes its repo dictionary from the *host's*
   `ansible_distribution`. For an EL target on Fedora gir set

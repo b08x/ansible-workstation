@@ -1,11 +1,17 @@
 # SPDX-License-Identifier: MIT-0
 ---
-# Build the Rocky Linux 10.2 workstation ISO installer (NVIDIA variant) on gir.
+# Generate-only variant of osbuild-rocky-iso-nvidia.yml.
 #
-# Prototype/demo: generated with the Syncopated Appliance Builder skill
-# (.claude/skills/syncopated/). Verified end to end on 2026-10-01: the build
-# finished with failed=0, and an ISO installed in a libvirt VM ran the
-# first-login yadm splash (roles/osbuild/files/firstboot/) successfully.
+# Writes <osbuild_blueprint_name>.toml and build-<osbuild_blueprint_name>.sh
+# to osbuild_output_dir and stops. It never runs image-builder. Build the ISO
+# later with:
+#   bash /var/tmp/osbuild-images/build-rocky-10-2-workstation-nvidia-gen.sh
+#
+# Differences from osbuild-rocky-iso-nvidia.yml:
+#   - osbuild_only_generate is pinned to true (a play var; the role default is
+#     also true, but this playbook does not depend on it).
+#   - blueprint name and ISO filename carry a "-gen" suffix, so both playbooks
+#     can run on the same host without overwriting each other's files.
 #
 # Uses the static, pre-verified NVIDIA blueprint at
 # roles/osbuild/files/rocky/10/x86_64/workstation/rocky-10-2-workstation-nvidia.toml
@@ -33,7 +39,7 @@
 # Secure Boot is NOT compatible with the unsigned proprietary NVIDIA modules —
 # disable it or enroll a MOK on the target machine.
 
-- name: Build Rocky Linux 10.2 workstation ISO installer (NVIDIA)
+- name: Generate Rocky Linux 10.2 workstation ISO blueprint and build script (NVIDIA)
   hosts: builder
   become: true
   gather_facts: false
@@ -44,9 +50,9 @@
     osbuild_distro: "rocky-10.2"
     osbuild_arch: "x86_64"
 
-    osbuild_blueprint_name: "rocky-10-2-workstation-nvidia"
+    osbuild_blueprint_name: "rocky-10-2-workstation-nvidia-gen"
     osbuild_blueprint_version: "1.0.0"
-    osbuild_blueprint_description: "Rocky Linux Workstation 10.2 (NVIDIA)"
+    osbuild_blueprint_description: "Rocky Linux Workstation 10.2 (NVIDIA, generate-only)"
 
     # Static blueprint, not the Jinja2 template — the file already has its
     # full package list, NVIDIA packages, kernel args, CDI service, and
@@ -54,11 +60,10 @@
     osbuild_use_blueprint_template: false
     osbuild_static_blueprint_path: "files/rocky/10/x86_64/workstation/rocky-10-2-workstation-nvidia.toml"
 
-    # Build mode: traditional ISO, not bootc. The role default
-    # (osbuild_only_generate: true) writes the blueprint and
-    # build-<blueprint>.sh; pass -e osbuild_only_generate=false to build here.
-    # "minimal-installer" is Fedora-only; EL distributions expose
-    # image-installer.
+    # Build mode: traditional ISO, not bootc. Generate files only; do not
+    # invoke image-builder. "minimal-installer" is Fedora-only; EL
+    # distributions expose image-installer.
+    osbuild_only_generate: true
     osbuild_build_bootc: false
     osbuild_image_type: image-installer
 
@@ -83,7 +88,7 @@
     osbuild_output_dir: "/var/tmp/osbuild-images"
     # _git_commit is set in pre_tasks: short HEAD hash of this repo, with a
     # "-dirty" suffix when the working tree has uncommitted changes.
-    osbuild_output_filename: "rocky-10-2-workstation-nvidia-{{ _git_commit }}.iso"
+    osbuild_output_filename: "rocky-10-2-workstation-nvidia-gen-{{ _git_commit }}.iso"
 
     osbuild_build_retries: 1
 
