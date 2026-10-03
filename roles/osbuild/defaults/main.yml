@@ -13,6 +13,14 @@
 # default resolution per build host.
 osbuild_distro: "fedora-43"
 
+# Distribution whose package taxonomy (vars/packages/<Name>.yml) supplies
+# component package names. Derived from the TARGET (osbuild_distro), not the
+# build host, so an EL 10 build on a Fedora host gets EL package names.
+# Unknown prefixes fall back to the host distribution.
+osbuild_target_distribution: >-
+  {{ {'fedora': 'Fedora', 'rocky': 'Rocky', 'almalinux': 'AlmaLinux'}
+     .get(osbuild_distro.split('-')[0], ansible_distribution) }}
+
 # Architecture (x86_64, aarch64)
 osbuild_arch: "x86_64"
 
@@ -636,6 +644,21 @@ osbuild_static_blueprint_path: >-
   {{ 'files/' ~ (ansible_distribution | lower) ~ '/' ~
   (osbuild_distro | regex_replace('^[a-z]+-', '')) ~ '/' ~ osbuild_arch ~
   '/workstation/' ~ osbuild_distro ~ '-workstation-nvidia.toml' }}
+
+# Component-composed blueprint. When non-empty this takes precedence over both
+# osbuild_use_blueprint_template and osbuild_static_blueprint_path: the role
+# merges the named component files (packages, services, kernel args, repo URLs,
+# optional TOML fragment) with a static frame into one blueprint, and adds each
+# component's repo_urls to --extra-repo. Component files live in
+# files/<target distro>/<major>/<arch>/components/<name>.yml; paths below are
+# relative to the role's files/ directory and follow osbuild_distro (the
+# target), not the build host.
+osbuild_blueprint_components: []
+osbuild_components_dir: >-
+  {{ osbuild_target_distribution | lower }}/{{ _distro_major_version }}/{{ osbuild_arch }}/components
+# Static, non-composable blueprint part (firewall, locale, timezone, files).
+osbuild_blueprint_frame_path: >-
+  {{ osbuild_target_distribution | lower }}/{{ _distro_major_version }}/{{ osbuild_arch }}/frames/workstation.toml
 
 # Template path (used when osbuild_use_blueprint_template: true)
 # [COMPATIBILITY] Retained for backward compatibility.

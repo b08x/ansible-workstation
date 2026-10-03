@@ -61,8 +61,10 @@
   ansible.builtin.include_vars:
     # role_path (not playbook_dir): this file lives in the collection's own
     # vars/packages/, two levels above roles/osbuild/, regardless of which
-    # playbook or directory depth invoked this role.
-    file: "{{ role_path }}/../../vars/packages/{{ ansible_distribution }}.yml"
+    # playbook or directory depth invoked this role. Keyed by the build
+    # target (osbuild_distro), not the host, so cross-distro builds get the
+    # target's package names.
+    file: "{{ role_path }}/../../vars/packages/{{ osbuild_target_distribution }}.yml"
 
   tags: ["osbuild"]
 - name: Resolve build mode
@@ -89,6 +91,12 @@
       {%-   endif -%}
       {%- endfor -%}
       {{ ns.sources | unique | list }}
+  tags:
+    - always
+
+- name: Load blueprint components
+  ansible.builtin.import_tasks: components.yml
+  when: osbuild_blueprint_components | length > 0
   tags:
     - always
 
