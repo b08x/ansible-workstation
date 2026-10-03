@@ -100,7 +100,8 @@ logged() {
   for step in yadm clone bootstrap system done; do
     [[ $output == *"$step"* ]]
   done
-  [[ $output == *'|___/'* ]]
+  [[ $output == *'"+(tt)>.'* ]]
+  [[ $output != *'press enter to begin'* ]]
 }
 
 # --- fact 8: no gum --------------------------------------------------------
