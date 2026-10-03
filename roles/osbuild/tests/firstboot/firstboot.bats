@@ -6,7 +6,7 @@
 # stubs, then a symlink farm of /usr/bin without the stubbed commands. This
 # lets a test remove gum or yadm even when the host has them installed.
 
-STUBBED="git yadm curl gum sudo systemctl nm-online xdg-terminal-exec ptyxis kgx gnome-terminal kitty foot alacritty xterm"
+STUBBED="git yadm curl gum sudo systemctl nm-online dnf xdg-terminal-exec ptyxis kgx gnome-terminal kitty foot alacritty xterm"
 
 setup_file() {
   export SYS_BIN="$BATS_FILE_TMPDIR/sys"
@@ -43,12 +43,15 @@ setup() {
   printf '%s\n' 'NAME="Test OS"' 'VERSION_ID="9.9"' 'ID=testos' >"$SYNCOPATED_OS_RELEASE"
   export SYNCOPATED_NO_ANIM=1
   export SYNCOPATED_CHECK_TOOLS="git gum not-a-real-tool"
-  unset SYNCOPATED_DOTFILES_URL SYNCOPATED_YADM_URL
-  unset YADM_CLONE_RC YADM_BOOTSTRAP_RC SUDO_RC SYSTEMCTL_DM_UNITS SYSTEMCTL_DEFAULT
+  unset SYNCOPATED_DOTFILES_URL SYNCOPATED_YADM_URL SYNCOPATED_WINDOW_TIMEOUT
+  # No graphical session unless a test sets one: yadm bootstrap then runs in
+  # the same terminal, as the tests without a terminal stub expect.
+  unset WAYLAND_DISPLAY DISPLAY
+  unset YADM_CLONE_RC YADM_BOOTSTRAP_RC SUDO_RC SYSTEMCTL_DM_UNITS SYSTEMCTL_DEFAULT DNF_RC DNF_UPDATES
 
   BIN="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$BIN"
-  use_stubs git yadm curl gum sudo systemctl nm-online
+  use_stubs git yadm curl gum sudo systemctl nm-online dnf
   export PATH="$BIN:$SYS_BIN"
 }
 
@@ -59,6 +62,11 @@ use_stubs() {
 
 use_terminal() {
   ln -sf "$STUB_DIR/fake-terminal" "$BIN/$1"
+}
+
+# use_live_terminal NAME : a terminal stub that runs its bash -c command.
+use_live_terminal() {
+  ln -sf "$STUB_DIR/live-terminal" "$BIN/$1"
 }
 
 answers() {
@@ -97,7 +105,7 @@ logged() {
   run "$SCRIPT" </dev/null
   [ "$status" -eq 0 ]
   grep -q -- '--border double' "$STUB_LOG"
-  for step in yadm clone bootstrap system done; do
+  for step in update yadm clone bootstrap system done; do
     [[ $output == *"$step"* ]]
   done
   [[ $output == *'"+(tt)>.'* ]]
@@ -266,14 +274,14 @@ logged() {
   run "$SCRIPT" </dev/null
   [ "$status" -eq 0 ]
   logged "sudo systemctl set-default graphical.target"
-  [ "$(grep -c '^sudo ' "$STUB_LOG")" -eq 1 ]
+  [ "$(grep -c '^sudo systemctl ' "$STUB_LOG")" -eq 1 ]
 }
 
 @test "fact 17: no display manager means no system change" {
   answers "Set up dotfiles" "__default__"
   run "$SCRIPT" </dev/null
   [ "$status" -eq 0 ]
-  ! grep -q '^sudo ' "$STUB_LOG"
+  ! grep -q '^sudo systemctl ' "$STUB_LOG"
   ! grep -q 'set-default' "$STUB_LOG"
 }
 
@@ -282,7 +290,7 @@ logged() {
   answers "Set up dotfiles" "__default__"
   run "$SCRIPT" </dev/null
   [ "$status" -eq 0 ]
-  ! grep -q '^sudo ' "$STUB_LOG"
+  ! grep -q '^sudo systemctl ' "$STUB_LOG"
 }
 
 @test "fact 17: a sudo failure is reported and does not fail the run" {
@@ -292,6 +300,150 @@ logged() {
   [ "$status" -eq 0 ]
   [[ $output == *"graphical.target"* ]]
   [ -e "$MARKER" ]
+}
+
+# --- fact 24: system update and reboot offer -----------------------------
+
+@test "fact 24: dnf upgrade runs with sudo before the dotfiles prompt" {
+  answers "Skip for now"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  logged "sudo dnf -y upgrade --refresh"
+  logged "dnf -y upgrade --refresh"
+  [ "$(grep -n -m1 '^sudo dnf ' "$STUB_LOG" | cut -d: -f1)" -lt "$(grep -n -m1 '^gum choose' "$STUB_LOG" | cut -d: -f1)" ]
+}
+
+@test "fact 24: nothing to update means no reboot prompt" {
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  ! grep -q 'Reboot now' "$STUB_LOG"
+  [ -e "$MARKER" ]
+}
+
+@test "fact 24: installed updates offer a reboot; Reboot now reboots without a marker" {
+  export DNF_UPDATES=1
+  answers "Reboot now"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  logged "sudo systemctl reboot"
+  ! grep -q '^yadm clone' "$STUB_LOG"
+  [ ! -e "$MARKER" ]
+}
+
+@test "fact 24: Continue setup after updates runs the dotfiles setup" {
+  export DNF_UPDATES=1
+  answers "Continue setup" "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  ! logged "sudo systemctl reboot"
+  logged "yadm clone --no-bootstrap $DOTS"
+  [ -e "$MARKER" ]
+}
+
+@test "fact 24: reboot offer works with plain prompts" {
+  rm "$BIN/gum"
+  export DNF_UPDATES=1
+  run "$SCRIPT" <<<"1"
+  [ "$status" -eq 0 ]
+  logged "sudo systemctl reboot"
+}
+
+@test "fact 24: a failed update is reported and setup continues" {
+  export DNF_RC=1
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  [[ $output == *"update (failed)"* ]]
+  ! grep -q 'Reboot now' "$STUB_LOG"
+  [ -e "$MARKER" ]
+}
+
+@test "fact 24: no dnf means the update step is skipped" {
+  rm "$BIN/dnf"
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  ! grep -q 'dnf' "$STUB_LOG"
+  [[ $output == *"update (skipped)"* ]]
+  [ -e "$MARKER" ]
+}
+
+# --- fact 15: yadm bootstrap in a separate window --------------------------
+
+@test "fact 15: yadm bootstrap runs in a new terminal window and setup waits for it" {
+  export WAYLAND_DISPLAY=wayland-test
+  use_live_terminal kitty
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  grep -q '^kitty bash -c .*syncopated-firstboot --bootstrap-window ' "$STUB_LOG"
+  [ "$(grep -c '^yadm bootstrap$' "$STUB_LOG")" -eq 1 ]
+  [[ $output == *"running in a new window"* ]]
+  [[ $output == *"bootstrap (ok)"* ]]
+  [ -e "$MARKER" ]
+  [ -z "$(find "$XDG_RUNTIME_DIR" -name 'syncopated-bootstrap.*')" ]
+}
+
+@test "fact 15: ptyxis opens the bootstrap window with --new-window" {
+  export WAYLAND_DISPLAY=wayland-test
+  use_live_terminal ptyxis
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  grep -q '^ptyxis --new-window -- bash -c ' "$STUB_LOG"
+  [ -e "$MARKER" ]
+}
+
+@test "fact 15: a failed bootstrap in the window fails setup without a marker" {
+  export WAYLAND_DISPLAY=wayland-test YADM_BOOTSTRAP_RC=3
+  use_live_terminal kitty
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 1 ]
+  [[ $output == *"status 3"* ]]
+  [ ! -e "$MARKER" ]
+}
+
+@test "fact 15: without a graphical session bootstrap runs in the same terminal" {
+  use_live_terminal kitty
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  ! grep -q '^kitty ' "$STUB_LOG"
+  logged "yadm bootstrap"
+  [[ $output == *"Running yadm bootstrap here"* ]]
+  [ -e "$MARKER" ]
+}
+
+@test "fact 15: a window that never starts falls back to the same terminal" {
+  export WAYLAND_DISPLAY=wayland-test SYNCOPATED_WINDOW_TIMEOUT=1
+  use_terminal kitty
+  answers "Set up dotfiles" "__default__"
+  run "$SCRIPT" </dev/null
+  [ "$status" -eq 0 ]
+  grep -q '^kitty ' "$STUB_LOG"
+  [ "$(grep -c '^yadm bootstrap$' "$STUB_LOG")" -eq 1 ]
+  [ -e "$MARKER" ]
+}
+
+@test "fact 15: a late window does not run bootstrap after the timeout" {
+  status_file="$BATS_TEST_TMPDIR/status"
+  printf 'cancelled\n' >"$status_file"
+  run "$SCRIPT" --bootstrap-window "$status_file" "$BIN/yadm" </dev/null
+  [ "$status" -eq 1 ]
+  ! grep -q '^yadm bootstrap' "$STUB_LOG"
+}
+
+@test "fact 15: a window closed during bootstrap records status 129" {
+  status_file="$BATS_TEST_TMPDIR/status"
+  : >"$status_file"
+  # $BIN/yadm is a symlink into stubs/; replace the link, never write through it.
+  rm "$BIN/yadm"
+  printf '%s\n' '#!/usr/bin/env bash' 'kill -HUP "$PPID"; sleep 5' >"$BIN/yadm"
+  chmod +x "$BIN/yadm"
+  run "$SCRIPT" --bootstrap-window "$status_file" "$BIN/yadm" </dev/null
+  [ "$(<"$status_file")" = 129 ]
 }
 
 # --- fact 18: no repo priorities or flatpaks ------------------------------

@@ -791,24 +791,26 @@ vars:
 
 ### First-Login Splash (yadm dotfiles)
 
-One plain bash script, `files/firstboot/syncopated-firstboot`, runs at the first graphical login of each user. It shows a splash and asks for a dotfiles repository URL (pre-filled with `https://github.com/b08x/dots.git`). It then clones that repository with `yadm` and runs `yadm bootstrap` as the logged-in user. The script contains no build-time substitutions; it reads `NAME` and `VERSION_ID` from `/etc/os-release` when it runs, so the same bytes go into every distro's image.
+One plain bash script, `files/firstboot/syncopated-firstboot`, runs at the first graphical login of each user. It shows a splash, updates the system with `dnf`, and asks for a dotfiles repository URL (pre-filled with `https://github.com/b08x/dots.git`). It then clones that repository with `yadm` and runs `yadm bootstrap` as the logged-in user. The script contains no build-time substitutions; it reads `NAME` and `VERSION_ID` from `/etc/os-release` when it runs, so the same bytes go into every distro's image.
 
 `tasks/blueprint.yml` appends the three files to every prepared blueprint, static or templated, inside one `blockinfile` block (`# BEGIN/END syncopated-firstboot`). The blueprints in `files/` and `templates/blueprint.toml.j2` do not contain copies. Edit only `files/firstboot/`.
 
 | Installed path | Mode | Purpose |
 |---|---|---|
-| `/usr/local/bin/syncopated-firstboot` | 0755 | Splash, yadm install/clone/bootstrap, tool report |
+| `/usr/local/bin/syncopated-firstboot` | 0755 | Splash, system update and reboot offer, yadm install/clone, bootstrap in a second window, tool report |
 | `/usr/local/bin/syncopated-firstboot-launcher` | 0755 | Opens a terminal running the script unless the user's marker exists |
 | `/etc/xdg/autostart/syncopated-firstboot.desktop` | 0644 | Starts the launcher at graphical login |
 
 The script runs these steps in order:
 
-1. Offers **Set up dotfiles**, **Skip for now**, or **Never ask again**.
-2. Uses `yadm` from `PATH`. If `yadm` is absent, downloads it to `~/.local/bin/yadm` and offers Retry or Skip if GitHub is unreachable.
-3. Checks the URL with `git ls-remote` and asks again if the check fails. Then runs `yadm clone --no-bootstrap`. If a yadm repository already exists, offers "Run bootstrap only" instead.
-4. Runs `yadm bootstrap` in the same terminal, so the bootstrap's own prompts and `sudo` calls work.
-5. If `gdm`, `lightdm`, or `sddm` is installed and the default target is not `graphical.target`, runs `sudo systemctl set-default graphical.target`. This is the only system change. The script does not set DNF repo priorities or install flatpaks.
-6. Prints a ready/missing report for `git yadm gum ansible podman zsh flatpak nvidia-smi`. Missing tools do not change the exit status.
+1. Waits up to 30 s for the network, then runs `sudo dnf -y upgrade --refresh` in the terminal. A failed update is reported and setup continues; without `dnf` the step is skipped.
+2. If the update installed anything (dnf did not print `Nothing to do.`), offers **Reboot now** or **Continue setup**. **Reboot now** runs `sudo systemctl reboot` and writes no marker, so the splash opens again at the next login; there the update finds nothing to do, no reboot is offered, and setup continues.
+3. Offers **Set up dotfiles**, **Skip for now**, or **Never ask again**.
+4. Uses `yadm` from `PATH`. If `yadm` is absent, downloads it to `~/.local/bin/yadm` and offers Retry or Skip if GitHub is unreachable.
+5. Checks the URL with `git ls-remote` and asks again if the check fails. Then runs `yadm clone --no-bootstrap`. If a yadm repository already exists, offers "Run bootstrap only" instead.
+6. Runs `yadm bootstrap` in a new terminal window, opened with the same terminal order as the launcher, so the bootstrap's own prompts and `sudo` calls work there. The first window waits until the bootstrap ends and uses its exit status; closing the bootstrap window early counts as a failure. With no graphical session or terminal emulator, or when the window has not started after 15 s (`SYNCOPATED_WINDOW_TIMEOUT`), bootstrap runs in the first window instead.
+7. If `gdm`, `lightdm`, or `sddm` is installed and the default target is not `graphical.target`, runs `sudo systemctl set-default graphical.target`. Apart from the package update and the optional reboot, this is the only system change. The script does not set DNF repo priorities or install flatpaks.
+8. Prints a ready/missing report for `git yadm gum ansible podman zsh flatpak nvidia-smi`. Missing tools do not change the exit status.
 
 Without `gum`, the script uses plain-text prompts and output.
 
@@ -824,7 +826,7 @@ Without `gum`, the script uses plain-text prompts and output.
 
 ```bash
 shellcheck -x roles/osbuild/files/firstboot/syncopated-firstboot{,-launcher}
-bats roles/osbuild/tests/firstboot/                                  # stubbed git/yadm/curl/gum/sudo/systemctl
+bats roles/osbuild/tests/firstboot/                                  # stubbed git/yadm/curl/gum/sudo/systemctl/dnf
 ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml  # all blueprints, run twice
 ```
 

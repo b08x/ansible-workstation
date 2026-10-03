@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# syncopated-firstboot: first-login splash that clones a dotfiles repository
-# with yadm and runs `yadm bootstrap`, as the logged-in user.
+# syncopated-firstboot: first-login splash that updates the system with dnf,
+# offers a reboot when updates were installed, then clones a dotfiles
+# repository with yadm and runs `yadm bootstrap` in a separate terminal
+# window, as the logged-in user.
 #
 # The autostart launcher (syncopated-firstboot-launcher) stops opening this
 # script once the per-user marker exists. Running it by name always shows the
@@ -8,13 +10,16 @@
 #
 # Overrides (used by the bats tests): SYNCOPATED_OS_RELEASE,
 # SYNCOPATED_YADM_URL, SYNCOPATED_DOTFILES_URL, SYNCOPATED_CHECK_TOOLS,
-# SYNCOPATED_NO_ANIM=1 (skip the splash reveal delay).
+# SYNCOPATED_NO_ANIM=1 (skip the splash reveal delay),
+# SYNCOPATED_WINDOW_TIMEOUT (seconds to wait for the bootstrap window to start).
 
 OS_RELEASE=${SYNCOPATED_OS_RELEASE:-/etc/os-release}
 STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/syncopated
 MARKER=$STATE_DIR/firstboot.done
 YADM_URL=${SYNCOPATED_YADM_URL:-https://github.com/yadm-dev/yadm/raw/master/yadm}
 DOTFILES_URL=${SYNCOPATED_DOTFILES_URL:-https://github.com/b08x/dots.git}
+SELF=$(readlink -f "${BASH_SOURCE[0]}")
+WINDOW_TIMEOUT=${SYNCOPATED_WINDOW_TIMEOUT:-15}
 read -r -a CHECK_TOOLS <<<"${SYNCOPATED_CHECK_TOOLS:-git yadm gum ansible podman zsh flatpak nvidia-smi}"
 
 # Step return codes.
@@ -22,7 +27,11 @@ RC_OK=0
 RC_FAILED=1
 RC_SKIPPED=2
 
-STEPS=(yadm clone bootstrap system 'done')
+STEPS=(update yadm clone bootstrap system 'done')
+# Set by update_system when dnf installed or upgraded at least one package.
+UPDATES_INSTALLED=0
+# Exit status of yadm bootstrap in --bootstrap-window mode; 129 until it ends.
+BOOTSTRAP_RC=129
 declare -A STEP_STATE=()
 
 # Brand palette, sampled from the Syncopated logo: a violet mark and an ember
@@ -353,16 +362,132 @@ clone_dotfiles() {
   ok "Cloned $url"
 }
 
+# open_terminal COMMAND : start a new terminal window running COMMAND with
+# bash, in the background. Fails without a graphical session or a known
+# terminal emulator. Same terminal order as syncopated-firstboot-launcher.
+open_terminal() {
+  local cmd=$1 term
+  [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]] || return 1
+  for term in xdg-terminal-exec ptyxis kgx gnome-terminal kitty foot alacritty xterm; do
+    command -v "$term" >/dev/null 2>&1 || continue
+    case $term in
+      xdg-terminal-exec | kitty | foot) "$term" bash -c "$cmd" ;;
+      ptyxis) ptyxis --new-window -- bash -c "$cmd" ;;
+      kgx | gnome-terminal) "$term" -- bash -c "$cmd" ;;
+      alacritty | xterm) "$term" -e bash -c "$cmd" ;;
+    esac </dev/null >/dev/null 2>&1 &
+    disown
+    return 0
+  done
+  return 1
+}
+
+# wait_window_start STATUS_FILE : wait up to WINDOW_TIMEOUT seconds for the
+# bootstrap window to write "running". On timeout, write "cancelled" so a
+# window that starts late exits without running bootstrap.
+wait_window_start() {
+  local status=$1 tries=$((WINDOW_TIMEOUT * 2))
+  while ((tries-- > 0)); do
+    [[ -s $status ]] && return 0
+    sleep 0.5
+  done
+  printf 'cancelled\n' >"$status"
+  return 1
+}
+
+# Run yadm bootstrap in a new terminal window and wait for its exit status.
+# Falls back to this terminal when no window can be opened.
 run_bootstrap() {
-  info "Running yadm bootstrap. Answer its prompts in this terminal."
-  if ! yadm bootstrap; then
-    err "yadm bootstrap exited with an error."
+  local status rc yadm_bin
+  yadm_bin=$(command -v yadm) || yadm_bin=yadm
+  status=$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/syncopated-bootstrap.XXXXXX") || return "$RC_FAILED"
+  if open_terminal "$(printf '%q ' "$SELF" --bootstrap-window "$status" "$yadm_bin")" &&
+    wait_window_start "$status"; then
+    info "yadm bootstrap is running in a new window. Answer its prompts there; this window waits for it."
+    while [[ $(<"$status") == running ]]; do
+      sleep 0.5
+    done
+    rc=$(<"$status")
+  else
+    info "No new terminal window available. Running yadm bootstrap here; answer its prompts in this terminal."
+    yadm bootstrap
+    rc=$?
+  fi
+  rm -f "$status"
+  if [[ $rc != 0 ]]; then
+    err "yadm bootstrap exited with an error (status $rc)."
     return "$RC_FAILED"
   fi
   ok "yadm bootstrap finished"
 }
 
-# The only system change: boot to the display manager when one is installed.
+# --bootstrap-window STATUS_FILE [YADM] : body of the bootstrap window. Writes
+# "running" to STATUS_FILE, runs yadm bootstrap, then writes its exit status.
+# Closing the window early records 129. Does nothing when STATUS_FILE is
+# missing or already written (the first window timed out and gave up).
+bootstrap_window() {
+  local status=${1:-} yadm_bin=${2:-yadm}
+  [[ -n $status && -e $status && ! -s $status ]] || return 1
+  printf 'running\n' >"$status"
+  # shellcheck disable=SC2064 # expand $status now; BOOTSTRAP_RC at exit.
+  trap "[[ -e '$status' && \$(<'$status') == running ]] && printf '%s\\n' \"\$BOOTSTRAP_RC\" >'$status'" EXIT
+  banner
+  info "Running yadm bootstrap. Answer its prompts in this window."
+  "$yadm_bin" bootstrap
+  BOOTSTRAP_RC=$?
+  printf '%s\n' "$BOOTSTRAP_RC" >"$status"
+  if ((BOOTSTRAP_RC == 0)); then
+    ok "yadm bootstrap finished. Setup continues in the first window."
+  else
+    err "yadm bootstrap exited with status $BOOTSTRAP_RC."
+  fi
+  read -rp 'Press Enter to close this window…' _
+  return 0
+}
+
+# Apply every available package update. dnf prints "Nothing to do." when
+# there is nothing to install; any other successful run installed something.
+update_system() {
+  if ! command -v dnf >/dev/null 2>&1; then
+    info "dnf not found; system update skipped."
+    return "$RC_SKIPPED"
+  fi
+  local log rc
+  log=$(mktemp) || return "$RC_FAILED"
+  info "Updating the system: sudo dnf -y upgrade --refresh"
+  sudo dnf -y upgrade --refresh 2>&1 | tee "$log"
+  rc=${PIPESTATUS[0]}
+  if ((rc != 0)); then
+    rm -f "$log"
+    err "System update failed (dnf exit $rc). Run later: sudo dnf upgrade --refresh"
+    return "$RC_FAILED"
+  fi
+  if grep -q '^Nothing to do\.' "$log"; then
+    ok "System is up to date"
+  else
+    UPDATES_INSTALLED=1
+    ok "System updated"
+  fi
+  rm -f "$log"
+  return "$RC_OK"
+}
+
+# Offer a reboot after installed updates. Returns 0 only when the reboot was
+# started. No marker is written, so the splash opens again at the next login,
+# where the update finds nothing to do and setup continues.
+offer_reboot() {
+  local action
+  action=$(choose "Updates were installed. Reboot now? Setup continues at the next login." \
+    "Reboot now" "Continue setup") || action="Continue setup"
+  [[ $action == "Reboot now" ]] || return 1
+  info "Rebooting. The splash opens again at the next login."
+  if ! sudo systemctl reboot; then
+    warn "Could not reboot (sudo failed). Continuing setup."
+    return 1
+  fi
+}
+
+# Boot to the display manager when one is installed.
 set_graphical_target() {
   local units
   units=$(systemctl list-unit-files --no-legend gdm.service lightdm.service sddm.service 2>/dev/null)
@@ -429,6 +554,12 @@ main() {
   [[ -e $MARKER ]] && info "Setup was completed before ($(<"$MARKER")). Running again."
   draw_steps
 
+  wait_for_network
+  run_step update update_system
+  if ((UPDATES_INSTALLED)) && offer_reboot; then
+    return 0
+  fi
+
   local action rc step
   action=$(choose "Clone your dotfiles with yadm and run yadm bootstrap?" \
     "Set up dotfiles" "Skip for now" "Never ask again") || action="Skip for now"
@@ -445,7 +576,6 @@ main() {
       ;;
   esac
 
-  wait_for_network
   run_step yadm ensure_yadm &&
     run_step clone clone_dotfiles &&
     run_step bootstrap run_bootstrap &&
@@ -484,6 +614,10 @@ main() {
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
   set -uo pipefail
+  if [[ ${1:-} == --bootstrap-window ]]; then
+    bootstrap_window "${@:2}"
+    exit
+  fi
   main "$@"
   exit
 fi
