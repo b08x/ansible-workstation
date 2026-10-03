@@ -6,7 +6,8 @@ Usage: check_kickstart.py OUTPUT_DIR KS_SRC EXPECTED_COUNT MODE LOCALE KEYBOARD 
 MODE is "enabled" or "disabled" (osbuild_kickstart_enabled). Every
 OUTPUT_DIR/*.toml must parse as TOML and carry no user, group, unattended or
 sudo-nopasswd setting, must enable the Anaconda Users module, and must ship
-the wheel sudoers drop-in and the Flathub remote file exactly once. With MODE=enabled the kickstart
+the wheel sudoers drop-in, the Flathub remote file and /etc/syncopated-release
+(naming the blueprint) exactly once. With MODE=enabled the kickstart
 contents must be the rendered lang/keyboard/timezone lines, the layout %pre
 that writes /tmp/syncopated-layout.env (exactly the LAYOUT_KEYS, integer
 values), then KS_SRC byte for byte; with MODE=disabled there must be no kickstart at all. When
@@ -22,6 +23,7 @@ import tomllib
 USERS_MODULE = "org.fedoraproject.Anaconda.Modules.Users"
 SUDOERS = "/etc/sudoers.d/90-wheel-nopasswd"
 FLATHUB = "/etc/flatpak/remotes.d/flathub.flatpakrepo"
+RELEASE = "/etc/syncopated-release"
 
 out_dir, ks_src = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 expected, mode = int(sys.argv[3]), sys.argv[4]
@@ -85,6 +87,12 @@ for bp in blueprints:
         err.append(f"{FLATHUB} present {len(flathub)} times")
     elif flathub[0].get("mode") != "0644" or flathub[0].get("data") != flathub_src:
         err.append(f"{FLATHUB} has wrong mode or differs from files/flatpak/flathub.flatpakrepo")
+
+    release = [f for f in cust.get("files", []) if f.get("path") == RELEASE]
+    if len(release) != 1:
+        err.append(f"{RELEASE} present {len(release)} times")
+    elif f"SYNCOPATED_BLUEPRINT={bp.stem}\n" not in release[0].get("data", ""):
+        err.append(f"{RELEASE} does not name blueprint {bp.stem}")
 
     markers = raw.count("# BEGIN syncopated-kickstart")
     contents = inst.get("kickstart", {}).get("contents")

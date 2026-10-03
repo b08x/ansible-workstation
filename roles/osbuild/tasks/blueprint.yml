@@ -80,6 +80,14 @@
         block: "{{ lookup('ansible.builtin.template', 'flathub-remote.toml.j2') }}"
         insertafter: EOF
 
+- name: Append release file to blueprint
+  ansible.builtin.blockinfile:
+    path: "{{ blueprint_file_path }}"
+    marker: "# {mark} syncopated-release"
+    block: "{{ lookup('ansible.builtin.template', 'release-file.toml.j2') }}"
+    insertafter: EOF
+  when: osbuild_release_file_enabled | bool
+
 # The installer kickstart lives once in files/kickstart/ and is appended the
 # same way. image-builder rejects user-supplied kickstart contents next to
 # [[customizations.user]], [[customizations.group]], unattended or

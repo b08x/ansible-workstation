@@ -143,3 +143,13 @@ echo "target disk $best: $total MiB; / $root MiB, /usr $usr MiB, /var $var MiB, 
 %end
 
 %include /tmp/partitions.ks
+
+# Create the system flatpak repository so /etc/flatpak/remotes.d (the Flathub
+# remote) is applied at install time. flatpak imports remotes.d files only
+# when root first opens /var/lib/flatpak/repo; until then a user running
+# `flatpak remotes` sees no remotes. Runs inside the installed system.
+%post --interpreter=/usr/bin/bash --log=/root/syncopated-post.log
+if command -v flatpak >/dev/null 2>&1; then
+  flatpak remotes --system --columns=name,url
+fi
+%end

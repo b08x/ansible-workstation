@@ -751,6 +751,16 @@ osbuild_firstboot_enabled: true
 # Flathub rotates its signing key (current key expires 2027-06-14).
 osbuild_flathub_enabled: true
 
+# Append /etc/syncopated-release to every prepared blueprint: the blueprint
+# name, target distro and the commit of this repository that produced it, so
+# `cat /etc/syncopated-release` on an installed system names its source.
+osbuild_release_file_enabled: true
+# Short HEAD hash with a "-dirty" suffix for uncommitted changes; "unknown"
+# when the role does not run from a git checkout. Lookups run on the controller.
+osbuild_release_commit: >-
+  {{ lookup('ansible.builtin.pipe',
+     'git -C ' ~ (role_path | quote) ~ ' describe --always --abbrev=7 --dirty --exclude "*" 2>/dev/null || echo unknown') }}
+
 # Append files/kickstart/syncopated.ks to every prepared blueprint as
 # [customizations.installer.kickstart]. Anaconda then asks only for the root
 # password and the user; %pre picks the target disk and lays it out. Blueprints
