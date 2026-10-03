@@ -16,12 +16,12 @@ All playbooks live in `playbooks/`, not at the repo root:
   desktop, libvirt, containerd) and an unprivileged user play (user,
   coding_agents).
 - `base.yml` — the system play of `site.yml` on its own, for base-only runs.
-- `composer_cli.yml` — provisions the `osbuild-composer` service on `builder`
-  hosts (gir, tinybot). Custom image builds (ISOs, appliances, containers)
-  and blueprints have been extracted into the standalone `osbuild` repo at
-  `~/WorkspaceV3/Syncopated/osbuild`.
 - `dify-docker-ninjabot.yml`, `langfuse-podman-tinybot.yml` — standalone
   single-host deployments.
+
+Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
+blueprints have been moved into the standalone `osbuild` repository at
+`~/WorkspaceV3/Syncopated/osbuild`.
 
 Repo-root YAML is configuration, not plays: `ansible-navigator.yml` and the
 `argspec_validation_plays*.yml` pair.
