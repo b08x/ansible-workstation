@@ -57,7 +57,10 @@ Hard rules (each was a real failure or verified behavior):
   asserts this.
 - For non-installer image types (`container`, `qcow2`, …) set
   `osbuild_kickstart_enabled: false`, `osbuild_kickstart_sudoers: false`,
-  `osbuild_firstboot_enabled: false`.
+  `osbuild_firstboot_enabled: false`; containers also
+  `osbuild_flathub_enabled: false`.
+- Blueprint fragments the role appends must not use `[[packages]]`: static
+  blueprints define `packages = [...]` inline, and TOML forbids extending it.
 - Variants of an existing build get their own `osbuild_blueprint_name` and
   `osbuild_output_filename`, so they do not overwrite each other's files in
   `/var/tmp/osbuild-images`. A variant may reuse the same static blueprint.
@@ -81,6 +84,7 @@ Hard rules (each was a real failure or verified behavior):
 | `osbuild_kickstart_{root_percent,root_min_gib,reserve_percent,usr_percent,usr_max_gib,var_max_gib,home_min_gib,disk_min_gib}` | `10,16,10,80,256,128,100,40` | `auto` layout: `/`, unassigned vg00 reserve, `/usr` (capped), `/var` (rest, capped), `/home` only if ≥ home_min_gib is left. Built-in defaults in `syncopated.ks` must match `defaults/main.yml` (bats checks) |
 | `osbuild_kickstart_sudoers` | `true` | `/etc/sudoers.d/90-wheel-nopasswd` |
 | `osbuild_firstboot_enabled` | `true` | First-login yadm splash (desktop images only) |
+| `osbuild_flathub_enabled` | `true` | `/etc/flatpak/remotes.d/flathub.flatpakrepo` (system remote `flathub`) |
 
 ## 4. Verify before reporting (all must pass)
 

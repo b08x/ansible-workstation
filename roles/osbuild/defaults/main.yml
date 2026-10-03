@@ -720,6 +720,14 @@ osbuild_output_dir: "/var/tmp/osbuild-images"
 # clones a dotfiles repository with yadm and runs `yadm bootstrap`.
 osbuild_firstboot_enabled: true
 
+# Append files/flatpak/flathub.flatpakrepo to every prepared blueprint as
+# /etc/flatpak/remotes.d/flathub.flatpakrepo. flatpak imports it as the
+# system remote "flathub" (GNOME Software lists it). The flatpak package must
+# come from the blueprint (the GNOME/workstation groups pull it in).
+# Refresh the file from https://dl.flathub.org/repo/flathub.flatpakrepo when
+# Flathub rotates its signing key (current key expires 2027-06-14).
+osbuild_flathub_enabled: true
+
 # Append files/kickstart/syncopated.ks to every prepared blueprint as
 # [customizations.installer.kickstart]. Anaconda then asks only for the root
 # password and the user; %pre picks the target disk and lays it out. Blueprints

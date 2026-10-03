@@ -50,6 +50,24 @@
         block: "{{ lookup('ansible.builtin.template', 'firstboot-files.toml.j2') }}"
         insertafter: EOF
 
+# The Flathub remote is shipped as a flatpakrepo file (files/flatpak/), which
+# flatpak imports as a system remote, plus the flatpak package itself.
+- name: Inject Flathub system remote
+  when: osbuild_flathub_enabled | bool
+  block:
+    - name: Assert Flathub repo file fits in a TOML literal string
+      ansible.builtin.assert:
+        that: "\"'''\" not in lookup('ansible.builtin.file', 'flatpak/flathub.flatpakrepo', rstrip=false)"
+        fail_msg: "files/flatpak/flathub.flatpakrepo contains ''' and cannot be embedded in a TOML literal string"
+        quiet: true
+
+    - name: Append Flathub remote to blueprint
+      ansible.builtin.blockinfile:
+        path: "{{ blueprint_file_path }}"
+        marker: "# {mark} syncopated-flathub"
+        block: "{{ lookup('ansible.builtin.template', 'flathub-remote.toml.j2') }}"
+        insertafter: EOF
+
 # The installer kickstart lives once in files/kickstart/ and is appended the
 # same way. image-builder rejects user-supplied kickstart contents next to
 # [[customizations.user]], [[customizations.group]], unattended or
@@ -134,22 +152,31 @@
   ansible.builtin.debug:
     msg: "Blueprint ready: {{ blueprint_file_path }}"
 
-- name: Validate blueprint syntax (optional)
-  block:
-    - name: TOML syntax check
-      ansible.builtin.command: >-
-        python3 -c "import sys; toml = __import__('tomllib' if sys.version_info >= (3, 11) else 'tomli');
-        toml.load(open('{{ blueprint_file_path }}', 'rb'))"
-      changed_when: false
+# Exit 3 means no TOML parser (Python < 3.11 without python3-tomli): the check
+# is skipped. Any other non-zero exit is a parse error and fails the play.
+- name: TOML syntax check
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |
+        import sys
+        try:
+            import tomllib as toml
+        except ImportError:
+            try:
+                import tomli as toml
+            except ImportError:
+                sys.exit(3)
+        with open(sys.argv[1], "rb") as f:
+            toml.load(f)
+      - "{{ blueprint_file_path }}"
+  register: _osbuild_toml_check
+  changed_when: false
+  failed_when: _osbuild_toml_check.rc not in [0, 3]
 
-    - name: Display validation success
-      ansible.builtin.debug:
-        msg: "✓ Blueprint TOML syntax is valid"
-
-  rescue:
-    # Shape 3 (optional dependency): the TOML check is an extra assertion, not
-    # the deliverable. The blueprint is already written, so the role's contract
-    # holds when python3-tomli is absent.
-    - name: Skip validation if tomli unavailable
-      ansible.builtin.debug:
-        msg: "⚠ TOML validation skipped (python3-tomli not installed)"
+- name: Report TOML syntax check
+  ansible.builtin.debug:
+    msg: >-
+      {{ '✓ Blueprint TOML syntax is valid' if _osbuild_toml_check.rc == 0
+         else '⚠ TOML validation skipped (no tomllib or python3-tomli)' }}

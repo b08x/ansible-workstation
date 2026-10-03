@@ -167,7 +167,7 @@ Which groups apply depends on what you build:
 | Building | Groups that apply |
 |---|---|
 | ISO installer (`image-installer`, `minimal-installer`) | What to build, Build mode, Blueprint, Repositories, Installer, Build host |
-| VM or container image (`qcow2`, `container`, …) | What to build, Build mode, Blueprint, Repositories, Build host. Set `osbuild_kickstart_enabled`, `osbuild_kickstart_sudoers` and `osbuild_firstboot_enabled` to `false`: image-builder rejects installer settings for these types |
+| VM or container image (`qcow2`, `container`, …) | What to build, Build mode, Blueprint, Repositories, Build host. Set `osbuild_kickstart_enabled`, `osbuild_kickstart_sudoers` and `osbuild_firstboot_enabled` to `false`: image-builder rejects installer settings for these types. Containers also set `osbuild_flathub_enabled: false` |
 | bootc image (`osbuild_build_bootc: true`) | What to build, bootc |
 
 ### What to build
@@ -222,6 +222,7 @@ The blueprint comes from one of two places:
 | `osbuild_timezone` | `America/New_York` | template, installer | Also rendered into the kickstart |
 | `osbuild_locale` | `en_US.UTF-8` | template, installer | Also rendered into the kickstart |
 | `osbuild_keyboard` | `us` | template, installer | Also rendered into the kickstart |
+| `osbuild_flathub_enabled` | `true` | both | Ship the Flathub system remote (see [Flathub Remote](#flathub-remote)) |
 
 ### Repositories
 
@@ -786,6 +787,28 @@ shellcheck -x roles/osbuild/files/firstboot/syncopated-firstboot{,-launcher}
 bats roles/osbuild/tests/firstboot/                                  # stubbed git/yadm/curl/gum/sudo/systemctl
 ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml  # all blueprints, run twice
 ```
+
+### Flathub Remote
+
+With `osbuild_flathub_enabled: true` (default), `tasks/blueprint.yml` appends `files/flatpak/flathub.flatpakrepo` to every prepared blueprint as `/etc/flatpak/remotes.d/flathub.flatpakrepo` (`# BEGIN/END syncopated-flathub`). flatpak imports every `*.flatpakrepo` in that directory as a system remote (`man flatpak`), so the installed system has the `flathub` remote without network access during installation; it is the image-time equivalent of:
+
+```yaml
+- community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: system
+```
+
+- The `flatpak` package must be in the image. Every static blueprint lists `gnome-software`, which requires it. The block cannot add `[[packages]]` because the static blueprints define `packages` as an inline array.
+- On Fedora the file overrides the filtered Flathub from `fedora-flathub-remote` (`/usr/share/flatpak/remotes.d/flathub.flatpakrepo`): files in `/etc` take precedence.
+- The file embeds Flathub's signing key (fingerprint `6E5C05D979C76DAF93C081354184DD4D907A7CAE`, expires 2027-06-14). Refresh it when Flathub rotates the key:
+
+  ```bash
+  curl -fsSL https://dl.flathub.org/repo/flathub.flatpakrepo -o roles/osbuild/files/flatpak/flathub.flatpakrepo
+  ```
+
+- Check on an installed system: `flatpak remotes --system` lists `flathub`.
+- The bootc path does not use this block; its build script runs `flatpak remote-add` itself.
 
 ### Installer Kickstart
 

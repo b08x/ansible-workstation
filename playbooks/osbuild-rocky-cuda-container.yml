@@ -41,13 +41,14 @@
     osbuild_static_blueprint_path: "files/rocky/10/x86_64/container/rocky-10-2-cuda-container.toml"
     osbuild_build_bootc: false
 
-    # The installer kickstart, wheel sudoers drop-in and first-login splash
-    # are workstation ISO features. A container has no Anaconda, no users and
-    # no desktop session; image-builder rejects installer customizations for
-    # the container image type.
+    # The installer kickstart, wheel sudoers drop-in, first-login splash and
+    # Flathub remote are workstation ISO features. A container has no
+    # Anaconda, no users, no desktop session and no system flatpak;
+    # image-builder rejects installer customizations for the container type.
     osbuild_kickstart_enabled: false
     osbuild_kickstart_sudoers: false
     osbuild_firstboot_enabled: false
+    osbuild_flathub_enabled: false
 
     osbuild_components:
       - base
