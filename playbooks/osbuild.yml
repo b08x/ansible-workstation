@@ -26,9 +26,9 @@
     osbuild_blueprint_version: "1.0.0"
     osbuild_blueprint_description: "Custom Workstation"
 
-    # Build mode
+    # Build mode. Generates blueprint + build script by default;
+    # -e osbuild_only_generate=false builds in the play.
     osbuild_build_bootc: false
-    osbuild_only_generate: false
 
     # Image type
     # Live `image-builder list` (tinybot, 2026-10-01): `minimal-installer`

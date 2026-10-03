@@ -35,12 +35,13 @@
     osbuild_use_blueprint_template: false
     osbuild_static_blueprint_path: "files/almalinux/10/x86_64/workstation/almalinux-10-2-workstation-nvidia.toml"
 
-    # Build mode: traditional ISO, not bootc, not generate-only.
+    # Build mode: traditional ISO, not bootc. The role default
+    # (osbuild_only_generate: true) writes the blueprint and
+    # build-<blueprint>.sh; pass -e osbuild_only_generate=false to build here.
     # "minimal-installer" is Fedora-only in image-builder; AlmaLinux only
     # exposes image-installer/network-installer (confirmed via
     # `image-builder list | grep almalinux-10.2` on tinybot).
     osbuild_build_bootc: false
-    osbuild_only_generate: false
     osbuild_image_type: image-installer
 
     # Components only drive --extra-repo sources and gpgkey fetching here

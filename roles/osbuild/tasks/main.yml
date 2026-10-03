@@ -147,6 +147,12 @@
       tags:
         - blueprint
 
+    - name: Write image-builder build script
+      ansible.builtin.template:
+        src: image-builder-build.sh.j2
+        dest: "{{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh"
+        mode: "0755"
+
     - name: Display configuration-only mode
       ansible.builtin.debug:
         msg: |
@@ -154,15 +160,14 @@
           ║              IMAGE BUILD CONFIGURATION GENERATED               ║
           ╚════════════════════════════════════════════════════════════════╝
 
-          The configuration files and blueprint have been generated.
-          Blueprint location: {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
+          Blueprint:    {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
+          Build script: {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
 
-          To build the image manually, run the following command on the builder host:
+          To build the image, run on {{ inventory_hostname }}:
 
-          cd {{ osbuild_output_dir }} && sudo image-builder build {{ osbuild_image_type }} \
-            --distro {{ osbuild_distro }} \
-            --blueprint {{ osbuild_blueprint_name }}.toml \
-            {% for url in osbuild_extra_repo_urls | default([]) %}--extra-repo "{{ url }}" {% endfor %}
+            bash {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
+
+          To build inside the play instead, pass -e osbuild_only_generate=false.
 
     - name: Set build status to generated
       ansible.builtin.set_fact:
@@ -243,11 +248,8 @@
       Configuration ready in: {{ osbuild_output_dir }}
       Blueprint: {{ osbuild_output_dir }}/{{ osbuild_blueprint_name }}.toml
 
-      To build manually, run:
-      cd {{ osbuild_output_dir }} && sudo image-builder build {{ osbuild_image_type }} \
-        --distro {{ osbuild_distro }} \
-        --blueprint {{ osbuild_blueprint_name }}.toml \
-        {% for url in osbuild_extra_repo_urls | default([]) %}--extra-repo "{{ url }}" {% endfor %}
+      To build, run on {{ inventory_hostname }}:
+        bash {{ osbuild_output_dir }}/build-{{ osbuild_blueprint_name }}.sh
 
       {% else %}
       Build did not complete successfully.

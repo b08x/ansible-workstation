@@ -3,7 +3,7 @@
 # Validation playbook for refactored osbuild build-mode branching logic.
 # Runs against isolated hosts (host1-host4) from tests/inventory and checks:
 # 1. Each supported mode resolves correctly.
-# 2. An unsupported mode triggers the explicit failure path.
+# 2. osbuild_build_bootc takes priority over osbuild_only_generate.
 - name: Validate bootc_image mode selection
   hosts: host1
   gather_facts: false
@@ -61,7 +61,7 @@
         that:
           - osbuild_resolved_build_mode == 'traditional_iso'
 
-- name: Validate invalid unsupported mode fails with expected message
+- name: Validate bootc_image wins over osbuild_only_generate
   hosts: host4
   gather_facts: false
   vars:
@@ -75,15 +75,7 @@
     - name: Resolve build mode
       ansible.builtin.include_tasks: ../tasks/select_build_mode.yml
       tags: always
-    - name: Trigger runtime assertion failure for unsupported mode
-      block:
-        - name: Invoke runtime assertion with unresolved mode
-          ansible.builtin.assert:
-            that:
-              - osbuild_resolved_build_mode != 'mode_unknown'
-            fail_msg: "Unsupported build mode regression encountered."
-      rescue:
-        - name: Record failure summary
-          ansible.builtin.debug:
-            msg: "Explicit failure triggered: expected path."
-          tags: always
+    - name: Verify resolved mode
+      ansible.builtin.assert:
+        that:
+          - osbuild_resolved_build_mode == 'bootc_image'

@@ -255,9 +255,6 @@ packages = [
 [customizations]
 hostname = "syncopated-dx"
 
-[customizations.installer]
-sudo-nopasswd = ["b08x", "%wheel"]
-
 [customizations.installer.modules]
 enable = ["org.fedoraproject.Anaconda.Modules.Users"]
 disable = ["org.fedoraproject.Anaconda.Modules.Subscription"]
@@ -278,14 +275,6 @@ ntpservers = ["2.rhel.pool.ntp.org"]
 [customizations.locale]
 languages = ["en_US.UTF-8"]
 keyboard = "us"
-
-[[customizations.user]]
-name = "b08x"
-description = "b08x Workstation User"
-password = "$6$CwKesa938P1Lmjak$1f2OovSggypMwegO/VVYN1AxgN2g6ZvfhYFFr/kL6Kh82CobwmG2MZKDYGateLzTItqTUvoPsGYMgHikZzG181"
-groups = ["wheel", "audio", "video", "input", "render", "mock"]
-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHHmjWwIbKqZ0TV+BxmHPVD3CV3eFdduB3JhYj2BzTAt rwpannick@gmail.com"
-shell = "/usr/bin/zsh"
 
 [[customizations.files]]
 path = "/etc/dnf/dnf.conf"

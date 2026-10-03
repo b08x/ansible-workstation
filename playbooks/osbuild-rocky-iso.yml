@@ -31,11 +31,12 @@
     osbuild_use_blueprint_template: false
     osbuild_static_blueprint_path: "files/rocky/10/x86_64/workstation/rocky-10-2-workstation.toml"
 
-    # Build mode: traditional ISO, not bootc, not generate-only.
+    # Build mode: traditional ISO, not bootc. The role default
+    # (osbuild_only_generate: true) writes the blueprint and
+    # build-<blueprint>.sh; pass -e osbuild_only_generate=false to build here.
     # "minimal-installer" is Fedora-only; EL distributions expose
     # image-installer.
     osbuild_build_bootc: false
-    osbuild_only_generate: false
     osbuild_image_type: image-installer
 
     # Components only drive --extra-repo sources and gpgkey fetching here

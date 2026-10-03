@@ -132,7 +132,7 @@ This role supports two build modes:
 
 - **Operating System**: Fedora 43 Workstation (or compatible version)
 - **Disk Space**: Minimum 50GB free in build directory
-  - Add ~30GB more if using `osbuild_include_oneapi_in_image: true`
+  - Add ~30GB more if `osbuild_components` includes `oneapi`
 - **Memory**: 4GB RAM minimum, 8GB recommended
 - **Network**: Internet connectivity for repository access
 - **Privileges**: Sudo access for package installation and service management
@@ -160,67 +160,138 @@ git clone https://github.com/yourusername/ansible-role-osbuild.git roles/osbuild
 
 ## Role Variables
 
-### Essential Configuration
+All defaults live in `defaults/main.yml`. A typical playbook sets only the variables in [What to build](#what-to-build) plus a few switches; everything else has a working default. Names that start with `_` (`_distro_version`, `_nvidia_sources`, …) are internal helpers derived from other variables: do not set them.
+
+Which groups apply depends on what you build:
+
+| Building | Groups that apply |
+|---|---|
+| ISO installer (`image-installer`, `minimal-installer`) | What to build, Build mode, Blueprint, Repositories, Installer, Build host |
+| VM or container image (`qcow2`, `container`, …) | What to build, Build mode, Blueprint, Repositories, Build host. Set `osbuild_kickstart_enabled`, `osbuild_kickstart_sudoers` and `osbuild_firstboot_enabled` to `false`: image-builder rejects installer settings for these types |
+| bootc image (`osbuild_build_bootc: true`) | What to build, bootc |
+
+### What to build
 
 | Variable | Default | Description |
-| ---------- | --------- | ------------- |
-| `osbuild_blueprint_name` | `fedora-workstation-custom` | Name of the blueprint and output image |
-| `osbuild_distro` | `fedora-43` | Fedora distribution version |
-| `osbuild_image_type` | `workstation-live-installer` | Image type (`live-iso`, `qcow2`, etc.) |
-| `osbuild_use_nvidia` | `true` | Enable NVIDIA proprietary drivers and CUDA |
-| `osbuild_use_sway` | `true` | Include Sway window manager alongside GNOME |
-| `osbuild_include_oneapi_in_image` | `false` | Install Intel oneAPI in image (vs first-boot) |
+|---|---|---|
+| `osbuild_distro` | `fedora-43` | Target distribution as `image-builder list` names it (`rocky-10.2`, not `rocky-10`) |
+| `osbuild_arch` | `x86_64` | Target architecture |
+| `osbuild_image_type` | `minimal-installer` on a Fedora build host, else `image-installer` | image-builder image type (`image-installer`, `qcow2`, `container`, …) |
+| `osbuild_blueprint_name` | `custom` | Names the prepared `<name>.toml` and `build-<name>.sh`. Give every variant its own name, or variants overwrite each other's files |
+| `osbuild_output_dir` | `/var/tmp/osbuild-images` | Where the blueprint, build script and image go |
+| `osbuild_output_filename` | `<blueprint>-<distro>.iso` | Final image name. Use `.tar` for container types |
+| `osbuild_container_tag` | `localhost/<blueprint>:latest` | Container types only: tag the build script applies after `podman load` |
 
-### Feature Toggles
+### Build mode
 
-| Variable | Default | Description |
-| ---------- | --------- | ------------- |
-| `osbuild_include_development_tools` | `true` | Add GCC, Python, Node.js, etc. |
-| `osbuild_include_container_tools` | `true` | Add Podman, Docker CE, buildah |
-| `osbuild_use_blueprint_template` | `true` | Use Jinja2 template (vs static blueprint) |
-
-### Build Configuration
+By default the role builds nothing. It prepares `<osbuild_output_dir>/<blueprint>.toml` and writes `<osbuild_output_dir>/build-<blueprint>.sh` next to it. That script runs the same `image-builder build` command (distro, arch, `--extra-repo` list) the role would run, then copies the newest image to `osbuild_output_filename`. Run it on the build host with `bash`.
 
 | Variable | Default | Description |
-| ---------- | --------- | ------------- |
-| `osbuild_build_timeout` | `14400` (4 hours) | Maximum build time in seconds |
-| `osbuild_poll_interval` | `30` | Status check interval in seconds |
-| `osbuild_build_retries` | `1` | Number of retry attempts on failure |
-| `osbuild_output_dir` | `/var/tmp/osbuild-images` | Directory for final ISO |
-| `osbuild_log_dir` | `/var/tmp/osbuild-logs` | Directory for build logs |
+|---|---|---|
+| `osbuild_only_generate` | `true` | `true`: write blueprint + build script only. `false`: run image-builder in the play |
+| `osbuild_build_bootc` | `false` | Take the bootc path instead (see [bootc](#bootc-only)); wins over `osbuild_only_generate` |
 
-### User Customization
+These apply only with `osbuild_only_generate: false`:
 
 | Variable | Default | Description |
-| ---------- | --------- | ------------- |
-| `osbuild_user_name` | `ansible` | Default user account name |
-| `osbuild_user_password` | *(hash)* | Encrypted password (change this!) |
-| `osbuild_user_groups` | `[wheel, libvirt]` | User group memberships |
-| `osbuild_hostname` | `fedora-workstation` | System hostname |
-| `osbuild_timezone` | `America/New_York` | System timezone |
+|---|---|---|
+| `osbuild_build_timeout` | `14400` | Seconds before the in-play build is abandoned |
+| `osbuild_build_retries` | `1` | Extra attempts after a failed build (60 s pause before each) |
+| `osbuild_verbose` | `false` | Print the image-builder command before running it |
+| `osbuild_keep_logs` | `true` | Write image-builder stdout/stderr to `osbuild_log_dir` on failure |
+| `osbuild_log_dir` | `/var/tmp/osbuild-logs` | Failure log directory |
 
-### Package Lists
+### Blueprint
 
-Customize packages via these list variables:
+The blueprint comes from one of two places:
 
-- `osbuild_extra_packages`: Additional packages to include
+- **Static file** (`osbuild_use_blueprint_template: false`): `osbuild_static_blueprint_path` is copied as is. All shipped playbooks use this. Package and locale variables below do not apply.
+- **Jinja template** (`osbuild_use_blueprint_template: true`, the default): `templates/blueprint.toml.j2` renders packages, services, kernel arguments and installer modules from `osbuild_components`. Suited to workstation ISOs only.
 
-The canonical package taxonomy lives in `vars/packages/{Distribution}.yml` (e.g., `vars/packages/Fedora.yml`).
-Component definitions in `defaults/main.yml` reference the taxonomy via `system_packages.*`.
+| Variable | Default | Applies to | Description |
+|---|---|---|---|
+| `osbuild_use_blueprint_template` | `true` | both | Choose template (`true`) or static file (`false`) |
+| `osbuild_static_blueprint_path` | `files/<distro>/<ver>/<arch>/workstation/<distro>-workstation-nvidia.toml` | static | Blueprint to copy, relative to the role |
+| `osbuild_components` | `base, anaconda, gnome, sway, nvidia, development, container-tools` | both | Template: what goes into the image. Both: whose `sources` become extra repos |
+| `osbuild_component_defs` | see `defaults/main.yml` | both | What each component adds: packages, groups, services, kernel args, sources. Components: `base`, `anaconda`, `gnome`, `nvidia`, `sway`, `development`, `container-tools`, `oneapi`, `cli-tools`, `cockpit`, `core`, `desktop`, `audio`, `virtualization` |
+| `osbuild_extra_packages` | a short list | template | Packages added on top of the components |
+| `osbuild_package_pins` | `{}` | template | `{package: version}`; unpinned packages get `*` |
+| `osbuild_blueprint_template` | `blueprint.toml.j2` | template | Template file |
+| `osbuild_blueprint_version` | `1.0.0` | template, bootc | Blueprint / image version label |
+| `osbuild_blueprint_description` | `Custom Workstation` | template | Blueprint description |
+| `osbuild_timezone` | `America/New_York` | template, installer | Also rendered into the kickstart |
+| `osbuild_locale` | `en_US.UTF-8` | template, installer | Also rendered into the kickstart |
+| `osbuild_keyboard` | `us` | template, installer | Also rendered into the kickstart |
 
-**Legacy flat lists** (absorbed into the taxonomy under `osbuild_legacy.*` for backward compatibility):
+### Repositories
 
-- `osbuild_legacy.sway_packages` → prefer `system_packages.desktop.sway_*`
-- `osbuild_legacy.nvidia_packages` → prefer `system_packages.gpu.nvidia`
-- `osbuild_legacy.development_packages` → prefer `system_packages.development.*`
-- `osbuild_legacy.container_packages` → prefer `system_packages.containers.*`
-- `osbuild_legacy.oneapi_packages` → prefer `system_packages.oneapi.*`
+image-builder resolves packages only from the target distribution's base repositories and the `--extra-repo` URLs. The role builds that list from two inputs:
 
-See `defaults/main.yml` for complete variable definitions.
+| Variable | Default | Description |
+|---|---|---|
+| `osbuild_sources` | build host's common list + sources of the selected components | Repository *names*, looked up in `vars/<build host distribution>.yml` (`repo:`). Names missing there are skipped silently |
+| `osbuild_distro_sources_fedora` / `osbuild_distro_sources_el` | RPM Fusion, VS Code, Chrome, … | The common lists `osbuild_sources` starts from |
+| `osbuild_extra_repo_urls` | `[]` | Repository *URLs* passed through unchanged |
+
+The names are resolved against the **build host's** distribution, not the target's. To build an EL image on a Fedora host, set `osbuild_sources: []` and list every non-base repository in `osbuild_extra_repo_urls` (see `playbooks/osbuild-rocky-iso-nvidia.yml`). A blueprint's `[[customizations.repositories]]` only writes `.repo` files into the image; it does not feed package resolution.
+
+### Installer
+
+ISO image types only. Details in [Installer Kickstart](#installer-kickstart) and [First-Login Splash](#first-login-splash-yadm-dotfiles).
+
+| Variable | Default | Description |
+|---|---|---|
+| `osbuild_kickstart_enabled` | `true` | Embed the installer kickstart in the blueprint |
+| `osbuild_kickstart_partitioning` | `auto` | `auto`: `%pre` picks a disk and applies the layout below. `interactive`: the user partitions in Anaconda's Installation Destination |
+| `osbuild_kickstart_sudoers` | `true` | Ship `/etc/sudoers.d/90-wheel-nopasswd` |
+| `osbuild_firstboot_enabled` | `true` | First-login yadm dotfiles splash (desktop images) |
+| `osbuild_kickstart_file` | derived from `osbuild_kickstart_partitioning` | Kickstart source under `files/`; set only to use your own file |
+
+Disk layout for `osbuild_kickstart_partitioning: auto` (see [Layout](#layout) for how they combine):
+
+| Variable | Default | Description |
+|---|---|---|
+| `osbuild_kickstart_disk_min_gib` | `40` | Smaller target disks abort the install |
+| `osbuild_kickstart_root_percent` | `10` | `/` share of the usable space |
+| `osbuild_kickstart_root_min_gib` | `16` | `/` minimum |
+| `osbuild_kickstart_reserve_percent` | `10` | Share of the usable space left unassigned in `vg00` for growing volumes later; `0` disables |
+| `osbuild_kickstart_usr_percent` | `80` | `/usr` share of the space after `/` and the reserve; `/var` gets the rest |
+| `osbuild_kickstart_usr_max_gib` | `256` | `/usr` cap |
+| `osbuild_kickstart_var_max_gib` | `128` | `/var` cap |
+| `osbuild_kickstart_home_min_gib` | `100` | `/home` is a volume only when at least this much is left above the caps |
+
+### Build host
+
+| Variable | Default | Description |
+|---|---|---|
+| `osbuild_host_packages` | per distribution | Packages installed on the build host (image-builder, osbuild, …) |
+| `osbuild_work_dir` | `/var/lib/osbuild-composer` | Free space is checked on its parent filesystem |
+| `osbuild_min_disk_space` | `50` | GB that must be free there, or the play fails |
+| `osbuild_gpgkey_cache_dir` | `<work_dir>/gpgkeys` | Cache for repository GPG keys |
+| `osbuild_repo_config_template` | `<distro>-<major>.json.j2` | Not read by any task (the `templates/etc/osbuild-composer/repositories/` files are not deployed); candidate for removal |
+
+### bootc only
+
+Used only with `osbuild_build_bootc: true`. ISO installers create no user at build time (Anaconda asks for one), so the user variables apply here only.
+
+| Variable | Default | Description |
+|---|---|---|
+| `osbuild_bootc_base_image` | `quay.io/fedora/fedora-bootc:43` | Base image for the Containerfile |
+| `osbuild_bootc_image_name` / `osbuild_bootc_image_tag` | `quay.io/syncopated/<blueprint>` / `latest` | Resulting image |
+| `osbuild_bootc_workspace` | `/tmp/bootc-workspace` | Containerfile build context |
+| `osbuild_bootc_build_disk_image` | `false` | Also build a disk image from the container |
+| `osbuild_bootc_image_type` | `qcow2` | Disk image type (`qcow2`, `iso`, `raw`) |
+| `osbuild_bootc_rootfs` | `btrfs` | Root filesystem of the disk image |
+| `osbuild_bootc_output_dir` | `<output_dir>/bootc` | Disk image output |
+| `osbuild_bootc_build_timeout` | `7200` | Seconds |
+| `osbuild_bootc_enable_podman_socket` | `true` | Enable the podman socket on the build host |
+| `osbuild_user_name`, `osbuild_user_description`, `osbuild_user_password`, `osbuild_user_groups`, `osbuild_user_ssh_key` | `osadmin`, …, a hash, `[wheel, libvirt]`, empty | User created in the image (change the password hash) |
+| `osbuild_hostname` | `workstation` | Image hostname |
+| `osbuild_include_fstab`, `osbuild_kernel_cmdline_snippets` | `false`, `[]` | Build-time options for `files/bootc/build.yml` |
 
 ## Usage Examples
 
-### Basic Usage - NVIDIA Workstation
+### NVIDIA Workstation (template)
 
 ```yaml
 - hosts: builder
@@ -228,10 +299,7 @@ See `defaults/main.yml` for complete variable definitions.
     - role: osbuild
       vars:
         osbuild_blueprint_name: "my-nvidia-workstation"
-        osbuild_use_nvidia: true
-        osbuild_use_sway: true
-        osbuild_user_name: "johndoe"
-        osbuild_user_password: "$6$..."  # mkpasswd --method=sha-512
+        osbuild_components: [base, anaconda, gnome, sway, nvidia, development, container-tools]
 ```
 
 ### Minimal Workstation (No NVIDIA)
@@ -242,9 +310,7 @@ See `defaults/main.yml` for complete variable definitions.
     - role: osbuild
       vars:
         osbuild_blueprint_name: "minimal-workstation"
-        osbuild_use_nvidia: false
-        osbuild_use_sway: false
-        osbuild_include_development_tools: false
+        osbuild_components: [base, anaconda, gnome]
 ```
 
 ### Intel oneAPI in Image (Large ISO)
@@ -255,8 +321,21 @@ See `defaults/main.yml` for complete variable definitions.
     - role: osbuild
       vars:
         osbuild_blueprint_name: "hpc-workstation"
-        osbuild_include_oneapi_in_image: true
+        osbuild_components: [base, anaconda, gnome, development, oneapi]
+        osbuild_only_generate: false
         osbuild_build_timeout: 21600  # 6 hours for large build
+```
+
+### Custom Disk Layout
+
+```yaml
+- hosts: builder
+  roles:
+    - role: osbuild
+      vars:
+        osbuild_kickstart_usr_max_gib: 128
+        osbuild_kickstart_var_max_gib: 512    # VM images and containers
+        osbuild_kickstart_home_min_gib: 50
 ```
 
 ### Using Static Blueprint
@@ -360,17 +439,7 @@ sudo image-builder build workstation-live-installer \
     --output-directory ./output
 ```
 
-**Change user**:
-
-```toml
-# Edit lines 30-36
-[[customizations.user]]
-name = "your-username"
-password = "$6$..."  # Generate with: mkpasswd --method=sha-512
-groups = ["wheel", "audio", "video", "input", "render"]
-key = "ssh-ed25519 AAAAC... your@email.com"
-shell = "/usr/bin/zsh"
-```
+**Users**: the blueprints define no `[[customizations.user]]`. Anaconda asks for the user at install time; see [Installer Kickstart](#installer-kickstart). Adding a user table back requires `osbuild_kickstart_enabled: false`.
 
 **Add repositories**:
 
@@ -421,8 +490,7 @@ The role now supports building **bootc container images** for atomic OS updates,
         osbuild_build_bootc: true
         osbuild_bootc_base_image: "quay.io/fedora/fedora-bootc:43"
         osbuild_blueprint_name: "my-workstation"
-        osbuild_use_nvidia: true
-        osbuild_use_sway: true
+        osbuild_components: [base, gnome, sway, nvidia]
 ```
 
 **Output**: Container image `quay.io/syncopated/my-workstation:latest`
@@ -536,10 +604,7 @@ osbuild_bootc_output_dir: "{{ osbuild_output_dir }}/bootc"
         
         # Features (reused from verified blueprint)
         osbuild_blueprint_name: "silverblue-nvidia-custom"
-        osbuild_use_nvidia: true
-        osbuild_use_sway: true
-        osbuild_include_development_tools: true
-        osbuild_include_container_tools: true
+        osbuild_components: [base, gnome, sway, nvidia, development, container-tools]
 ```
 
 **This creates**:
@@ -722,6 +787,119 @@ bats roles/osbuild/tests/firstboot/                                  # stubbed g
 ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml  # all blueprints, run twice
 ```
 
+### Installer Kickstart
+
+`files/kickstart/syncopated.ks` is the default kickstart. With `osbuild_kickstart_partitioning: interactive` the role embeds `files/kickstart/syncopated-interactive.ks` instead: the same commands without the `%pre` disk selection, so Anaconda's Installation Destination screen must be completed by the user (`playbooks/osbuild-rocky-iso-nvidia-interactive.yml` uses it). The rest of this section describes the default file. `tasks/blueprint.yml` appends it to every prepared blueprint, static or templated, as `[customizations.installer.kickstart]` inside one `blockinfile` block (`# BEGIN/END syncopated-kickstart`). Three lines come first, rendered from role variables:
+
+```
+lang {{ osbuild_locale }}
+keyboard {{ osbuild_keyboard }}
+timezone {{ osbuild_timezone }} --utc
+```
+
+With `osbuild_kickstart_partitioning: auto` a short `%pre` follows that writes the [disk layout variables](#layout) to `/tmp/syncopated-layout.env`. The rest is the source file, byte for byte. image-builder adds its own `%include` with the payload in front. Edit only `files/kickstart/syncopated.ks`. It must not contain `'''` (the TOML literal-string delimiter); the role asserts this.
+
+**What Anaconda asks for.** Only **Root Password** and **User Creation**. Language, keyboard, timezone, network (DHCP on the first linked NIC, also at boot) and storage are set by the kickstart. The installer still waits for **Begin Installation** and reboots when done. Tick **Make this user administrator** to put the user in `wheel`.
+
+**Blueprint restrictions.** image-builder rejects a user kickstart next to `[[customizations.user]]`, `[[customizations.group]]`, `installer.unattended` or `installer.sudo-nopasswd`. No blueprint in this role carries them, and the role fails before the build if a prepared blueprint does. Every blueprint enables `org.fedoraproject.Anaconda.Modules.Users`, because image-builder only enables the user screen on its own when the blueprint defines users.
+
+**Sudo.** `/etc/sudoers.d/90-wheel-nopasswd` (mode 0440, `%wheel ALL=(ALL) NOPASSWD: ALL`) is appended as a `[[customizations.files]]` entry (`# BEGIN/END syncopated-sudoers`).
+
+**Target disk.** A `%pre` script picks one disk and writes `/tmp/partitions.ks`, which the kickstart includes:
+
+1. Excludes the disk behind `/run/install/repo` or `/run/install/isodir`, and the disk carrying the `inst.stage2=hd:LABEL=...` label.
+2. Excludes removable, read-only and USB disks, plus `zram`, `loop` and optical devices.
+3. Prefers NVMe disks; among the remaining ones takes the largest.
+4. Aborts the install (message on tty1 and in `/tmp/syncopated-pre.log`) when no disk is left or the chosen disk is smaller than `osbuild_kickstart_disk_min_gib` (40 GiB). A small NVMe disk is not skipped in favour of a larger SATA disk: the install aborts.
+
+Only that disk is touched (`ignoredisk --only-use`, `clearpart --drives`). Other internal disks and the install USB keep their data.
+
+#### Layout
+
+GPT on the chosen disk: an EFI System Partition or biosboot (whatever `reqpart` creates for the platform), a 2 GiB xfs `/boot`, and one LVM physical volume holding volume group `vg00`. All logical volumes are xfs. With *usable* = disk size − 4 GiB, the `%pre` allocates in this order (variable names without the `osbuild_kickstart_` prefix):
+
+1. **`/`** (`vg00/root`): `root_percent` of usable, at least `root_min_gib`.
+2. **Reserve**: `reserve_percent` of usable stays unassigned in `vg00`.
+3. **`/usr`** (`vg00/usr`): `usr_percent` of what is left, at most `usr_max_gib`. **`/var`** (`vg00/var`): the rest of it, at most `var_max_gib`. `/var` therefore also receives whatever `/usr`'s cap leaves.
+4. **`/home`** (`vg00/home`): everything above the two caps, if that is at least `home_min_gib`. Otherwise that space also stays unassigned and `/home` is a directory on `/`.
+
+With the defaults:
+
+| Disk | `/` | `/usr` | `/var` | `/home` | Unassigned in `vg00` |
+|---|---|---|---|---|---|
+| 60 GiB | 16 GiB | 27.5 GiB | 6.9 GiB | on `/` | 5.6 GiB |
+| 477 GiB | 47.3 GiB | 256 GiB | 122.4 GiB | on `/` | 47.3 GiB |
+| 931 GiB | 92.7 GiB | 256 GiB | 128 GiB | 357.6 GiB | 92.7 GiB |
+| 2000 GiB | 199.6 GiB | 256 GiB | 128 GiB | 1212.8 GiB | 199.6 GiB |
+
+The role writes the variables to `/tmp/syncopated-layout.env` in a `%pre` placed before the one in `syncopated.ks`; the source file carries the same values as built-in defaults for the bats tests, which also check that both agree. During installation, `/tmp/syncopated-pre.log` (shell on tty2) records the chosen disk and the sizes.
+
+XFS can grow but not shrink. The caps and the reserve keep space available for whichever volume fills first; a volume that is too large cannot give space back.
+
+#### When a volume fills up
+
+What breaks first:
+
+| Volume | Effect |
+|---|---|
+| `/` | Logins and services that write to `/etc`, `/root` or `/tmp` fail |
+| `/usr` | `dnf` refuses transactions (RPM checks space before changing anything); model downloads into `/usr/share/ollama` fail |
+| `/var` | journald stops writing; `dnf` fails (cache, RPM database); libvirt pauses running VMs on write errors; podman and flatpak installs fail |
+| `/home` | User applications fail to save |
+
+Procedure, in order:
+
+1. **Find what grew.**
+
+   ```bash
+   df -h / /usr /var /home
+   sudo vgs vg00                                   # VFree = unassigned space
+   sudo du -xh --max-depth=2 /var | sort -h | tail # -x: stay on this filesystem
+   ```
+
+2. **Remove what is not needed.**
+
+   ```bash
+   sudo journalctl --vacuum-size=500M
+   sudo dnf clean all
+   flatpak uninstall --unused
+   podman system prune                # and/or: docker system prune
+   sudo virsh vol-list default        # then virsh vol-delete for unused images
+   ```
+
+3. **Grow the volume from the reserve.** Online, no reboot; `-r` grows the xfs filesystem in the same step.
+
+   ```bash
+   sudo lvextend -r -L +64G vg00/var
+   ```
+
+4. **Move data that does not belong on that volume.**
+   - libvirt images: define a storage pool on `/home` or another disk (`virsh pool-define-as`).
+   - Ollama models: `OLLAMA_MODELS=/var/lib/ollama/models` (or a path under `/home`) in a systemd drop-in for `ollama.service`, so models stop landing in `/usr/share/ollama`.
+   - Flatpak: install large apps with `flatpak --user`, which stores them under `~/.local/share/flatpak`.
+
+5. **Add a disk when `vg00` has no free space left.** `pvcreate` destroys the contents of the disk.
+
+   ```bash
+   sudo pvcreate /dev/sdX
+   sudo vgextend vg00 /dev/sdX
+   sudo lvextend -r -L +200G vg00/var
+   ```
+
+6. **Shrinking another volume is not possible in place.** Back it up, remove and recreate it smaller (`lvremove`, `lvcreate`, `mkfs.xfs`), restore, then grow the full volume.
+
+**Disable.** `osbuild_kickstart_enabled: false` prepares blueprints without the kickstart; Anaconda then shows its full hub. `osbuild_kickstart_sudoers: false` drops the sudoers file.
+
+**Tests.**
+
+```bash
+.venv/bin/pip install pykickstart                                       # provides ksvalidator
+.venv/bin/ksvalidator -v RHEL10 roles/osbuild/files/kickstart/syncopated.ks
+bats roles/osbuild/tests/kickstart/                                     # %pre with stubbed lsblk/findmnt/blkid
+ansible-playbook roles/osbuild/tests/validate_kickstart_injection.yml \
+  -e ksvalidator=$PWD/.venv/bin/ksvalidator                            # enabled x2, disabled, conflict rejected
+```
+
 ## Troubleshooting
 
 ### Build Fails with Dependency Errors
@@ -753,7 +931,7 @@ ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml  # all blu
 **Solutions**:
 
 1. Increase timeout: `osbuild_build_timeout: 21600`
-2. Consider disabling `osbuild_include_oneapi_in_image` for faster builds
+2. Consider removing `oneapi` from `osbuild_components` for faster builds
 3. Check network speed for repository downloads
 4. Monitor build progress in the console output
 

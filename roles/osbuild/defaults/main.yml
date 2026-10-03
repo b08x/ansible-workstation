@@ -43,27 +43,15 @@ osbuild_blueprint_description: "Custom Workstation"
 # or `network-installer`. Other options: qcow2, ami, vhd, vmdk.
 osbuild_image_type: "{{ 'minimal-installer' if ansible_distribution == 'Fedora' else 'image-installer' }}"
 
-# Only generate configuration files and output CLI command (do not execute build)
-# [COMPATIBILITY] Retained for backward compatibility.
-# Deprecated: composer-era behavior preserved for callers that expect generate-only mode.
-osbuild_only_generate: false
-
-# =============================================================================
-# Feature Toggles — Backward Compat (derived from osbuild_components)
-# =============================================================================
-
-osbuild_use_nvidia: "{{ 'nvidia' in osbuild_components }}"
-osbuild_use_sway: "{{ 'sway' in osbuild_components }}"
-osbuild_include_development_tools: "{{ 'development' in osbuild_components }}"
-osbuild_include_container_tools: "{{ 'container-tools' in osbuild_components }}"
-osbuild_include_oneapi_in_image: "{{ 'oneapi' in osbuild_components }}"
+# Default: prepare the blueprint and write build-<blueprint>.sh next to it in
+# osbuild_output_dir, without running image-builder. Run that script on the
+# build host to build the image. Set false (-e osbuild_only_generate=false) to
+# build inside the play. Ignored when osbuild_build_bootc is true.
+osbuild_only_generate: true
 
 # Build bootc container image (alternative to traditional ISO)
 # When true, creates a bootc container image for atomic OS updates
 osbuild_build_bootc: false
-
-# NVIDIA driver version (use "*" for latest)
-osbuild_nvidia_driver_version: "*"
 
 # =============================================================================
 # Distro-Aware NVIDIA Helpers
@@ -578,11 +566,6 @@ osbuild_host_packages:
 # Deprecated: composer orchestration cadence variables retained because some callers still import them.
 osbuild_build_timeout: 14400
 
-# Poll interval for build status checks (seconds)
-# [COMPATIBILITY] Retained for backward compatibility.
-# Deprecated: composer orchestration cadence variables retained because some callers still import them.
-osbuild_poll_interval: 30
-
 # Number of build retry attempts on failure
 # [COMPATIBILITY] Retained for backward compatibility.
 # Deprecated: composer orchestration cadence variables retained because some callers still import them.
@@ -591,9 +574,6 @@ osbuild_build_retries: 1
 # =============================================================================
 # Repository Sources
 # =============================================================================
-
-# Directory containing source TOML files (major version based)
-osbuild_sources_dir: "files/{{ ansible_distribution | lower }}/{{ _distro_major_version }}/{{ osbuild_arch }}/sources"
 
 # Repository sources derived from selected components
 # Each component can define its required sources.
@@ -617,7 +597,18 @@ osbuild_distro_sources_el:
   - vscode
   - google-chrome
 
-# Component-scoped sources are aggregated automatically from osbuild_component_defs
+# Extra repository URLs passed to image-builder as --extra-repo, in addition
+# to the URLs derived from osbuild_sources (tasks/sources.yml merges both).
+# image-builder depsolves only against base repos and these; a repo listed
+# only in a blueprint's [[customizations.repositories]] is not used for
+# package resolution.
+osbuild_extra_repo_urls: []
+
+# Repository names (keys of vars/<build host distribution>.yml `repo`) turned
+# into --extra-repo URLs: the host distribution's common list plus the sources
+# of each selected component (osbuild_component_defs). Set [] when the target
+# distro differs from the build host's (e.g. a Rocky image built on Fedora)
+# and list the target's repos in osbuild_extra_repo_urls instead.
 osbuild_sources: >-
   {{ (ansible_distribution == 'Fedora') | ternary(osbuild_distro_sources_fedora,
   osbuild_distro_sources_el) + (osbuild_component_sources | default([])) }}
@@ -714,17 +705,6 @@ osbuild_package_pins: {}
 # component in osbuild_components. See build.sh.j2 and fedora-workstation.toml.j2.
 
 # =============================================================================
-# Kernel Configuration
-# =============================================================================
-
-# Kernel arguments for NVIDIA (applied when osbuild_use_nvidia: true)
-# DRACUT_NO_XATTR=1 — Workaround for SELinux xattr loss in SquashFS (ARCHITECTURAL_REVIEW.md § Leak #3)
-osbuild_nvidia_kernel_args: "rd.driver.blacklist=nouveau modprobe.blacklist=nouveau nvidia-drm.modeset=1 DRACUT_NO_XATTR=1"
-
-# Additional kernel arguments
-osbuild_extra_kernel_args: ""
-
-# =============================================================================
 # Output Configuration
 # =============================================================================
 
@@ -740,10 +720,57 @@ osbuild_output_dir: "/var/tmp/osbuild-images"
 # clones a dotfiles repository with yadm and runs `yadm bootstrap`.
 osbuild_firstboot_enabled: true
 
+# Append files/kickstart/syncopated.ks to every prepared blueprint as
+# [customizations.installer.kickstart]. Anaconda then asks only for the root
+# password and the user; %pre picks the target disk and lays it out. Blueprints
+# must not carry [[customizations.user]], [[customizations.group]], unattended
+# or sudo-nopasswd while this is on: image-builder rejects them next to a kickstart.
+osbuild_kickstart_enabled: true
+
+# How the installer kickstart handles disks:
+#   auto        — files/kickstart/syncopated.ks: %pre picks the target disk and
+#                 writes the vg00 layout; no storage screen.
+#   interactive — files/kickstart/syncopated-interactive.ks: no storage
+#                 commands; Anaconda's Installation Destination screen must be
+#                 completed by the user.
+osbuild_kickstart_partitioning: auto
+osbuild_kickstart_file: "kickstart/{{ 'syncopated-interactive.ks' if osbuild_kickstart_partitioning == 'interactive' else 'syncopated.ks' }}"
+
+# Disk layout for osbuild_kickstart_partitioning: auto. All logical volumes
+# are XFS in vg00 on the selected disk. Usable space = disk size - 4 GiB
+# (/boot, EFI partition, LVM metadata). Order of allocation:
+#   1. /      root_percent of the usable space, at least root_min_gib
+#   2. spare  reserve_percent of the usable space stays unassigned in vg00,
+#             so a full volume can be grown with `lvextend -r` (README:
+#             "When a volume fills up")
+#   3. /usr   usr_percent of what is left, at most usr_max_gib
+#      /var   the rest of it (what /usr's cap leaves over), at most var_max_gib
+#   4. /home  everything above the two caps, if that is at least
+#             home_min_gib; otherwise it also stays unassigned and /home is
+#             a directory on /
+# Disks smaller than disk_min_gib abort the install with a message on tty1.
+# XFS cannot shrink: prefer caps that are too small (grow later) over too large.
+osbuild_kickstart_disk_min_gib: 40
+osbuild_kickstart_root_percent: 10
+osbuild_kickstart_root_min_gib: 16
+osbuild_kickstart_reserve_percent: 10
+osbuild_kickstart_usr_percent: 80
+osbuild_kickstart_usr_max_gib: 256
+osbuild_kickstart_var_max_gib: 128
+osbuild_kickstart_home_min_gib: 100
+
+# Ship /etc/sudoers.d/90-wheel-nopasswd (%wheel ALL=(ALL) NOPASSWD: ALL) so the
+# admin user created in Anaconda runs sudo without a password.
+osbuild_kickstart_sudoers: true
+
 # [COMPATIBILITY] Retained for backward compatibility.
 # Deprecated: composer-era output naming convention carried over for backward compatibility.
 # Filename for the final image (UUID will be prepended)
 osbuild_output_filename: "{{ osbuild_blueprint_name }}-{{ osbuild_distro }}.iso"
+
+# Tag for container image types (container, container-minimal): the generated
+# build script loads the OCI archive into podman and applies this tag.
+osbuild_container_tag: "localhost/{{ osbuild_blueprint_name }}:latest"
 
 # Distro-specific osbuild-composer repository config template
 # Major-version based: the template tree is files/almalinux/10/... and
@@ -775,9 +802,6 @@ osbuild_min_disk_space: 50
 # Enable verbose output
 osbuild_verbose: false
 
-# Cleanup old composes after successful build
-osbuild_cleanup_old_composes: false
-
 # =============================================================================
 # bootc Configuration (Container-Based OS Images)
 # =============================================================================
@@ -806,15 +830,8 @@ osbuild_bootc_build_disk_image: false
 # bootc disk image type (qcow2, iso, raw)
 osbuild_bootc_image_type: "qcow2"
 
-# Disk configuration file for bootc-image-builder
-# Options: disk.toml (for qcow2/raw), iso.toml (for ISO)
-osbuild_bootc_disk_config: "disk.toml"
-
 # Root filesystem type (btrfs, ext4, xfs)
 osbuild_bootc_rootfs: "btrfs"
-
-# bootc-image-builder container image
-osbuild_bootc_builder_image: "quay.io/centos-bootc/bootc-image-builder:latest"
 
 # bootc output directory for built disk images
 osbuild_bootc_output_dir: "{{ osbuild_output_dir }}/bootc"

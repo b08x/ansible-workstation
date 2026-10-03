@@ -87,20 +87,15 @@ languages = ["{{ osbuild_locale }}"]
 keyboard = "{{ osbuild_keyboard }}"
 
 # =============================================================================
-# User Configuration
+# Installer
 # =============================================================================
+# No [[customizations.user]]: Anaconda creates the user (see
+# files/kickstart/syncopated.ks). The Users module must be enabled explicitly
+# because image-builder only adds it when the blueprint defines users.
 
-[[customizations.user]]
-name = "{{ osbuild_user_name }}"
-description = "{{ osbuild_user_description }}"
-password = "{{ osbuild_user_password }}"
-groups = {{ osbuild_user_groups | to_json }}
-shell = "/usr/bin/zsh"
-
-[[customizations.files]]
-path = "/etc/sudoers.d/99-user"
-data = "{{ osbuild_user_name }} ALL=(ALL) NOPASSWD: ALL"
-mode = "0440"
+[customizations.installer.modules]
+enable = ["org.fedoraproject.Anaconda.Modules.Users"]
+disable = ["org.fedoraproject.Anaconda.Modules.Subscription"]
 
 # =============================================================================
 # Component File Injections
