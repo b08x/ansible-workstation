@@ -6,7 +6,10 @@
 # with @ are comps groups. Versions are never pinned here; use
 # osbuild_package_pins.
 label: "Compilers, language toolchains and -devel packages"
-repo_urls: []
+# rbenv and ruby-build-rbenv are EPEL 10 packages (verified 2026-10-03);
+# nodejs and nodejs-npm are AppStream. Rocky 10 has no package named "npm".
+repo_urls:
+  - "https://mirror.us.leaseweb.net/epel/10/Everything/x86_64"
 services: []
 kernel_args: []
 packages:
@@ -19,7 +22,11 @@ packages:
   - "gcc-c++"
   - "golang"
   - "lm_sensors-devel"
+  - "nodejs"
+  - "nodejs-npm"
   - "postgresql-server"
   - "postgresql-contrib"
   - "pgvector"
+  - "rbenv"
+  - "ruby-build-rbenv"
   - "ruby-devel"
