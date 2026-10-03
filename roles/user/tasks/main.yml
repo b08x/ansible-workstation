@@ -30,8 +30,3 @@
 - name: Include Ranger installation tasks
   ansible.builtin.include_tasks: ranger.yml
   tags: ["ranger", "user"]
-
-- name: Include rbenv configuration tasks
-  ansible.builtin.include_tasks: rbenv.yml
-  when: user_install_rbenv | default(true) | bool
-  tags: ["rbenv", "ruby", "user"]

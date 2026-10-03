@@ -13,16 +13,6 @@ user_install_cargo_packages: false
 
 user_uv_python_version: 3.13
 
-# rbenv configuration
-user_install_rbenv: true
-user_rbenv_ruby_version: "4.0.4"
-user_rbenv_rubygems_version: "4.0.20"
-user_rbenv_configure_opts: "--with-openssl-dir=/usr"
-user_rbenv_gems:
-  - solargraph
-  - ruby-lsp
-  - rubocop
-
 user_cargo_packages:
   - bottom
   - choose
