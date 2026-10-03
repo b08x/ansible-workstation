@@ -203,26 +203,51 @@ These apply only with `osbuild_only_generate: false`:
 
 ### Blueprint
 
-The blueprint comes from one of two places:
+The blueprint comes from one of three places. A non-empty `osbuild_blueprint_components` wins over the other two:
 
-- **Static file** (`osbuild_use_blueprint_template: false`): `osbuild_static_blueprint_path` is copied as is. All shipped playbooks use this. Package and locale variables below do not apply.
+- **Components** (`osbuild_blueprint_components`): the role merges component files with a static frame into one blueprint. See [Composing a Blueprint from Components](#composing-a-blueprint-from-components).
+- **Static file** (`osbuild_use_blueprint_template: false`): `osbuild_static_blueprint_path` is copied as is. Most shipped playbooks use this; `osbuild-rocky-iso-nvidia-components.yml` uses components. Package and locale variables below do not apply.
 - **Jinja template** (`osbuild_use_blueprint_template: true`, the default): `templates/blueprint.toml.j2` renders packages, services, kernel arguments and installer modules from `osbuild_components`. Suited to workstation ISOs only.
 
 | Variable | Default | Applies to | Description |
 |---|---|---|---|
 | `osbuild_use_blueprint_template` | `true` | both | Choose template (`true`) or static file (`false`) |
 | `osbuild_static_blueprint_path` | `files/<distro>/<ver>/<arch>/workstation/<distro>-workstation-nvidia.toml` | static | Blueprint to copy, relative to the role |
+| `osbuild_blueprint_components` | `[]` | components | Component files to merge, in order. Non-empty selects the components path |
+| `osbuild_components_dir` | `<distro>/<ver>/<arch>/components` | components | Directory of component files, relative to the role's `files/`. Follows `osbuild_distro` |
+| `osbuild_blueprint_frame_path` | `<distro>/<ver>/<arch>/frames/workstation.toml` | components | Static, non-composable part of the blueprint |
+| `osbuild_target_distribution` | from `osbuild_distro` | template, bootc | Picks `vars/packages/<Name>.yml`: `fedora-*` → Fedora, `rocky-*` → Rocky, `almalinux-*` → AlmaLinux; otherwise the build host's distribution |
 | `osbuild_components` | `base, anaconda, gnome, sway, nvidia, development, container-tools` | both | Template: what goes into the image. Both: whose `sources` become extra repos |
 | `osbuild_component_defs` | see `defaults/main.yml` | both | What each component adds: packages, groups, services, kernel args, sources. Components: `base`, `anaconda`, `gnome`, `nvidia`, `sway`, `development`, `container-tools`, `oneapi`, `cli-tools`, `cockpit`, `core`, `desktop`, `audio`, `virtualization` |
 | `osbuild_extra_packages` | a short list | template | Packages added on top of the components |
 | `osbuild_package_pins` | `{}` | template | `{package: version}`; unpinned packages get `*` |
 | `osbuild_blueprint_template` | `blueprint.toml.j2` | template | Template file |
-| `osbuild_blueprint_version` | `1.0.0` | template, bootc | Blueprint / image version label |
-| `osbuild_blueprint_description` | `Custom Workstation` | template | Blueprint description |
+| `osbuild_blueprint_version` | `1.0.0` | template, components, bootc | Blueprint / image version label |
+| `osbuild_blueprint_description` | `Custom Workstation` | template, components | Blueprint description |
 | `osbuild_timezone` | `America/New_York` | template, installer | Also rendered into the kickstart |
 | `osbuild_locale` | `en_US.UTF-8` | template, installer | Also rendered into the kickstart |
 | `osbuild_keyboard` | `us` | template, installer | Also rendered into the kickstart |
 | `osbuild_flathub_enabled` | `true` | both | Ship the Flathub system remote (see [Flathub Remote](#flathub-remote)) |
+
+### Composing a Blueprint from Components
+
+A component is a YAML file in `files/<distro>/<ver>/<arch>/components/<name>.yml`:
+
+```yaml
+label: "NVIDIA proprietary driver, CUDA toolkit and container toolkit"
+repo_urls:                 # become --extra-repo
+  - "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64"
+services: ["nvidia-cdi-refresh", "nvidia-persistenced"]
+kernel_args: ["rd.driver.blacklist=nouveau", "nvidia-drm.modeset=1"]
+fragment: nvidia.toml      # optional; [[customizations.files]] / [[customizations.repositories]] appended as is
+packages:                  # "@name" is a comps group
+  - "nvidia-driver"
+  - "cuda-toolkit"
+```
+
+`packages`, `services` and `kernel_args` are merged across the selected components and de-duplicated; `osbuild_extra_packages` and `osbuild_package_pins` still apply. `templates/blueprint-components.toml.j2` renders the result after the blueprint header and `[customizations] hostname = osbuild_hostname`, followed by the frame and each fragment. Because `repo_urls` flow into `--extra-repo`, dropping a component drops its repositories. A fragment may contain only array-of-tables (`[[...]]`) entries: the role renders `[customizations.kernel]` and `[customizations.services]` itself.
+
+Rocky 10 ships `base`, `anaconda`, `gnome-desktop`, `fonts`, `audio`, `multimedia`, `intel-graphics`, `development`, `containers-virt`, `cockpit` and `nvidia`, split from `rocky-10-2-workstation-nvidia.toml`. image-builder depsolves the same 1715 RPMs from both. `playbooks/osbuild-rocky-iso-nvidia-components.yml` selects all eleven. These component files are separate from the `osbuild_component_defs` entries above, which still serve the template and bootc paths.
 
 ### Repositories
 
@@ -232,7 +257,7 @@ image-builder resolves packages only from the target distribution's base reposit
 |---|---|---|
 | `osbuild_sources` | build host's common list + sources of the selected components | Repository *names*, looked up in `vars/<build host distribution>.yml` (`repo:`). Names missing there are skipped silently |
 | `osbuild_distro_sources_fedora` / `osbuild_distro_sources_el` | RPM Fusion, VS Code, Chrome, … | The common lists `osbuild_sources` starts from |
-| `osbuild_extra_repo_urls` | `[]` | Repository *URLs* passed through unchanged |
+| `osbuild_extra_repo_urls` | `[]` | Repository *URLs* passed through unchanged. The `repo_urls` of each selected blueprint component are added |
 
 The names are resolved against the **build host's** distribution, not the target's. To build an EL image on a Fedora host, set `osbuild_sources: []` and list every non-base repository in `osbuild_extra_repo_urls` (see `playbooks/osbuild-rocky-iso-nvidia.yml`). A blueprint's `[[customizations.repositories]]` only writes `.repo` files into the image; it does not feed package resolution.
 
@@ -337,6 +362,19 @@ Used only with `osbuild_build_bootc: true`. ISO installers create no user at bui
         osbuild_kickstart_usr_max_gib: 128
         osbuild_kickstart_var_max_gib: 512    # VM images and containers
         osbuild_kickstart_home_min_gib: 50
+```
+
+### Components Blueprint
+
+```yaml
+- hosts: builder
+  roles:
+    - role: osbuild
+      vars:
+        osbuild_distro: rocky-10.2
+        osbuild_use_blueprint_template: false
+        osbuild_sources: []          # EL target on a Fedora host
+        osbuild_blueprint_components: [base, anaconda, gnome-desktop, fonts, development]
 ```
 
 ### Using Static Blueprint
