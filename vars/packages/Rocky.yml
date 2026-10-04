@@ -215,9 +215,10 @@ system_packages:
       - python3-devel
       - python3-pip
       - nodejs
-      - npm
+      - nodejs-npm
       - rbenv
       - ruby-build-rbenv
+      - bats
     vcs:
       - git
     rpm_build:
@@ -509,36 +510,11 @@ system_groups:
 # Note: User-specific Flatpaks managed via yadm bootstrap
 
 system_flatpaks:
-  # Productivity & Knowledge Management
-  productivity:
-    - md.obsidian.Obsidian
-    - io.typora.Typora
+  - com.mattjakeman.ExtensionManager
+  - com.github.tchx84.Flatseal
+  - io.github.flattool.Warehouse
+  - io.github.dvlv.boxbuddyrs
 
-  # Media Creation
-  media:
-    - org.audacityteam.Audacity
-    - org.freac.freac
-    - org.pipewire.Helvum
-    - io.gitlab.theevilskeleton.Upscaler
-    - io.github.ltiber.Pwall
-    - io.github.bhack.mini-eq
-    - org.nomacs.ImageLounge
-
-  # Development Tools
-  development:
-    - io.podman_desktop.PodmanDesktop
-    - io.dbeaver.DBeaverCommunity
-
-  # System Utilities
-  system:
-    - com.github.tchx84.Flatseal
-    - org.gnome.Extensions
-    - io.github.vikdevelop.SaveDesktop
-    - com.saivert.pwvucontrol
-    - com.mattjakeman.ExtensionManager
-    - org.gnome.Extensions
-    - page.tesk.Refine
-    - com.discordapp.Discord
 
 # =============================================================================
 # COPR Repositories (Package Sources)
@@ -589,13 +565,14 @@ osbuild_legacy:
     - dkms
 
   development_packages:
+    - bats
     - cmake
     - gcc
     - gcc-c++
     - git
     - make
     - nodejs
-    - npm
+    - nodejs-npm
     - python3
     - python3-devel
     - python3-pip

@@ -1,0 +1,12 @@
+---
+# tasks file for tools
+
+- name: Include transcribe.cpp compilation tasks
+  ansible.builtin.include_tasks: transcribe-cpp.yml
+  when: tools_install_transcribe | bool
+  tags: ["transcribe", "tools"]
+
+- name: Include bun installation tasks
+  ansible.builtin.include_tasks: bun.yml
+  when: tools_install_bun | bool
+  tags: ["bun", "tools"]

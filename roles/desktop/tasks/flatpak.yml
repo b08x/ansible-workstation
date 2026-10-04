@@ -1,0 +1,19 @@
+---
+# tasks file for Flatpak configuration in roles/desktop
+
+- name: Configure Flathub system remote
+  community.general.flatpak_remote:
+    name: flathub
+    flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
+    method: system
+    state: present
+  tags: ["flatpaks", "desktop"]
+
+- name: Install system Flatpak applications
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+    remote: flathub
+  loop: "{{ system_flatpaks | default(desktop_system_flatpaks) }}"
+  tags: ["flatpaks", "desktop"]

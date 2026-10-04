@@ -73,13 +73,32 @@
         state: directory
         mode: "0755"
 
-    # - name: Deploy Crush config
-    #   ansible.builtin.template:
-    #     src: crush/crushrc.j2
-    #     dest: "{{ coding_agents_crush_config_dir }}/crushrc"
-    #     backup: true
-    #     mode: "0644"
-    #   tags: ["mcp"]
+    - name: Check whether Crush config file exists
+      ansible.builtin.stat:
+        path: "{{ coding_agents_crush_config_dir }}/crushrc"
+      register: coding_agents_crush_config_stat
+
+    - name: Check whether ~/.crushrc exists
+      ansible.builtin.stat:
+        path: "{{ ansible_user_dir }}/.crushrc"
+      register: coding_agents_user_crushrc_stat
+
+    - name: Check whether Crush JSON config exists
+      ansible.builtin.stat:
+        path: "{{ coding_agents_crush_config_dir }}/crush.json"
+      register: coding_agents_crush_json_stat
+
+    - name: Deploy Crush config
+      ansible.builtin.template:
+        src: crush/crushrc.j2
+        dest: "{{ coding_agents_crush_config_dir }}/crushrc"
+        backup: true
+        mode: "0644"
+      when:
+        - not coding_agents_crush_config_stat.stat.exists
+        - not coding_agents_user_crushrc_stat.stat.exists
+        - not coding_agents_crush_json_stat.stat.exists
+      tags: ["mcp"]
 
     - name: Ensure Crush agents directory exists
       ansible.builtin.file:

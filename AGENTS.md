@@ -9,23 +9,28 @@ are followed.
 
 All Ansible roles are located directly in `roles/`. The project has been consolidated into a single monolithic repository.
 
-All playbooks live in `playbooks/`, not at the repo root:
+All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at the repository root for pull-based local provisioning:
 
-- `site.yml` — full workstation provisioning. Targets the `workstations` group
+- `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers), Tag-as-Select role filtering, and reboot assessment.
+- `playbooks/site.yml` — full workstation provisioning. Targets the `workstations` group
   (tinybot, gir, soundbot) in two plays: a privileged system play (base, tuning,
   desktop, libvirt, containerd) and an unprivileged user play (user,
   coding_agents).
-- `base.yml` — the system play of `site.yml` on its own, for base-only runs.
-- `osbuild.yml` — custom image builds via `b08x.rhel_builder.osbuild`. Asserts
-  Fedora or AlmaLinux. Targets `osbuild_targets`, defined in
-  `inventory/hosts.ini` as a children-group of `builder` (tinybot, gir). The
-  group name matches the collection's own `playbooks/osbuild.yml`; its sibling
-  `composer_cli.yml` expects `composer_cli_builders`, which this repo does not
-  define.
-- `dify-docker-ninjabot.yml`, `langfuse-podman-tinybot.yml` — standalone
-  single-host deployments.
+- `playbooks/base.yml` — the system play of `site.yml` on its own, for base-only runs.
 
-Repo-root YAML is configuration, not plays: `ansible-navigator.yml` and the
+Roles live directly in `roles/`: `base`, `coding_agents`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
+
+Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
+blueprints have been moved into the standalone `osbuild` repository at
+`~/WorkspaceV3/Syncopated/osbuild`. RPM packaging roles and playbooks (`rpm_dev`)
+have been moved into the standalone `rpmbuild` repository at
+`~/WorkspaceV3/Syncopated/rpmbuild`. AI/LLM operations roles (`dify`, `langfuse`,
+`hermes`, `ollama`), dedicated service playbooks (`dify-docker.yml`,
+`langfuse-podman.yml`, `hermes.yml`, `ollama.yml`, `remediate.yml`), and the
+remediation plugin pipeline have been moved into the standalone `llmops` repository
+at `~/WorkspaceV3/Syncopated/llmops`.
+
+Repo-root YAML configuration: `ansible-navigator.yml`, `local.yml` (pull playbook), and the
 `argspec_validation_plays*.yml` pair.
 
 ## Commands
@@ -36,9 +41,6 @@ ansible-playbook playbooks/site.yml
 
 # Run specific role only
 ansible-playbook playbooks/site.yml --tags "base"
-
-# Build a custom image
-ansible-playbook playbooks/osbuild.yml
 
 # Lint (from collection dir)
 ansible-lint

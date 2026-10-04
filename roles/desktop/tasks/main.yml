@@ -59,37 +59,6 @@
   ansible.builtin.include_tasks: input-remapper.yml
   tags: ["input-remapper"]
 
-- name: Install Flatpak applications
-  community.general.flatpak:
-    name: "{{ item }}"
-    state: present
-    method: system
-    remote: flathub
-  loop:
-    - com.google.Chrome
-    - io.github.vikdevelop.SaveDesktop
-    - com.mattjakeman.ExtensionManager
-    - com.ranfdev.DistroShelf
-    - io.github.input_leap.input-leap
-    - io.podman_desktop.PodmanDesktop
-    - page.tesk.Refine
-    - org.gnome.DejaDup
-    - io.github.flattool.Ignition
-    - md.obsidian.Obsidian
-    - io.github.getnf.embellish
-  tags: ["flatpaks"]
-
-- name: Install Additional Flatpak applications
-  community.general.flatpak:
-    name: "{{ item }}"
-    state: present
-    method: system
-    remote: flathub
-  loop:
-    - org.pipewire.Helvum
-    - org.darktable.Darktable
-    - io.github.mhogomchungu.media-downloader
-    - io.github.ltiber.Pwall
-    - io.dbeaver.DBeaverCommunity
-    - com.discordapp.Discord
-  tags: ["flatpaks"]
+- name: Include Flatpak tasks
+  ansible.builtin.include_tasks: flatpak.yml
+  tags: ["flatpaks", "desktop"]

@@ -1,0 +1,52 @@
+---
+# tasks file for bun installation in roles/tools
+
+- name: Check if bun binary exists
+  ansible.builtin.stat:
+    path: "{{ tools_bun_dest }}"
+  register: tools_bun_stat
+  tags: ["bun", "tools"]
+
+- name: Install Bun binary
+  when:
+    - not tools_bun_stat.stat.exists or (tools_bun_force_install | default(false) | bool)
+    - not (ansible_check_mode | default(false))
+  tags: ["bun", "tools"]
+  block:
+    - name: Create temporary directory for Bun archive
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -bun-install
+      register: tools_bun_tempdir
+
+    - name: Download Bun archive
+      ansible.builtin.get_url:
+        url: "{{ tools_bun_url }}"
+        dest: "{{ tools_bun_tempdir.path }}/bun-linux-x64.zip"
+        mode: "0644"
+
+    - name: Unarchive Bun
+      ansible.builtin.unarchive:
+        src: "{{ tools_bun_tempdir.path }}/bun-linux-x64.zip"
+        dest: "{{ tools_bun_tempdir.path }}"
+        remote_src: true
+
+    - name: Install Bun binary to destination
+      ansible.builtin.copy:
+        src: "{{ tools_bun_tempdir.path }}/bun-linux-x64/bun"
+        dest: "{{ tools_bun_dest }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: true
+      become: true
+
+  always:
+    - name: Clean up Bun temporary directory
+      ansible.builtin.file:
+        path: "{{ tools_bun_tempdir.path }}"
+        state: absent
+      when:
+        - tools_bun_tempdir is defined
+        - tools_bun_tempdir.path is defined
+        - not (ansible_check_mode | default(false))

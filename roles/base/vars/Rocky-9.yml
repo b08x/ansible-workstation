@@ -69,10 +69,14 @@ base_packages:
   - readline-devel
   - ruby-build
   - sqlite
+  - sox
+  - tesseract-devel
   - vala
   - wayland-devel
   - wayland-protocols-devel
   - wireplumber
+  - wl-clipboard
+  - yad
   - zlib-devel
   - zram-generator
   - zsh

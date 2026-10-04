@@ -1,0 +1,188 @@
+---
+# Syncopated Workstation Local Provisioning Playbook
+# Intended for execution via ansible-pull or direct local convergence:
+#   ansible-pull -U <repo-url> local.yml
+#   ansible-playbook local.yml
+#
+# Adheres to the 15 Ansible Design Patterns (ansible-patterns-anti-patterns):
+# - Pattern 5: Pre-flight Check Block (capability detection, user resolution)
+# - Pattern 6: Role Composition (layered workstation provisioning)
+# - Pattern 7: Tag-as-Select Pattern (comprehensive primary and functional tags)
+# - Pattern 8: Backup-on-Write Pattern (sudoers file backup)
+# - Pattern 9: Block-as-Unit Pattern (grouped diagnostics and check-mode safety)
+# - Pattern 10: Environment Injection Pattern (consistent user and fact propagation)
+# - Pattern 11: Conditional Feature Flags (explicit boolean gating)
+# - Pattern 12: Post-task Lifecycle Pattern (reboot verification and summary)
+# - Pattern 13: Debug-as-Progress-Indicator Pattern (clear phase demarcation)
+
+- name: Syncopated Workstation Local Provisioning
+  hosts: "{{ target_hosts | default('localhost, workstations') }}"
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Announce local provisioning start
+      ansible.builtin.debug:
+        msg: "Starting Syncopated workstation provisioning on {{ inventory_hostname }}"
+      tags: ["always"]
+
+    - name: Probe for global group variables
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/inventory/group_vars/all.yml"
+      register: _preflight_group_vars_stat
+      check_mode: false
+      tags: ["always"]
+
+    - name: Load global group variables if available
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
+      when: _preflight_group_vars_stat.stat.exists | default(false)
+      tags: ["always"]
+
+    - name: Resolve target workstation user account
+      ansible.builtin.set_fact:
+        workstation_user: >-
+          {{
+            user.name
+            if (user is defined and user.name is defined and user.name | length > 0)
+            else (
+              ansible_env.SUDO_USER
+              if (ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER | length > 0 and ansible_env.SUDO_USER != 'root')
+              else (
+                lookup('env', 'USER')
+                if (lookup('env', 'USER') is defined and lookup('env', 'USER') | length > 0 and lookup('env', 'USER') != 'root')
+                else ansible_user_id
+              )
+            )
+          }}
+      tags: ["always"]
+
+    - name: Ensure user dictionary is defined for roles
+      ansible.builtin.set_fact:
+        user: "{{ (user | default({})) | combine({'name': workstation_user}, recursive=True) }}"
+      when: user is not defined or user.name is not defined
+      tags: ["always"]
+
+    - name: Disable requiretty in sudoers for unattended execution
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        regexp: "^Defaults    requiretty"
+        line: "Defaults:{{ workstation_user }}    !requiretty"
+        backrefs: false
+        backup: true
+        validate: "visudo -cf %s"
+      when: workstation_user != 'root'
+      tags: ["sudoers", "base"]
+
+    - name: Ensure /etc/system-release symlink exists
+      ansible.builtin.file:
+        src: /etc/os-release
+        dest: /etc/system-release
+        state: link
+      tags: ["base", "system"]
+
+    - name: Pre-flight capability detection
+      check_mode: false
+      tags: ["always"]
+      block:
+        - name: Check for KVM hardware acceleration support
+          ansible.builtin.stat:
+            path: /dev/kvm
+          register: _preflight_kvm_stat
+
+        - name: Query default systemd target
+          ansible.builtin.command: systemctl get-default
+          register: _preflight_default_target
+          changed_when: false
+          failed_when: false
+
+        - name: Set auto-detected subsystem facts
+          ansible.builtin.set_fact:
+            auto_enable_libvirt: >-
+              {{ pull_enable_libvirt | default(_preflight_kvm_stat.stat.exists | default(false)) | bool }}
+            auto_enable_desktop: >-
+              {{
+                pull_enable_desktop
+                | default(_preflight_default_target.stdout is defined and 'graphical' in _preflight_default_target.stdout)
+                | bool
+              }}
+            auto_enable_containerd: "{{ pull_enable_containerd | default(true) | bool }}"
+
+        - name: Display pre-flight capability findings
+          ansible.builtin.debug:
+            msg:
+              - "Host: {{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})"
+              - "Workstation User: {{ workstation_user }}"
+              - "KVM Support: {{ _preflight_kvm_stat.stat.exists | default(false) }} -> Libvirt: {{ auto_enable_libvirt }}"
+              - "Default Target: {{ _preflight_default_target.stdout | default('unknown') }} -> Desktop: {{ auto_enable_desktop }}"
+              - "Containers: {{ auto_enable_containerd }}"
+
+  roles:
+    - role: base
+      tags: ["base", "system"]
+
+    - role: tuning
+      tags: ["tuning", "system"]
+
+    - role: networking
+      tags: ["networking", "system"]
+
+    - role: containerd
+      when: auto_enable_containerd | default(true) | bool
+      tags: ["containerd", "virt"]
+
+    - role: libvirt
+      when: auto_enable_libvirt | default(false) | bool
+      tags: ["libvirt", "virt"]
+
+    - role: desktop
+      when: auto_enable_desktop | default(false) | bool
+      tags: ["desktop", "system"]
+
+    - role: tools
+      tags: ["tools", "system"]
+
+  post_tasks:
+    - name: Post-flight execution assessment and reboot verification
+      check_mode: false
+      tags: ["always"]
+      block:
+        - name: Check for pending reboot on RedHat/Fedora family
+          ansible.builtin.command: needs-restarting -r
+          register: _reboot_check_rhel
+          changed_when: false
+          failed_when: false
+          when: ansible_os_family == 'RedHat'
+
+        - name: Check for pending reboot on Debian family
+          ansible.builtin.stat:
+            path: /var/run/reboot-required
+          register: _reboot_check_debian
+          when: ansible_os_family == 'Debian'
+
+        - name: Evaluate pending reboot status
+          ansible.builtin.set_fact:
+            system_reboot_required: >-
+              {{
+                (_reboot_check_rhel.rc is defined and _reboot_check_rhel.rc == 1)
+                or (_reboot_check_debian.stat.exists is defined and _reboot_check_debian.stat.exists | bool)
+              }}
+
+        - name: Display reboot notice if kernel or core libraries were updated
+          ansible.builtin.debug:
+            msg: "NOTICE: A system reboot is recommended to apply kernel or core library updates."
+          when: system_reboot_required | default(false) | bool
+
+        - name: Display completion summary
+          ansible.builtin.debug:
+            msg:
+              - "============================================================"
+              - "Syncopated Workstation Provisioning Complete (ansible-pull)"
+              - "Host: {{ inventory_hostname }}"
+              - "Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+              - "Target User: {{ workstation_user }}"
+              - "Libvirt Enabled: {{ auto_enable_libvirt }}"
+              - "Desktop Enabled: {{ auto_enable_desktop }}"
+              - "Containerd Enabled: {{ auto_enable_containerd }}"
+              - "Reboot Recommended: {{ system_reboot_required | default(false) }}"
+              - "============================================================"
