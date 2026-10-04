@@ -16,7 +16,7 @@
 # - Pattern 13: Debug-as-Progress-Indicator Pattern (clear phase demarcation)
 
 - name: Syncopated Workstation Local Provisioning
-  hosts: "{{ target_hosts | default('localhost, workstations') }}"
+  hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
 
