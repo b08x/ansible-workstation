@@ -4,11 +4,11 @@ This project adheres to the following variable precedence rules and naming conve
 
 - **Tier 1 (Domain Scope)**: Unprefixed variables representing system-wide capabilities, user identity, or hardware intent.
   - Defined in `inventory/group_vars/all.yml` or specific `group_vars` / `host_vars`.
-  - Examples: `user.*`, `intel_oneapi_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`.
+  - Examples: `user.*`, `intel_oneapi_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`, `has_cuda_device`, `has_vulkan_device`.
 
 - **Tier 2 (Role Scope)**: Role-prefixed variables (`<role>_*`) that configure specific role behavior.
   - Defined in `roles/<role>/defaults/main.yml` and `roles/<role>/vars/main.yml`.
-  - Examples: `osbuild_blueprint_name`, `base_package_list`.
+  - Examples: `osbuild_blueprint_name`, `base_package_list`, `tools_transcribe_require_gpu`.
 
 - **Task Registrations**: Variables created via `register:` within a task MUST use the `<role>_*` prefix.
   - Why: Registered variables have global host scope in Ansible and will collide across roles if left generic.

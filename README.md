@@ -122,12 +122,13 @@ The state of the entries, facet by facet:
   - `local.yml` provides an autonomous local pull and convergence playbook
     specifically designed for `ansible-pull` and local bootstrap. It implements the
     15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical
-    display, containers), Tag-as-Select role filtering, check-mode safety, and post-flight
-    reboot verification.
+    display, containers, CUDA/Vulkan GPU acceleration), Tag-as-Select role filtering,
+    check-mode safety, and post-flight reboot verification.
   - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](docs/layering-architecture.md),
     partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
-  - System-level utilities (`bun` and hardware-accelerated `transcribe.cpp`) live natively
-    in `roles/tools`.
+  - System-level utilities (`bun` and GPU-gated `transcribe.cpp` supporting CUDA and Vulkan backends)
+    live natively in `roles/tools`. Transcribe compilation is skipped automatically on hosts without
+    detected GPU devices (`tools_transcribe_require_gpu: true`).
 - **Observability runs in both directions.** The `llm_analyzer` callback
   records what every play and task actually does to an append-only trace
   store, and `scripts/llm_trainset.py` turns those traces into a scored DSPy

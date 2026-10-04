@@ -11,7 +11,7 @@ All Ansible roles are located directly in `roles/`. The project has been consoli
 
 All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at the repository root for pull-based local provisioning:
 
-- `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers), Tag-as-Select role filtering, and reboot assessment.
+- `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers, CUDA/Vulkan GPUs), Tag-as-Select role filtering, and reboot assessment.
 - `playbooks/site.yml` — full workstation provisioning. Targets the `workstations` group
   (tinybot, gir, soundbot) across modular plays: base (base), system (tuning, networking, containerd, desktop, libvirt),
   user (user), and tools (tools).

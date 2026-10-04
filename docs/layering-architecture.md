@@ -20,9 +20,9 @@ The Syncopated workstation platform uses a three-tier layered architecture estab
 |                                 Ansible                                  |
 |   Machine & Host Orchestration (System Configuration & System Services)  |
 |  - Host-level RPMs (sox, tesseract-devel, yad, wl-clipboard)             |
-|  - Hardware acceleration & GPU drivers (CUDA, Intel oneAPI)              |
+|  - Hardware acceleration & GPU drivers (CUDA, Vulkan, Intel oneAPI)      |
 |  - System Flatpaks (ExtensionManager, Flatseal, Warehouse, BoxBuddy)     |
-|  - System CLI binaries (/usr/local/bin/{bun, transcribe, agy})           |
+|  - System CLI binaries (/usr/local/bin/{bun, transcribe})                 |
 |  - System services (sshd, zram, libvirtd)                                |
 +--------------------------------------------------------------------------+
                                     |
@@ -45,7 +45,7 @@ The Syncopated workstation platform uses a three-tier layered architecture estab
 | :--- | :--- | :--- | :--- | :--- |
 | **Base RPM Packages** | OSBuild | `osbuild` / `bootc` | `kernel`, `podman`, `gcc`, `glibc` | Immutable appliance foundations. Baked at build time. |
 | **Host RPM Packages** | Ansible | `ansible.builtin.dnf` | `sox`, `tesseract-devel`, `yad`, `wl-clipboard`, `fzf` | Dynamic host capabilities, desktop environments, hardware dev libraries. |
-| **System Binaries** | Ansible | `roles/tools` | `/usr/local/bin/bun`, `/usr/local/bin/transcribe` | Globally shared utilities requiring compilation or system-wide drop. |
+| **System Binaries** | Ansible | `roles/tools` | `/usr/local/bin/bun`, `/usr/local/bin/transcribe` | Globally shared utilities requiring compilation or system-wide drop. `transcribe` is gated on CUDA/Vulkan GPU hardware presence. |
 | **System Flatpaks** | Ansible | `roles/desktop/tasks/flatpak.yml` | `ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy` | System-wide utility and administration GUI applications. |
 | **User Flatpaks** | Yadm | `yadm/bootstrap.d/80-install-user-flatpaks.sh` | `Obsidian`, `Typora`, `Audacity`, `freac`, `Helvum`, `Podman Desktop`, `DBeaver` | User productivity, authoring, and media creation applications installed per-user. |
 | **User Rust / Cargo** | Yadm | `yadm/bootstrap.d/20-cargo.sh` | `bottom`, `choose`, `git-cliff`, `gping`, `ripgrep_all`, `sd`, `gitui`, `eza` | Unprivileged user CLI tools compiled against user rustup toolchain in `~/.cargo/bin`. Removed from Ansible. |
