@@ -21,7 +21,9 @@ All playbooks live in `playbooks/`, not at the repo root:
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
 blueprints have been moved into the standalone `osbuild` repository at
-`~/WorkspaceV3/Syncopated/osbuild`.
+`~/WorkspaceV3/Syncopated/osbuild`. RPM packaging roles and playbooks (`rpm_dev`)
+have been moved into the standalone `rpmbuild` repository at
+`~/WorkspaceV3/Syncopated/rpmbuild`.
 
 Repo-root YAML is configuration, not plays: `ansible-navigator.yml` and the
 `argspec_validation_plays*.yml` pair.
