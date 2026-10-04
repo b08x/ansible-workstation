@@ -7,7 +7,7 @@
   register: tools_transcribe_stat
   tags: ["transcribe", "tools"]
 
-- name: Pre-flight GPU hardware accelerator detection
+- name: Pre-flight hardware and GPU accelerator detection
   when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
   tags: ["transcribe", "tools"]
   block:
@@ -73,6 +73,25 @@
       check_mode: false
       when: has_vulkan_device is not defined
 
+    - name: Probe CPU cores and memory when facts are missing
+      when: ansible_processor_vcpus is not defined or ansible_memtotal_mb is not defined
+      block:
+        - name: Probe nproc
+          ansible.builtin.command:
+            cmd: nproc
+          register: tools_nproc_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
+        - name: Probe MemTotal from /proc/meminfo
+          ansible.builtin.shell:
+            cmd: "awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo"
+          register: tools_mem_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
     - name: Set GPU acceleration facts
       ansible.builtin.set_fact:
         tools_transcribe_has_cuda: >-
@@ -94,11 +113,58 @@
           {{ (tools_transcribe_has_cuda | default(false) | bool) or
              (tools_transcribe_has_vulkan | default(false) | bool) }}
 
+    - name: Set host hardware resource facts
+      ansible.builtin.set_fact:
+        tools_transcribe_host_cores: >-
+          {{
+            [
+              ansible_processor_vcpus | default(0) | int,
+              ansible_processor_nproc | default(0) | int,
+              ((ansible_processor_cores | default(0) | int) * (ansible_processor_count | default(1) | int)),
+              tools_nproc_probe.stdout | default(0) | int
+            ] | max
+          }}
+        tools_transcribe_host_mem_mb: >-
+          {{
+            ansible_memtotal_mb | default(tools_mem_probe.stdout | default(0)) | int
+          }}
+
+    - name: Evaluate host hardware specifications
+      ansible.builtin.set_fact:
+        tools_transcribe_has_min_cores: >-
+          {{ (tools_transcribe_host_cores | int) >= (tools_transcribe_min_cores | default(16) | int) }}
+        tools_transcribe_has_min_memory: >-
+          {{
+            (tools_transcribe_host_mem_mb | int) >=
+            (tools_transcribe_min_mem_mb | default(((tools_transcribe_min_mem_gb | default(32) | int) * 1024 * 0.9) | int) | int)
+          }}
+
+    - name: Evaluate hardware qualification for transcribe.cpp
+      ansible.builtin.set_fact:
+        tools_transcribe_has_min_specs: >-
+          {{
+            (tools_transcribe_has_min_cores | bool) and
+            (tools_transcribe_has_min_memory | bool)
+          }}
+
+- name: Notify that transcribe.cpp is skipped due to insufficient hardware specifications
+  ansible.builtin.debug:
+    msg: >-
+      Skipping transcribe.cpp: host does not meet hardware requirements
+      (found {{ tools_transcribe_host_cores }} cores / {{ (tools_transcribe_host_mem_mb | int / 1024) | round(1) }} GB RAM,
+      required minimum {{ tools_transcribe_min_cores | default(16) }} cores and {{ tools_transcribe_min_mem_gb | default(32) }} GB RAM).
+  when:
+    - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - tools_transcribe_require_min_specs | default(true) | bool
+    - not (tools_transcribe_has_min_specs | default(false) | bool)
+  tags: ["transcribe", "tools"]
+
 - name: Notify that transcribe.cpp is skipped due to missing GPU devices
   ansible.builtin.debug:
     msg: "Skipping transcribe.cpp: neither CUDA nor Vulkan hardware devices were detected on this host."
   when:
     - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - (tools_transcribe_has_min_specs | default(false) | bool) or not (tools_transcribe_require_min_specs | default(true) | bool)
     - tools_transcribe_require_gpu | default(true) | bool
     - not (tools_transcribe_has_gpu_acceleration | default(false) | bool)
   tags: ["transcribe", "tools"]
@@ -106,6 +172,7 @@
 - name: Build and install transcribe.cpp
   when:
     - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - (tools_transcribe_has_min_specs | default(false) | bool) or not (tools_transcribe_require_min_specs | default(true) | bool)
     - (tools_transcribe_has_gpu_acceleration | default(false) | bool) or not (tools_transcribe_require_gpu | default(true) | bool)
     - not (ansible_check_mode | default(false))
   tags: ["transcribe", "tools"]
@@ -181,7 +248,7 @@
 
     - name: Compile transcribe.cpp
       ansible.builtin.command:
-        cmd: "cmake --build build --config Release -j{{ ansible_processor_vcpus | default(4) }}"
+        cmd: "cmake --build build --config Release -j{{ tools_transcribe_host_cores | default(ansible_processor_vcpus | default(4)) }}"
         chdir: "{{ tools_transcribe_build_dir }}"
       changed_when: true
 

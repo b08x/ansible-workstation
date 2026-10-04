@@ -68,6 +68,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 ### 2. Transcribe.cpp Whisper Engine (`tasks/transcribe-cpp.yml`)
 - Clones and builds [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) (Whisper audio transcription CLI) with automatic hardware acceleration detection:
+  - **Hardware Qualification Gate**: Controlled by `tools_transcribe_require_min_specs: true` (default). Verifies host meets minimum hardware requirements of 16 CPU cores/vCPUs and 32 GB RAM before attempting compilation.
   - **CUDA (NVIDIA)**: Probes hardware device and `command -v nvcc` &rarr; compiles with `-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON`.
   - **Intel oneAPI / SYCL**: Probes `icx` or `dpcpp` &rarr; compiles with `-DGGML_SYCL=ON`.
   - **Vulkan**: Probes Vulkan physical GPUs (Intel Iris/Arc, AMD Radeon, NVIDIA) &rarr; compiles with `-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON`.
@@ -140,6 +141,9 @@ These variables are namespaced with `tools_*` and control role-specific behavior
 | `tools_bun_dest` | `"/usr/local/bin/bun"` | Destination path for Bun executable. |
 | `tools_bun_force_install` | `false` | Force re-download and re-extraction of Bun. |
 | `tools_install_transcribe` | `true` | Enable/disable transcribe.cpp compilation. |
+| `tools_transcribe_require_min_specs` | `true` | Skip compilation if host has fewer than minimum cores or RAM. |
+| `tools_transcribe_min_cores` | `16` | Minimum CPU cores/vCPUs required to build transcribe.cpp. |
+| `tools_transcribe_min_mem_gb` | `32` | Minimum system RAM in GB required to build transcribe.cpp. |
 | `tools_transcribe_require_gpu`| `true` | Skip compilation if neither CUDA nor Vulkan devices are detected. |
 | `tools_transcribe_dest` | `"/usr/local/bin/transcribe"` | Destination path for transcribe binary. |
 | `tools_transcribe_force_build`| `false` | Force CMake rebuild even if binary exists. |

@@ -13,6 +13,10 @@ tools_user_go_bin: "{{ tools_user_home }}/go/bin"
 # transcribe.cpp (Whisper transcription CLI)
 tools_install_transcribe: true
 tools_transcribe_require_gpu: true
+tools_transcribe_require_min_specs: true
+tools_transcribe_min_cores: 16
+tools_transcribe_min_mem_gb: 32
+tools_transcribe_min_mem_mb: "{{ ((tools_transcribe_min_mem_gb | int) * 1024 * 0.9) | int }}"
 tools_transcribe_repo: "https://github.com/handy-computer/transcribe.cpp.git"
 tools_transcribe_version: "main"
 tools_transcribe_build_dir: "/tmp/transcribe.cpp-build"
