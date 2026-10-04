@@ -1,510 +1,299 @@
-# Ansible Role: NAS (Network Attached Storage)
+# Ansible Role: nas (Network Attached Storage)
 
-A comprehensive Ansible role for configuring network-attached storage services on **RedHat family** systems (Fedora, Rocky Linux 9, RHEL). This role supports NFS, Samba/SMB, and Rsync daemon services with fully variable-driven configuration.
+Enterprise network storage orchestration provisioning NFSv4 server, Samba/SMB file sharing, and Rsync daemon services with co-located firewalld rules and multi-tenant access controls across Fedora, AlmaLinux, and Rocky Linux.
 
-## Table of Contents
+---
 
-- [Requirements](#requirements)
-- [Supported Platforms](#supported-platforms)
-- [Role Variables](#role-variables)
-  - [Service Activation](#service-activation)
-  - [NFS Configuration](#nfs-configuration)
-  - [Samba Configuration](#samba-configuration)
-  - [Rsync Configuration](#rsync-configuration)
-- [Dependencies](#dependencies)
-- [Example Playbook](#example-playbook)
-- [Directory Structure](#directory-structure)
-- [Usage Examples](#usage-examples)
-- [Testing](#testing)
-- [License](#license)
+## Overview & Architecture
 
-## Requirements
+Under the [workstation layering taxonomy](../../docs/layering-architecture.md), the `nas` role operates at **Layer 1 (Ansible Machine Orchestration)** to provision persistent network file systems and synchronization endpoints. It enables workstations and local compute clusters to access shared assets, datasets, media libraries, and backup repositories with predictable permissions and locked-down network access.
 
-- **Ansible**: Version 2.12 or higher
-- **Collections**:
-  - `ansible.posix` (for firewalld module)
-- **Operating System**: RedHat family only (Fedora, Rocky Linux 9, RHEL)
+```
++--------------------------------------------------------------------------+
+|                     Layer 2: Network Storage Consumers                   |
+|       Workstation Fleets, Container Storage Mounts, Backup Pipelines     |
++--------------------------------------------------------------------------+
+                                    |
+            +-----------------------+-----------------------+
+            | (NFSv4 Protocol)      | (SMB/CIFS Protocol)   | (rsync Protocol)
+            v                       v                       v
++--------------------------------------------------------------------------+
+|                        Layer 1: roles/nas (Ansible)                      |
+|   - NFSv4 Daemon Stack (nfs-utils, rpcbind, idmapd, /etc/exports)        |
+|   - Samba File Sharing (smbd, nmbd, /etc/samba/smb.conf)                 |
+|   - Rsync Daemon (rsync-daemon, /etc/rsyncd.conf)                        |
+|   - Dedicated System Users & Service Accounts (nobody, smbuser)          |
+|   - Co-located Hybrid Firewall Rules (Services + Fixed Daemon Ports)     |
++--------------------------------------------------------------------------+
+                                    |
+                                    v
++--------------------------------------------------------------------------+
+|                  Layer 0: Host Operating System & Storage                |
+|             ZFS, XFS, Btrfs Local Disks & Filesystem Mounts              |
+|             Fedora 40+, AlmaLinux 9/10, Rocky Linux 9/10                 |
++--------------------------------------------------------------------------+
+```
 
-## Supported Platforms
+### Design Patterns Implemented
 
-| Platform | Versions |
-|----------|----------|
-| Fedora | All current versions |
-| Rocky Linux | 9.x |
-| RHEL | 9.x |
+The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-**Note**: This role is specifically designed for RedHat family distributions and will fail with an assertion error on other OS families.
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to isolated subsystem coordinators (`packages.yml`, `users.yml`, `nfs/main.yml`, `samba/main.yml`, `rsync/main.yml`) gated by explicit boolean flags (`nas_enable_nfs`, `nas_enable_samba`, `nas_enable_rsync`).
+2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific package and service variable inclusion via `vars/{{ ansible_distribution }}.yml` with fallback to `vars/RedHat.yml`.
+3. **Data-Driven Directory Creation**: Storage export and share definitions dynamically create parent directories, ownership, and permissions when `create_dir: true`.
+4. **Data-Driven Firewall Pattern**: Implements co-located firewall rules directly within `nfs/firewall.yml` and `samba/firewall.yml` using `ansible.posix.firewalld`, managing both standard services and fixed static ports to eliminate ephemeral port collisions.
+5. **Backup-on-Write Pattern**: All templated configuration files (`/etc/exports`, `/etc/nfs.conf`, `/etc/idmapd.conf`, `/etc/samba/smb.conf`, `/etc/rsyncd.conf`) set `backup: true` to protect administrative modifications.
+6. **Handler Notification Pattern**: Configuration changes notify granular reload and restart handlers (`Reload NFS exports` via `exportfs -arv`, `Restart NFS server`, `Restart Samba`, `Restart rsync daemon`, `Reload firewalld`).
+7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 domain-level network settings (`ansible_domain`, `firewall.nfs.ports`) and Tier 2 namespaced role variables (`nas_*`).
+
+---
+
+## Core Components & Subsystems
+
+### 1. NFS Server (`tasks/nfs/`)
+**Enabled by default** (`nas_enable_nfs: true`).
+- **NFSv4 Pseudo-Root**: Configures NFSv4 pseudo-root export (`fsid=0`) in `/srv/nfs` and nested exported paths.
+- **ID Mapping**: Templates `/etc/idmapd.conf` with dynamic domain binding (`nas_nfs_domain`).
+- **Fixed Daemon Ports**: Enforces deterministic daemon ports in `/etc/nfs.conf` (lockd: `32803/tcp`, `32769/udp`; mountd: `892`; statd: `662`) to prevent firewall breakage caused by random RPC port allocations.
+- **Export Management**: Deploys `/etc/exports` with network CIDR restrictions (`nas_nfs_allowed_networks`) and notifies `exportfs -arv` for zero-downtime export table reloads.
+- **Co-located Firewall**: Activates firewalld services (`nfs`, `rpc-bind`, `mountd`) and opens explicit auxiliary daemon ports.
+
+### 2. Samba / SMB Server (`tasks/samba/`)
+**Disabled by default** (`nas_enable_samba: false`).
+- **Service Stack**: Deploys `samba`, `samba-common`, and `samba-client`.
+- **Global Settings**: Configures `/etc/samba/smb.conf` with workgroup, NetBIOS name, protocol minimums (`nas_samba_server_min_protocol: NT1` to `SMB3`), and NTLM authentication settings.
+- **Multi-Share Configuration**: Dynamically defines shares from the `nas_samba_shares` dictionary with valid user restrictions, write lists, guest access flags, and inheritance masks.
+- **System Accounts**: Configures dedicated Samba user accounts (`nas_samba_user`, default: `smbuser`) and system groups.
+- **Co-located Firewall**: Opens `samba` firewalld service (TCP 139, 445; UDP 137, 138) and optional `samba-client`.
+
+### 3. Rsync Daemon (`tasks/rsync/`)
+**Disabled by default** (`nas_enable_rsync: false`).
+- **Service Configuration**: Deploys `rsync-daemon` packages and templates `/etc/rsyncd.conf`.
+- **Modular Shares**: Dynamically generates rsync module definitions with `hosts allow`, `hosts deny`, read-only flags, and max connection throttles.
+- **Unprivileged Execution**: Configures the daemon to execute under `nobody:nobody` with chroot isolation options.
+
+---
+
+## Distribution & Platform Matrix
+
+| Feature / Capability | Fedora (40+) | AlmaLinux (9 & 10) | Rocky Linux (9 & 10) |
+|---|---|---|---|
+| **Distro Variable File** | `vars/Fedora.yml` | `vars/AlmaLinux.yml` | `vars/Rocky.yml` |
+| **NFS Packages** | `nfs-utils` | `nfs-utils` | `nfs-utils` |
+| **Samba Packages** | `samba`, `samba-common-tools` | `samba`, `samba-common-tools` | `samba`, `samba-common-tools` |
+| **Rsync Packages** | `rsync-daemon` | `rsync-daemon` | `rsync-daemon` |
+| **NFS Service Name** | `nfs-server.service` | `nfs-server.service` | `nfs-server.service` |
+| **Samba Service Name** | `smb.service`, `nmb.service` | `smb.service`, `nmb.service` | `smb.service`, `nmb.service` |
+| **Firewall Management** | `ansible.posix.firewalld` | `ansible.posix.firewalld` | `ansible.posix.firewalld` |
+
+---
 
 ## Role Variables
 
-All variables are defined in `defaults/main.yml` with sensible defaults. See below for comprehensive documentation.
+### Tier 1: Host & Domain Scope Variables
 
-### Service Activation
+These variables represent machine hardware, network domain context, or centralized port mappings in `group_vars/` or `host_vars/`:
 
-Control which NAS services are enabled:
+| Variable | Default | Description |
+|---|---|---|
+| `ansible_domain` | `localdomain` | Workstation DNS domain used for NFSv4 ID mapping in `/etc/idmapd.conf`. |
+| `firewall.nfs.ports` | *(dictionary)* | Global definition of fixed daemon ports for RPC, lockd, mountd, and statd. |
 
-```yaml
-# Enable/disable individual NAS services
-nas_enable_nfs: true      # NFS server
-nas_enable_samba: true    # Samba/SMB server
-nas_enable_rsync: false   # Rsync daemon (disabled by default)
-```
+### Tier 2: Role Defaults (`defaults/main.yml`)
 
-### NFS Configuration
+These variables are namespaced with `nas_*` and control role-specific behavior:
 
-#### NFS User/Group
+#### Subsystem Activation Flags
+| Variable | Default | Description |
+|---|---|---|
+| `nas_enable_nfs` | `true` | Enable and configure the NFSv4 server stack. |
+| `nas_enable_samba` | `false` | Enable and configure Samba/SMB file sharing. |
+| `nas_enable_rsync` | `false` | Enable and configure the Rsync daemon. |
 
-```yaml
-nas_nfs_user_name: nobody
-nas_nfs_user_group: nobody
-nas_nfs_user_uid: 65534
-nas_nfs_user_gid: 65534
-```
+#### NFS Configuration Variables
+| Variable | Default | Description |
+|---|---|---|
+| `nas_nfs_user_name` | `"nobody"` | System user for unprivileged NFS operations. |
+| `nas_nfs_user_group` | `"nobody"` | System group for unprivileged NFS operations. |
+| `nas_nfs_user_uid` | `65534` | UID for the NFS user. |
+| `nas_nfs_user_gid` | `65534` | GID for the NFS group. |
+| `nas_nfs_domain` | `{{ ansible_domain \| default('localdomain') }}` | Domain for NFSv4 ID mapping. |
+| `nas_nfs_allowed_networks` | `["192.168.41.0/24"]` | List of network CIDRs permitted to mount NFS exports. |
+| `nas_nfs_export_options` | `["rw", "sync", "no_subtree_check"]` | Default options applied to exports. |
+| `nas_nfs_root_export_options`| `["rw", "fsid=0", "no_subtree_check", "sync"]` | Options for the pseudo-root export. |
+| `nas_nfs_exports` | `[{path: /srv/nfs, create_dir: true, is_root: true}]` | List of export dictionaries. |
 
-#### NFS Domain & Network Access
+#### Samba Configuration Variables
+| Variable | Default | Description |
+|---|---|---|
+| `nas_samba_user` | `"smbuser"` | Primary Samba username. |
+| `nas_samba_group` | `"smbgroup"` | Primary Samba group name. |
+| `nas_samba_uid` | `1036` | UID for the Samba user. |
+| `nas_samba_gid` | `1036` | GID for the Samba group. |
+| `nas_samba_workgroup` | `"WORKGROUP"` | SMB workgroup name. |
+| `nas_samba_server_string` | `"Samba Server %v"` | Server description string. |
+| `nas_samba_hosts_allow` | `["127.0.0.1", "192.168.41.0/24"]` | Allowed clients for SMB shares. |
+| `nas_samba_shares` | *(see defaults/main.yml)* | List of defined SMB share dictionaries. |
+| `nas_samba_enable_nmb` | `true` | Enable NetBIOS name service daemon (`nmb`). |
 
-```yaml
-# NFSv4 domain (defaults to system's DNS domain)
-nas_nfs_domain: "{{ ansible_domain | default('localdomain') }}"
+#### Rsync Configuration Variables
+| Variable | Default | Description |
+|---|---|---|
+| `nas_rsync_user` | `"nobody"` | User for rsync file operations. |
+| `nas_rsync_group` | `"nobody"` | Group for rsync file operations. |
+| `nas_rsync_max_connections` | `4` | Maximum concurrent connections. |
+| `nas_rsync_use_chroot` | `false` | Whether to enable chroot in rsyncd. |
+| `nas_rsync_modules` | *(see defaults/main.yml)* | List of rsync module dictionaries. |
 
-# Allowed networks (CIDR notation)
-nas_nfs_allowed_networks:
-  - "192.168.41.0/24"
-  - "10.0.0.0/8"        # Add additional networks as needed
-```
-
-#### NFS Exports
-
-Define NFS exports as a list of dictionaries:
-
-```yaml
-nas_nfs_exports:
-  - path: /srv/nfs
-    create_dir: true
-    is_root: true  # NFSv4 pseudo-root (fsid=0)
-
-  - path: /srv/nfs/shared
-    create_dir: true
-    owner: nobody
-    group: nobody
-    mode: '0755'
-    options:  # Optional: override default export options
-      - rw
-      - nohide
-      - insecure
-      - no_subtree_check
-      - sync
-    clients:  # Optional: override default allowed networks
-      - "192.168.1.0/24"
-```
-
-**Export Parameters**:
-- `path` (required): Directory path to export
-- `is_root` (optional): Mark as NFSv4 pseudo-root (fsid=0)
-- `create_dir` (optional, default: false): Create directory if missing
-- `owner` (optional, default: nas_nfs_user_name): Directory owner
-- `group` (optional, default: nas_nfs_user_group): Directory group
-- `mode` (optional, default: '0755'): Directory permissions
-- `options` (optional): List of NFS export options (defaults to nas_nfs_export_options)
-- `clients` (optional): List of allowed networks (defaults to nas_nfs_allowed_networks)
-
-#### Default NFS Export Options
-
-```yaml
-# Regular export options
-nas_nfs_export_options:
-  - rw
-  - sync
-  - no_subtree_check
-
-# Root export options (fsid=0)
-nas_nfs_root_export_options:
-  - rw
-  - fsid=0
-  - no_subtree_check
-  - sync
-```
-
-### Samba Configuration
-
-#### Samba User/Group
-
-```yaml
-nas_samba_user: smbuser
-nas_samba_group: smbgroup
-nas_samba_uid: 1036
-nas_samba_gid: 1036
-nas_samba_user_system: false
-nas_samba_group_system: false
-```
-
-#### Samba Global Settings
-
-```yaml
-nas_samba_workgroup: WORKGROUP
-nas_samba_server_string: "Samba Server %v"
-nas_samba_netbios_name: "{{ ansible_hostname | upper }}"
-
-# Protocol versions
-nas_samba_server_min_protocol: NT1
-nas_samba_client_min_protocol: NT1
-nas_samba_client_max_protocol: SMB3
-nas_samba_ntlm_auth: ntlmv1-permitted
-
-# Network access control
-nas_samba_hosts_allow:
-  - 127.0.0.1
-  - "192.168.41.0/24"
-
-# File/directory permissions
-nas_samba_create_mask: "0664"
-nas_samba_directory_mask: "2755"
-nas_samba_force_create_mode: "0644"
-nas_samba_force_directory_mode: "2755"
-```
-
-#### Samba Shares
-
-Define Samba shares as a list of dictionaries:
-
-```yaml
-nas_samba_shares:
-  - name: shared
-    path: /srv/samba/shared
-    comment: Shared Files
-    browseable: true
-    public: false
-    create_dir: true
-    owner: root
-    group: "{{ nas_samba_group }}"
-    mode: "0775"
-
-  - name: Media
-    path: /storage/media
-    comment: Media Files
-    valid_users:
-      - mediauser
-      - "@{{ nas_samba_group }}"
-    write_list:
-      - mediauser
-    browseable: true
-    public: false
-    inherit_permissions: true
-```
-
-**Share Parameters**:
-- `name` (required): Share name
-- `path` (required): Directory path
-- `comment` (optional): Share description
-- `valid_users` (optional): List of users/groups allowed
-- `write_list` (optional): List of users with write access
-- `read_only` (optional, default: false): Read-only flag
-- `browseable` (optional, default: true): Browseable flag
-- `public` (optional, default: false): Guest access
-- `create_dir` (optional, default: false): Create directory if missing
-- `owner` (optional): Directory owner
-- `group` (optional): Directory group
-- `mode` (optional): Directory permissions
-- `inherit_permissions` (optional, default: true): Inherit parent permissions
-- `inherit_acls` (optional, default: false): Inherit ACLs
-
-#### Samba Service Options
-
-```yaml
-nas_samba_enable_nmb: true                  # Enable NetBIOS service
-nas_samba_enable_client_firewall: false     # Enable samba-client firewall service
-nas_samba_enable_homes: true                # Enable [homes] share
-nas_samba_disable_printing: true            # Disable printer sharing
-```
-
-### Rsync Configuration
-
-#### Rsync Daemon Settings
-
-```yaml
-nas_rsync_user: nobody
-nas_rsync_group: nobody
-nas_rsync_uid: 65534
-nas_rsync_gid: 65534
-
-nas_rsync_max_connections: 4
-nas_rsync_use_chroot: false
-nas_rsync_syslog_facility: local5
-```
-
-#### Rsync Modules
-
-Define rsync daemon modules as a list of dictionaries:
-
-```yaml
-nas_rsync_modules:
-  - name: shared
-    path: /srv/rsync/shared
-    comment: Shared Files via Rsync
-    read_only: false
-
-  - name: backups
-    path: /backups
-    comment: Backup Storage
-    read_only: true
-    hosts_allow:
-      - "192.168.41.0/24"
-```
-
-**Module Parameters**:
-- `name` (required): Module name
-- `path` (required): Directory path
-- `comment` (optional): Module description
-- `read_only` (optional, default: false): Read-only flag
-- `list` (optional, default: true): Allow listing
-- `uid` (optional, defaults to nas_rsync_user): User for file operations
-- `gid` (optional, defaults to nas_rsync_group): Group for file operations
-- `hosts_allow` (optional): List of allowed hosts/networks
-- `hosts_deny` (optional): List of denied hosts/networks
-
-## Dependencies
-
-This role requires the `ansible.posix` collection for firewalld management.
-
-Install with:
-
-```bash
-ansible-galaxy collection install ansible.posix
-```
-
-## Example Playbook
-
-### Basic Usage
-
-```yaml
 ---
-- name: Configure NAS services
-  hosts: nas_servers
+
+## Tags
+
+Use tags with `--tags` or `--skip-tags` for targeted execution:
+
+| Tag | Scope | Description |
+|---|---|---|
+| `nas` | Role | Applies to all tasks within the `nas` role. |
+| `nas_packages` | Feature | Executes package installation for enabled storage services. |
+| `nas_users` | Feature | Provisions storage system users and groups. |
+| `nas_nfs` | Subsystem | Orchestrates all NFS configuration, exports, services, and firewall rules. |
+| `nas_samba` | Subsystem | Orchestrates all Samba configuration, shares, services, and firewall rules. |
+| `nas_rsync` | Subsystem | Orchestrates all Rsync daemon configuration and service management. |
+| `nfs_config` | Component | Updates `/etc/exports` and NFS configuration files. |
+| `samba_config` | Component | Updates `/etc/samba/smb.conf`. |
+| `rsync_config` | Component | Updates `/etc/rsyncd.conf`. |
+| `firewall` | Component | Applies co-located firewalld service and port rules. |
+
+---
+
+## Playbook Integration & Usage
+
+### 1. Inclusion in Orchestration Playbooks
+
+```yaml
+- name: Configure Network Storage Services
+  hosts: storage_servers
   become: true
   roles:
     - role: nas
       vars:
         nas_enable_nfs: true
         nas_enable_samba: true
-        nas_enable_rsync: false
-
+        nas_nfs_allowed_networks:
+          - "192.168.1.0/24"
         nas_nfs_exports:
           - path: /srv/nfs
             create_dir: true
             is_root: true
-          - path: /srv/nfs/data
+          - path: /srv/nfs/datasets
             create_dir: true
-
+            options: ["rw", "sync", "no_subtree_check"]
         nas_samba_shares:
-          - name: data
-            path: /srv/samba/data
-            comment: Data Share
-            create_dir: true
-```
-
-### Advanced Configuration
-
-```yaml
----
-- name: Configure NAS with custom settings
-  hosts: fileserver
-  become: true
-  roles:
-    - role: nas
-      vars:
-        # Enable all services
-        nas_enable_nfs: true
-        nas_enable_samba: true
-        nas_enable_rsync: true
-
-        # Custom NFS configuration
-        nas_nfs_domain: "example.com"
-        nas_nfs_allowed_networks:
-          - "192.168.1.0/24"
-          - "10.0.0.0/8"
-
-        nas_nfs_exports:
-          - path: /export/nfs
-            create_dir: true
-            is_root: true
-          - path: /export/nfs/media
-            create_dir: true
-            mode: '0775'
-          - path: /export/nfs/backups
-            create_dir: true
-            mode: '0755'
-            options:
-              - ro
-              - sync
-              - no_subtree_check
-
-        # Custom Samba configuration
-        nas_samba_workgroup: MYWORKGROUP
-        nas_samba_hosts_allow:
-          - 127.0.0.1
-          - "192.168.1.0/24"
-
-        nas_samba_shares:
-          - name: public
-            path: /srv/samba/public
-            comment: Public Share
-            public: true
+          - name: datasets
+            path: /srv/nfs/datasets
+            comment: Shared Machine Learning Datasets
             browseable: true
-            create_dir: true
-          - name: secure
-            path: /srv/samba/secure
-            comment: Secure Share
-            valid_users:
-              - "@smbgroup"
-            browseable: false
-            create_dir: true
-
-        # Custom Rsync configuration
-        nas_rsync_modules:
-          - name: backup
-            path: /backup
-            comment: Backup Module
-            read_only: false
-            hosts_allow:
-              - "192.168.1.0/24"
+            public: false
 ```
 
-## Directory Structure
+### 2. Execution Commands
 
-After refactoring, the role follows this modular structure:
-
-```
-roles/nas/
-├── defaults/
-│   └── main.yml              # Comprehensive variable definitions
-├── vars/
-│   ├── Fedora.yml            # Fedora-specific packages
-│   └── RedHat.yml            # Rocky/RHEL-specific packages
-├── tasks/
-│   ├── main.yml              # Main orchestration
-│   ├── packages.yml          # Package installation
-│   ├── users.yml             # User/group creation
-│   ├── nfs/
-│   │   ├── main.yml          # NFS orchestration
-│   │   ├── config.yml        # Template deployment
-│   │   ├── services.yml      # Service management
-│   │   ├── firewall.yml      # Firewall rules
-│   │   └── exports.yml       # Export management
-│   ├── samba/
-│   │   ├── main.yml          # Samba orchestration
-│   │   ├── config.yml        # Template deployment
-│   │   ├── services.yml      # Service management
-│   │   └── firewall.yml      # Firewall rules
-│   └── rsync/
-│       ├── main.yml          # Rsync orchestration
-│       └── config.yml        # Template deployment
-├── templates/
-│   └── etc/
-│       ├── exports.j2        # NFS exports
-│       ├── idmapd.conf.j2    # NFS ID mapping
-│       ├── nfs.conf.j2       # NFS daemon config
-│       ├── rsyncd.conf.j2    # Rsync daemon config
-│       └── samba/
-│           └── smb.conf.j2   # Samba configuration
-├── handlers/
-│   └── main.yml              # All service handlers
-├── meta/
-│   └── main.yml              # Role metadata
-└── README.md                 # This file
-```
-
-## Usage Examples
-
-### NFS-Only Server
-
-```yaml
-- hosts: nfs_server
-  become: true
-  roles:
-    - role: nas
-      vars:
-        nas_enable_nfs: true
-        nas_enable_samba: false
-        nas_enable_rsync: false
-```
-
-### Samba-Only Server
-
-```yaml
-- hosts: smb_server
-  become: true
-  roles:
-    - role: nas
-      vars:
-        nas_enable_nfs: false
-        nas_enable_samba: true
-        nas_enable_rsync: false
-```
-
-### Combined NAS Server
-
-```yaml
-- hosts: nas_server
-  become: true
-  roles:
-    - role: nas
-      vars:
-        nas_enable_nfs: true
-        nas_enable_samba: true
-        nas_enable_rsync: true
-```
-
-## Testing
-
-### Syntax Check
+Converge only NAS role tasks:
 
 ```bash
-ansible-playbook playbooks/nas.yml --syntax-check
+ansible-playbook playbooks/site.yml --tags "nas"
 ```
 
-### Dry Run
+Reconfigure only NFS exports without touching services:
 
 ```bash
-ansible-playbook playbooks/nas.yml --check --diff
+ansible-playbook playbooks/site.yml --tags "nfs_config"
 ```
 
-### Run with Tags
+Update Samba configuration and restart daemon:
 
 ```bash
-# Install packages only
-ansible-playbook playbooks/nas.yml --tags nas_packages
-
-# Configure NFS only
-ansible-playbook playbooks/nas.yml --tags nas_nfs
-
-# Configure Samba only
-ansible-playbook playbooks/nas.yml --tags nas_samba
-
-# Configure Rsync only
-ansible-playbook playbooks/nas.yml --tags nas_rsync
+ansible-playbook playbooks/site.yml --tags "nas_samba"
 ```
 
-### Verify Services
+---
+
+## Verification & Health Checks
+
+After role convergence, verify storage services and exports:
+
+### 1. NFS Verification
 
 ```bash
-# Check NFS exports
-ansible nas_servers -m shell -a "exportfs -v"
+# Verify NFS service status
+systemctl status nfs-server.service
 
-# Check Samba configuration
-ansible nas_servers -m shell -a "testparm -s"
+# Inspect exported filesystems
+exportfs -v
 
-# Check running services
-ansible nas_servers -m shell -a "systemctl status nfs-server smb nmb rsyncd"
+# Probe RPC service registrations
+rpcinfo -p localhost
+
+# Test local mount of NFSv4 export
+mkdir -p /mnt/test-nfs
+mount -t nfs4 localhost:/ /mnt/test-nfs
+ls -la /mnt/test-nfs
+umount /mnt/test-nfs
 ```
+
+### 2. Samba Verification
+
+```bash
+# Verify Samba services
+systemctl status smb.service nmb.service
+
+# Test smb.conf syntax
+testparm -s
+
+# List local shares via smbclient
+smbclient -L localhost -N
+```
+
+### 3. Rsync Daemon Verification
+
+```bash
+# Verify rsync daemon status
+systemctl status rsyncd.service
+
+# Query advertised modules
+rsync localhost::
+```
+
+### 4. Firewall Verification
+
+```bash
+# Verify firewalld active rules for NFS and Samba
+firewall-cmd --list-services
+firewall-cmd --list-ports
+```
+
+---
+
+## Testing & Linting
+
+Verify role syntax and standards using `ansible-lint`:
+
+```bash
+ansible-lint roles/nas
+```
+
+Execute role unit testing via the provided test play:
+
+```bash
+ansible-playbook roles/nas/tests/test.yml -i roles/nas/tests/inventory --check
+```
+
+---
 
 ## License
 
-MIT
+GPL-3.0-or-later
 
 ## Author Information
 
-Ansible Workstation Project
-
----
-
-**Note**: This role has been refactored for RedHat family systems only. For multi-distribution support, please refer to earlier versions of this role or contact the maintainers.
+Syncopated Workstation Team

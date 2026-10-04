@@ -1,78 +1,177 @@
-# b08x.devworkstation networking Role
+# Ansible Role: networking
 
-A brief description of the role goes here.
+Foundational workstation network interface, DNS, and connection profile orchestration across Fedora, AlmaLinux, and Rocky Linux.
 
-## Requirements
+---
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Overview & Architecture
+
+Under the [workstation layering taxonomy](../../docs/layering-architecture.md), the `networking` role operates at **Layer 1 (Ansible Machine Orchestration)** within `playbooks/system.yml` and `local.yml`. It provides the foundational host network orchestration layer beneath higher-level virtualization and network service roles (`libvirt`, `containerd`, `nas`).
+
+```
++--------------------------------------------------------------------------+
+|                  Higher-Layer Network Services (Layer 1)                 |
+|     roles/nas (NFS/Samba/Rsync), roles/libvirt (virbr0), containerd      |
++--------------------------------------------------------------------------+
+                                    |
+                                    v
++--------------------------------------------------------------------------+
+|                     Layer 1: roles/networking (Ansible)                  |
+|   - Workstation Host Networking Baseline & Connection Orchestration      |
+|   - NetworkManager & systemd-resolved Profile Foundations                |
+|   - Formal Argument Specification & Schema Validation                    |
+|   - Tag-as-Select Orchestration Entry Point                              |
++--------------------------------------------------------------------------+
+                                    |
+                                    v
++--------------------------------------------------------------------------+
+|                  Layer 0: Host Operating System & Hardware               |
+|            Physical NICs, Linux Kernel Routing, NetworkManager           |
+|             Fedora 40+, AlmaLinux 9/10, Rocky Linux 9/10                 |
++--------------------------------------------------------------------------+
+```
+
+### Design Patterns Implemented
+
+The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
+
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary task coordinator.
+2. **Tag-as-Select Pattern**: Tasks are tagged with domain tags (`networking`, `system`, `always`) allowing targeted partial runs or execution as part of the broader system play.
+3. **Formal Argument Specification Pattern**: Uses `meta/argument_specs.yml` for compile-time parameter validation and type enforcement.
+4. **Debug-as-Progress-Indicator Pattern**: Role entry announces execution start via `ansible.builtin.debug` tagged `["always"]`.
+5. **Two-Tier Variable Scoping**: Variables strictly adhere to the `networking_*` namespace (Tier 2 scope).
+
+---
+
+## Role Status & Capabilities
+
+The role currently serves as the verified baseline networking hook in the workstation orchestration pipeline:
+
+- **Active Pipeline Integration**: Executed on every `site.yml` and `local.yml` run prior to container and virtualization roles.
+- **Validation**: Enforces argument specifications via `meta/argument_specs.yml`.
+- **Target Subsystems** (for site-specific extension): NetworkManager keyfile management, static DNS configuration via `systemd-resolved`, interface MTU tuning, and custom routing policies.
+
+---
 
 ## Role Variables
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+### Tier 2: Role Defaults (`defaults/main.yml`)
 
-## Dependencies
+These variables are namespaced with `networking_*` and control role-specific behavior:
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Default | Type | Description |
+|---|---|---|---|
+| `networking_my_variable` | `"default_value"` | `string` | Baseline role configuration parameter validated against `meta/argument_specs.yml`. |
 
-## Example Playbook
+---
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Argument Specifications (`meta/argument_specs.yml`)
 
-```yaml
-- name: Execute tasks on servers
-  hosts: servers
-  roles:
-    - role: b08x.devworkstation.run
-      run_x: 42
-```
-
-Another way to consume this role would be:
-
-```yaml
-- name: Initialize the run role from b08x.devworkstation
-  hosts: servers
-  gather_facts: false
-  tasks:
-    - name: Trigger invocation of run role
-      ansible.builtin.include_role:
-        name: b08x.devworkstation.run
-      vars:
-        run_x: 42
-```
-
-## Role Idempotency
-
-Designation of the role as idempotent (True/False)
-
-## Role Atomicity
-
-Designation of the role as atomic if applicable (True/False)
-
-## Roll-back capabilities
-
-Define the roll-back capabilities of the role
-
-## Argument Specification
-
-Including an example of how to add an argument Specification file that validates the arguments provided to the role.
+The role declares formal argument specifications validated by Ansible Core:
 
 ```yaml
 argument_specs:
   main:
-    short_description: Role description.
+    short_description: Workstation network configuration role.
     options:
-      string_arg1:
-        description: string argument description.
-        type: "str"
-        default: "x"
-        choices: ["x", "y"]
+      networking_my_variable:
+        type: str
+        description: A simple string argument for demonstration and role validation.
+        default: "default_value"
 ```
+
+---
+
+## Tags
+
+Use tags with `--tags` or `--skip-tags` for targeted execution:
+
+| Tag | Scope | Description |
+|---|---|---|
+| `networking` | Role | Applies to all tasks within the `networking` role. |
+| `system` | Playbook | System configuration group tag shared across `tuning`, `networking`, `desktop`. |
+| `always` | System | Preamble debug logging. |
+
+---
+
+## Playbook Integration & Usage
+
+### 1. Inclusion in Orchestration Playbooks
+
+Included in `playbooks/system.yml` as part of the base system configuration stage:
+
+```yaml
+- name: System Configuration
+  hosts: workstations
+  become: true
+  roles:
+    - role: tuning
+      tags: ["tuning", "system"]
+    - role: networking
+      tags: ["networking", "system"]
+    - role: containerd
+      tags: ["containerd", "virt"]
+    - role: desktop
+      tags: ["desktop", "system"]
+    - role: libvirt
+      tags: ["libvirt", "virt"]
+```
+
+### 2. Autonomous Local Provisioning (`local.yml`)
+
+In `local.yml`, executed during local workstation bootstrap:
+
+```yaml
+- name: Autonomous Workstation Provisioning
+  hosts: localhost
+  connection: local
+  become: true
+  roles:
+    - role: networking
+      tags: ["networking", "system"]
+```
+
+### 3. Execution Commands
+
+Run only the networking role:
+
+```bash
+ansible-playbook playbooks/site.yml --tags "networking"
+```
+
+---
+
+## Verification & Health Checks
+
+Verify host networking and interface state:
+
+```bash
+# Check NetworkManager service state
+systemctl status NetworkManager.service
+
+# List active network connections
+nmcli connection show
+
+# Inspect DNS resolution status
+resolvectl status
+```
+
+---
+
+## Testing & Linting
+
+Verify role syntax and standards using `ansible-lint`:
+
+```bash
+ansible-lint roles/networking
+```
+
+---
 
 ## License
 
-<!-- TO-DO: Update the license to the one you want to use (delete this line after setting the license) -->
-BSD
+GPL-3.0-or-later
 
 ## Author Information
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Syncopated Workstation Team
