@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# CachyOS user manager file descriptor limits
+[Manager]
+DefaultLimitNOFILE={{ tuning_systemd_user_limit_nofile }}

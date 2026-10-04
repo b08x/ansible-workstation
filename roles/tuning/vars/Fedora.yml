@@ -1,0 +1,6 @@
+---
+# Distribution specific variables for Fedora
+tuning_distro_packages:
+  - zram-generator
+  - kernel-tools
+  - tuned

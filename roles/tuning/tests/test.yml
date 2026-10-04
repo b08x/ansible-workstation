@@ -1,0 +1,7 @@
+---
+- name: Test tuning role
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  roles:
+    - tuning

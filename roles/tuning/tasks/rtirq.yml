@@ -8,7 +8,9 @@
     mode: "0644"
     backup: true
   register: tuning_rtirq_config
-  when: tuning_rtirq_enabled
+  notify: Restart rtirq
+  when: tuning_rtirq_enabled | default(true) | bool
+  tags: ["tuning", "rtirq"]
 
 - name: Install rtkit.conf
   ansible.builtin.copy:
@@ -19,7 +21,9 @@
     mode: "0644"
     backup: true
   register: tuning_rtkit_conf
-  when: tuning_rtkit_enabled
+  notify: Restart rtkit
+  when: tuning_rtkit_enabled | default(true) | bool
+  tags: ["tuning", "rtkit"]
 
 - name: Install rtkit systemd file
   ansible.builtin.template:
@@ -28,5 +32,8 @@
     mode: "0644"
     backup: true
   register: tuning_rtkit_systemd
-  notify: Reload systemd
-  when: tuning_rtkit_enabled
+  notify:
+    - Reload systemd
+    - Restart rtkit
+  when: tuning_rtkit_enabled | default(true) | bool
+  tags: ["tuning", "rtkit"]

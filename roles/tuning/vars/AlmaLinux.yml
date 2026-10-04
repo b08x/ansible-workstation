@@ -1,0 +1,6 @@
+---
+# Distribution specific variables for AlmaLinux
+tuning_distro_packages:
+  - zram-generator
+  - kernel-tools
+  - tuned

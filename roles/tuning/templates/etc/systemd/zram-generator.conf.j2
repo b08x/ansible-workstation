@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# CachyOS ZRAM generator configuration
+[{{ tuning_zram_device }}]
+compression-algorithm = {{ tuning_zram_compression_algorithm }}
+zram-size = {{ tuning_zram_size }}
+swap-priority = {{ tuning_zram_swap_priority }}
+fs-type = {{ tuning_zram_fs_type }}

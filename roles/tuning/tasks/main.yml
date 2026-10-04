@@ -1,32 +1,64 @@
 ---
+# tasks file for tuning
+
 - name: Starting system tuning tasks
   ansible.builtin.debug:
     msg: "Starting system tuning tasks"
+  tags: ["tuning", "always"]
+
+- name: Load distribution variables
+  ansible.builtin.include_vars: "{{ tuning_distro_vars }}"
+  vars:
+    tuning_distro_vfile: "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml"
+    tuning_distro_vars: >-
+      {{ lookup('ansible.builtin.first_found',
+                files=[tuning_distro_vfile, ansible_distribution ~ '.yml', 'default.yml'],
+                paths=role_path ~ '/vars',
+                errors='ignore') }}
+  when: tuning_distro_vars is defined and tuning_distro_vars | length > 0
+  tags: ["tuning", "always"]
 
 - name: Configure user groups
   ansible.builtin.include_tasks: user_groups.yml
+  when: tuning_groups_enabled | default(true) | bool
   tags: ["tuning", "groups"]
 
 - name: Configure system limits
   ansible.builtin.include_tasks: limits.yml
+  when: tuning_limits_enabled | default(true) | bool
   tags: ["tuning", "limits"]
-
-- name: Configure udev rules
-  ansible.builtin.include_tasks: udev.yml
-  tags: ["tuning", "udev"]
 
 - name: Configure sysctl settings
   ansible.builtin.include_tasks: sysctl.yml
+  when: tuning_sysctl_enabled | default(true) | bool
   tags: ["tuning", "sysctl"]
+
+- name: Configure zram
+  ansible.builtin.include_tasks: zram.yml
+  when: tuning_zram_enabled | default(true) | bool
+  tags: ["tuning", "zram"]
+
+- name: Configure udev rules
+  ansible.builtin.include_tasks: udev.yml
+  when: tuning_udev_enabled | default(true) | bool
+  tags: ["tuning", "udev"]
+
+- name: Configure systemd manager settings
+  ansible.builtin.include_tasks: systemd.yml
+  when: tuning_systemd_enabled | default(true) | bool
+  tags: ["tuning", "systemd"]
 
 - name: Configure tuned
   ansible.builtin.include_tasks: tuned.yml
+  when: tuning_tuned_enabled | default(true) | bool
   tags: ["tuning", "tuned"]
 
 - name: Configure rtirq
   ansible.builtin.include_tasks: rtirq.yml
+  when: tuning_rtirq_enabled | default(true) | bool
   tags: ["tuning", "rtirq"]
 
 - name: Configure cpupower
   ansible.builtin.include_tasks: cpupower.yml
+  when: tuning_cpupower_enabled | default(true) | bool
   tags: ["tuning", "cpupower"]

@@ -1,6 +1,32 @@
 ---
-- name: Enable tuned service
+# Tuned profile management
+
+- name: Enable and start tuned service
   ansible.builtin.systemd:
     name: tuned
-    enabled: "{{ tuning_tuned_enabled }}"
+    state: started
+    enabled: "{{ tuning_tuned_enabled | default(true) | bool }}"
   ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["tuning", "tuned"]
+
+- name: Check current active tuned profile
+  ansible.builtin.command: tuned-adm active
+  register: tuning_tuned_active
+  changed_when: false
+  failed_when: false
+  when:
+    - tuning_tuned_enabled | default(true) | bool
+    - tuning_tuned_profile is defined
+    - tuning_tuned_profile | length > 0
+  tags: ["tuning", "tuned"]
+
+- name: Set active tuned profile
+  ansible.builtin.command: "tuned-adm profile {{ tuning_tuned_profile }}"
+  register: tuning_tuned_set_profile
+  changed_when: true
+  when:
+    - tuning_tuned_enabled | default(true) | bool
+    - tuning_tuned_profile is defined
+    - tuning_tuned_profile | length > 0
+    - "tuning_tuned_profile not in (tuning_tuned_active.stdout | default(''))"
+  tags: ["tuning", "tuned"]

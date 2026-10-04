@@ -1,0 +1,53 @@
+---
+# ZRAM configuration tasks (CachyOS zram-generator and dynamic swappiness)
+
+- name: Install zram packages
+  ansible.builtin.package:
+    name: "{{ tuning_zram_packages }}"
+    state: present
+  when: tuning_zram_packages | default([]) | length > 0
+  tags: ["tuning", "zram", "packages"]
+
+- name: Ensure /etc/systemd directory exists
+  ansible.builtin.file:
+    path: /etc/systemd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["tuning", "zram"]
+
+- name: Install zram-generator configuration
+  ansible.builtin.template:
+    src: etc/systemd/zram-generator.conf.j2
+    dest: /etc/systemd/zram-generator.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify:
+    - Reload systemd
+    - Restart zram
+  tags: ["tuning", "zram"]
+
+- name: Ensure /etc/udev/rules.d directory exists
+  ansible.builtin.file:
+    path: /etc/udev/rules.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["tuning", "zram", "udev"]
+
+- name: Install zram udev rule
+  ansible.builtin.template:
+    src: etc/udev/rules.d/30-zram.rules.j2
+    dest: /etc/udev/rules.d/30-zram.rules
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify:
+    - Reload udev rules
+    - Trigger udev rules
+  tags: ["tuning", "zram", "udev"]

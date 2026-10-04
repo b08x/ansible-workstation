@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# CachyOS SATA Active Link Power Management
+ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", \
+    ATTR{link_power_management_supported}=="1", \
+    ATTR{link_power_management_policy}=="*", \
+    ATTR{link_power_management_policy}="{{ tuning_udev_sata_policy }}"

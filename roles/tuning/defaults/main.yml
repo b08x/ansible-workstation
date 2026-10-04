@@ -1,45 +1,112 @@
 ---
 # System tuning defaults - override in role vars or inventory
 
-# User groups to add the user to
+# ----------------------------------------------------------------------------
+# Subsystem Feature Flags (Task Dispatcher Pattern)
+# ----------------------------------------------------------------------------
+tuning_groups_enabled: true
+tuning_limits_enabled: true
+tuning_udev_enabled: true
+tuning_sysctl_enabled: true
+tuning_zram_enabled: true
+tuning_systemd_enabled: true
+tuning_tuned_enabled: true
+tuning_rtirq_enabled: true
+tuning_rtkit_enabled: true
+tuning_cpupower_enabled: true
+tuning_irqbalance_enabled: false
+
+# ----------------------------------------------------------------------------
+# User Groups Configuration
+# ----------------------------------------------------------------------------
 tuning_groups:
   - audio
 
-# Sysctl parameters
+# ----------------------------------------------------------------------------
+# Sysctl Parameters (CachyOS Optimized Profile)
+# ----------------------------------------------------------------------------
+tuning_sysctl_file: /etc/sysctl.d/70-cachyos-settings.conf
 
-# Sysctl keys allowed to fail when the host lacks the underlying hardware.
+# Sysctl keys allowed to fail when the host lacks the underlying hardware or kernel knob.
 tuning_sysctl_optional:
   - dev.hpet.max-user-freq
+  - kernel.unprivileged_userns_clone
 
 tuning_sysctl:
-  vm.swappiness: 10
-  vm.dirty_background_bytes: 100000000
+  vm.swappiness: 100
+  vm.vfs_cache_pressure: 50
+  vm.dirty_bytes: 268435456
+  vm.page-cluster: 0
+  vm.dirty_background_bytes: 67108864
+  vm.dirty_writeback_centisecs: 1500
+  kernel.nmi_watchdog: 0
+  kernel.unprivileged_userns_clone: 1
+  kernel.printk: "3 3 3 3"
+  kernel.kptr_restrict: 2
+  net.core.netdev_max_backlog: 4096
+  fs.file-max: 2097152
   fs.inotify.max_user_watches: 524288
+  kernel.sysrq: 1
   dev.hpet.max-user-freq: 3072
 
-# Security limits (group -> limits)
+# ----------------------------------------------------------------------------
+# Security Limits (/etc/security/limits.d/41-realtime.conf)
+# ----------------------------------------------------------------------------
 tuning_limits:
   audio:
     rtprio: 98
     memlock: unlimited
     nice: -20
 
-# Udev timer permissions
+# ----------------------------------------------------------------------------
+# Udev Rules & Hardware Optimizations
+# ----------------------------------------------------------------------------
+# Timer permissions (/dev/rtc0, /dev/hpet)
 tuning_udev_timers:
   - rtc0
   - hpet
 
-# Tuned
-tuning_tuned_enabled: true
+# SATA Active Link Power Management
+tuning_udev_sata_enabled: true
+tuning_udev_sata_policy: max_performance
+
+# I/O Schedulers (bfq for HDD, mq-deadline for SSD, kyber for NVMe)
+tuning_udev_iosched_enabled: true
+tuning_udev_iosched_hdd: bfq
+tuning_udev_iosched_ssd: mq-deadline
+tuning_udev_iosched_nvme: kyber
+
+# Audio Power Management (disable snd-hda-intel powersave on AC power)
+tuning_udev_audio_pm_enabled: true
+tuning_udev_audio_pm_ctl_path: /usr/local/bin/audio-pm-ctl
+
+# ----------------------------------------------------------------------------
+# ZRAM Configuration (/etc/systemd/zram-generator.conf & 30-zram.rules)
+# ----------------------------------------------------------------------------
+tuning_zram_device: zram0
+tuning_zram_compression_algorithm: zstd
+tuning_zram_size: ram
+tuning_zram_swap_priority: 100
+tuning_zram_fs_type: swap
+tuning_zram_swappiness: 150
+tuning_zram_packages:
+  - zram-generator
+
+# ----------------------------------------------------------------------------
+# Systemd Manager Settings (/etc/systemd/*.conf.d/)
+# ----------------------------------------------------------------------------
+tuning_systemd_timeout_start_sec: 15s
+tuning_systemd_timeout_stop_sec: 10s
+tuning_systemd_user_limit_nofile: "1024:1048576"
+
+# ----------------------------------------------------------------------------
+# Tuned Configuration
+# ----------------------------------------------------------------------------
 tuning_tuned_profile: throughput-performance
 
-# RTKit
-tuning_rtirq_enabled: true
-tuning_rtkit_enabled: true
-
-# CPU power
-tuning_cpupower_enabled: true
+# ----------------------------------------------------------------------------
+# CPU Power Configuration (/etc/default/cpupower)
+# ----------------------------------------------------------------------------
 tuning_cpupower_governor: powersave
-tuning_cpupower_min_freq: # or "600MHz"
-tuning_cpupower_max_freq: # or "3800MHz"
-tuning_irqbalance_enabled: false
+tuning_cpupower_min_freq: ""
+tuning_cpupower_max_freq: ""

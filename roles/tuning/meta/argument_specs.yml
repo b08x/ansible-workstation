@@ -1,11 +1,159 @@
 ---
-# argument spec file for b08x.devworkstation.tuning
+# argument spec file for tuning
 
 argument_specs:
   main:
-    short_description: Role description.
+    short_description: System tuning role implementing real-time audio, kernel, and CachyOS optimizations.
     options:
-      tuning_my_variable:
+      tuning_groups_enabled:
+        type: bool
+        description: Enable user group membership configuration.
+        default: true
+      tuning_limits_enabled:
+        type: bool
+        description: Enable security limits configuration for real-time priority.
+        default: true
+      tuning_udev_enabled:
+        type: bool
+        description: Enable udev rules configuration for hardware and power optimizations.
+        default: true
+      tuning_sysctl_enabled:
+        type: bool
+        description: Enable kernel sysctl parameter tuning.
+        default: true
+      tuning_zram_enabled:
+        type: bool
+        description: Enable ZRAM swap and dynamic swappiness tuning.
+        default: true
+      tuning_systemd_enabled:
+        type: bool
+        description: Enable systemd manager timeout and limit drop-ins.
+        default: true
+      tuning_tuned_enabled:
+        type: bool
+        description: Enable tuned service and profile application.
+        default: true
+      tuning_rtirq_enabled:
+        type: bool
+        description: Enable rtirq real-time IRQ thread prioritization.
+        default: true
+      tuning_rtkit_enabled:
+        type: bool
+        description: Enable RealtimeKit daemon configuration.
+        default: true
+      tuning_cpupower_enabled:
+        type: bool
+        description: Enable CPU frequency governor configuration.
+        default: true
+      tuning_irqbalance_enabled:
+        type: bool
+        description: State of irqbalance service.
+        default: false
+      tuning_groups:
+        type: list
+        elements: str
+        description: Groups to which the workstation user is added.
+      tuning_sysctl:
+        type: dict
+        description: Dictionary of sysctl key-value pairs to enforce.
+      tuning_sysctl_file:
         type: str
-        description: A simple string argument for demonstration.
-        default: "default_value"
+        description: Target sysctl drop-in file path.
+        default: /etc/sysctl.d/70-cachyos-settings.conf
+      tuning_sysctl_optional:
+        type: list
+        elements: str
+        description: Sysctl keys permitted to be skipped if host kernel lacks them.
+      tuning_limits:
+        type: dict
+        description: Dictionary mapping user groups to security limits.
+      tuning_udev_timers:
+        type: list
+        elements: str
+        description: Hardware timer devices to assign to the audio group.
+      tuning_udev_sata_enabled:
+        type: bool
+        description: Enable SATA active link power management udev rule.
+        default: true
+      tuning_udev_sata_policy:
+        type: str
+        description: SATA link power management policy.
+        default: max_performance
+      tuning_udev_iosched_enabled:
+        type: bool
+        description: Enable udev rule assigning I/O schedulers based on storage type.
+        default: true
+      tuning_udev_iosched_hdd:
+        type: str
+        description: I/O scheduler for rotational HDDs.
+        default: bfq
+      tuning_udev_iosched_ssd:
+        type: str
+        description: I/O scheduler for SATA SSDs.
+        default: mq-deadline
+      tuning_udev_iosched_nvme:
+        type: str
+        description: I/O scheduler for NVMe drives.
+        default: kyber
+      tuning_udev_audio_pm_enabled:
+        type: bool
+        description: Enable disabling snd-hda-intel power save while on AC.
+        default: true
+      tuning_udev_audio_pm_ctl_path:
+        type: str
+        description: Path to audio-pm-ctl helper script.
+        default: /usr/local/bin/audio-pm-ctl
+      tuning_zram_device:
+        type: str
+        description: ZRAM block device name.
+        default: zram0
+      tuning_zram_compression_algorithm:
+        type: str
+        description: Compression algorithm for ZRAM.
+        default: zstd
+      tuning_zram_size:
+        type: str
+        description: ZRAM swap size relative to RAM or absolute.
+        default: ram
+      tuning_zram_swap_priority:
+        type: int
+        description: Priority of the ZRAM swap device.
+        default: 100
+      tuning_zram_fs_type:
+        type: str
+        description: Filesystem type for the ZRAM swap device.
+        default: swap
+      tuning_zram_swappiness:
+        type: int
+        description: Dynamic swappiness value triggered when ZRAM initializes.
+        default: 150
+      tuning_zram_packages:
+        type: list
+        elements: str
+        description: Packages required for ZRAM generator.
+      tuning_systemd_timeout_start_sec:
+        type: str
+        description: Default start timeout for systemd services.
+        default: 15s
+      tuning_systemd_timeout_stop_sec:
+        type: str
+        description: Default stop timeout for systemd services.
+        default: 10s
+      tuning_systemd_user_limit_nofile:
+        type: str
+        description: Default file descriptor limits for user manager.
+        default: "1024:1048576"
+      tuning_tuned_profile:
+        type: str
+        description: Active tuned profile name.
+        default: throughput-performance
+      tuning_cpupower_governor:
+        type: str
+        description: CPU frequency scaling governor.
+        default: powersave
+      tuning_cpupower_min_freq:
+        type: str
+        description: Minimum CPU scaling frequency.
+      tuning_cpupower_max_freq:
+        type: str
+        description: Maximum CPU scaling frequency.

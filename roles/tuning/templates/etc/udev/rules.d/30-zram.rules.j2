@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# CachyOS ZRAM swappiness & zswap configuration
+# When used with ZRAM, prefer paging out anonymous pages while keeping page cache hermetic.
+ACTION=="change", KERNEL=="{{ tuning_zram_device }}", ATTR{initstate}=="1", SYSCTL{vm.swappiness}="{{ tuning_zram_swappiness }}", \
+    RUN+="/bin/sh -c 'echo N > /sys/module/zswap/parameters/enabled'"

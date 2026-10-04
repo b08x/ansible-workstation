@@ -1,0 +1,47 @@
+---
+# Systemd manager settings (CachyOS timeout and limits drop-ins)
+
+- name: Ensure systemd drop-in directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/systemd/system.conf.d
+    - /etc/systemd/user.conf.d
+  tags: ["tuning", "systemd"]
+
+- name: Install systemd system manager timeout drop-in
+  ansible.builtin.template:
+    src: etc/systemd/system.conf.d/00-timeout.conf.j2
+    dest: /etc/systemd/system.conf.d/00-timeout.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+  tags: ["tuning", "systemd"]
+
+- name: Install systemd user manager timeout drop-in
+  ansible.builtin.template:
+    src: etc/systemd/user.conf.d/00-timeout.conf.j2
+    dest: /etc/systemd/user.conf.d/00-timeout.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+  tags: ["tuning", "systemd"]
+
+- name: Install systemd user manager limits drop-in
+  ansible.builtin.template:
+    src: etc/systemd/user.conf.d/10-limits.conf.j2
+    dest: /etc/systemd/user.conf.d/10-limits.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Reload systemd
+  tags: ["tuning", "systemd"]

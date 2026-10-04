@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# CachyOS system manager timeout settings
+[Manager]
+DefaultTimeoutStartSec={{ tuning_systemd_timeout_start_sec }}
+DefaultTimeoutStopSec={{ tuning_systemd_timeout_stop_sec }}

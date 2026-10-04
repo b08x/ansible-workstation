@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+# CachyOS Audio Power Management
+# Disables power saving capabilities for `snd-hda-intel` when device is connected to AC.
+# Prevents audio cracks on some hardware. The saved value is stashed in /run and restored
+# when the machine switches back to battery. See `{{ tuning_udev_audio_pm_ctl_path }}`.
+
+ACTION=="add", SUBSYSTEM=="sound", KERNEL=="card*", DRIVERS=="snd_hda_intel", TEST!="/run/udev/snd-hda-intel-powersave", \
+    RUN+="{{ tuning_udev_audio_pm_ctl_path }} init"
+
+ACTION=="add|change", SUBSYSTEM=="power_supply", ENV{POWER_SUPPLY_TYPE}=="Mains", ENV{POWER_SUPPLY_ONLINE}=="0", TEST=="/sys/module/snd_hda_intel", \
+    RUN+="{{ tuning_udev_audio_pm_ctl_path }} battery"
+
+ACTION=="add|change", SUBSYSTEM=="power_supply", ENV{POWER_SUPPLY_TYPE}=="Mains", ENV{POWER_SUPPLY_ONLINE}=="1", TEST=="/sys/module/snd_hda_intel", \
+    RUN+="{{ tuning_udev_audio_pm_ctl_path }} ac"
