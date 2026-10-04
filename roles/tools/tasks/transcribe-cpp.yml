@@ -7,49 +7,164 @@
   register: tools_transcribe_stat
   tags: ["transcribe", "tools"]
 
-- name: Check for nvcc compiler
-  ansible.builtin.command:
-    argv: [sh, -c, "command -v nvcc"]
-  register: tools_nvcc_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
+- name: Pre-flight GPU hardware accelerator detection
   when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
   tags: ["transcribe", "tools"]
+  block:
+    - name: Probe for CUDA hardware device presence
+      ansible.builtin.command:
+        argv:
+          - sh
+          - -c
+          - |
+            if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q "^GPU "; then
+              exit 0
+            fi
+            if [ -e /dev/nvidia0 ] || [ -e /dev/nvidiactl ]; then
+              exit 0
+            fi
+            for d in /sys/bus/pci/devices/*; do
+              if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                v=$(cat "$d/vendor")
+                c=$(cat "$d/class")
+                if [ "$v" = "0x10de" ] && [ "${c#0x03}" != "$c" ]; then
+                  exit 0
+                fi
+              fi
+            done
+            exit 1
+      register: tools_cuda_device_probe
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: has_cuda_device is not defined
 
-- name: Check for Intel oneAPI compiler
-  ansible.builtin.command:
-    argv: [sh, -c, "command -v icx || command -v dpcpp || test -f /opt/intel/oneapi/compiler/latest/bin/icx"]
-  register: tools_oneapi_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
-  tags: ["transcribe", "tools"]
+    - name: Probe for Vulkan hardware device presence
+      ansible.builtin.command:
+        argv:
+          - sh
+          - -c
+          - |
+            if command -v vulkaninfo >/dev/null 2>&1; then
+              pattern="deviceType\s*=\s*PHYSICAL_DEVICE_TYPE_(DISCRETE_GPU|INTEGRATED_GPU|VIRTUAL_GPU)"
+              if vulkaninfo --summary 2>/dev/null | grep -E "$pattern" >/dev/null 2>&1; then
+                exit 0
+              fi
+            fi
+            if ls /dev/dri/renderD* >/dev/null 2>&1; then
+              for d in /sys/bus/pci/devices/*; do
+                if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                  v=$(cat "$d/vendor")
+                  c=$(cat "$d/class")
+                  case "$v" in
+                    0x8086|0x1002|0x10de)
+                      if [ "${c#0x03}" != "$c" ]; then
+                        exit 0
+                      fi
+                      ;;
+                  esac
+                fi
+              done
+            fi
+            exit 1
+      register: tools_vulkan_device_probe
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: has_vulkan_device is not defined
 
-- name: Determine transcribe build backend
-  ansible.builtin.set_fact:
-    tools_transcribe_backend: >-
-      {{ 'cuda' if (tools_nvcc_check.rc | default(1)) == 0 else
-         ('sycl' if (tools_oneapi_check.rc | default(1)) == 0 else 'cpu') }}
-  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
-  tags: ["transcribe", "tools"]
+    - name: Set GPU acceleration facts
+      ansible.builtin.set_fact:
+        tools_transcribe_has_cuda: >-
+          {{
+            has_cuda_device | bool
+            if has_cuda_device is defined
+            else ((tools_cuda_device_probe.rc | default(1)) == 0)
+          }}
+        tools_transcribe_has_vulkan: >-
+          {{
+            has_vulkan_device | bool
+            if has_vulkan_device is defined
+            else ((tools_vulkan_device_probe.rc | default(1)) == 0)
+          }}
 
-- name: Set CMake flags based on backend
-  ansible.builtin.set_fact:
-    tools_transcribe_cmake_args: >-
-      {{ '-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON' if tools_transcribe_backend == 'cuda' else
-         ('-DGGML_SYCL=ON' if tools_transcribe_backend == 'sycl' else
-          '-DGGML_CUDA=OFF -DTRANSCRIBE_CUDA=OFF') }}
-  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - name: Evaluate GPU acceleration availability
+      ansible.builtin.set_fact:
+        tools_transcribe_has_gpu_acceleration: >-
+          {{ (tools_transcribe_has_cuda | default(false) | bool) or
+             (tools_transcribe_has_vulkan | default(false) | bool) }}
+
+- name: Notify that transcribe.cpp is skipped due to missing GPU devices
+  ansible.builtin.debug:
+    msg: "Skipping transcribe.cpp: neither CUDA nor Vulkan hardware devices were detected on this host."
+  when:
+    - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - tools_transcribe_require_gpu | default(true) | bool
+    - not (tools_transcribe_has_gpu_acceleration | default(false) | bool)
   tags: ["transcribe", "tools"]
 
 - name: Build and install transcribe.cpp
   when:
     - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - (tools_transcribe_has_gpu_acceleration | default(false) | bool) or not (tools_transcribe_require_gpu | default(true) | bool)
     - not (ansible_check_mode | default(false))
   tags: ["transcribe", "tools"]
   block:
+    - name: Check for nvcc compiler
+      ansible.builtin.command:
+        argv: [sh, -c, "command -v nvcc"]
+      register: tools_nvcc_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: tools_transcribe_has_cuda | default(false) | bool
+
+    - name: Check for Intel oneAPI compiler
+      ansible.builtin.command:
+        argv:
+          [
+            sh,
+            -c,
+            "command -v icx || command -v dpcpp || test -f /opt/intel/oneapi/compiler/latest/bin/icx",
+          ]
+      register: tools_oneapi_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: not (tools_transcribe_has_cuda | default(false) | bool) or ((tools_nvcc_check.rc | default(1)) != 0)
+
+    - name: Determine transcribe build backend
+      ansible.builtin.set_fact:
+        tools_transcribe_backend: >-
+          {{
+            'cuda' if ((tools_transcribe_has_cuda | default(false) | bool) and ((tools_nvcc_check.rc | default(1)) == 0))
+            else (
+              'sycl' if ((tools_oneapi_check.rc | default(1)) == 0)
+              else (
+                'vulkan' if (tools_transcribe_has_vulkan | default(false) | bool)
+                else 'cpu'
+              )
+            )
+          }}
+
+    - name: Set CMake flags based on backend
+      ansible.builtin.set_fact:
+        tools_transcribe_cmake_args: >-
+          {{
+            '-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON' if tools_transcribe_backend == 'cuda'
+            else (
+              '-DGGML_SYCL=ON' if tools_transcribe_backend == 'sycl'
+              else (
+                '-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON' if tools_transcribe_backend == 'vulkan'
+                else '-DGGML_CUDA=OFF -DTRANSCRIBE_CUDA=OFF -DGGML_VULKAN=OFF -DTRANSCRIBE_VULKAN=OFF'
+              )
+            )
+          }}
+
+    - name: Announce transcribe.cpp build configuration
+      ansible.builtin.debug:
+        msg: "Compiling transcribe.cpp with backend '{{ tools_transcribe_backend }}' (CMake flags: {{ tools_transcribe_cmake_args }})"
+
     - name: Clone transcribe.cpp repository
       ansible.builtin.git:
         repo: "{{ tools_transcribe_repo }}"

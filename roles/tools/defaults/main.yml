@@ -12,11 +12,13 @@ tools_user_go_bin: "{{ tools_user_home }}/go/bin"
 
 # transcribe.cpp (Whisper transcription CLI)
 tools_install_transcribe: true
+tools_transcribe_require_gpu: true
 tools_transcribe_repo: "https://github.com/handy-computer/transcribe.cpp.git"
 tools_transcribe_version: "main"
 tools_transcribe_build_dir: "/tmp/transcribe.cpp-build"
 tools_transcribe_dest: "/usr/local/bin/transcribe"
 tools_transcribe_force_build: false
+tools_transcribe_cleanup: true
 
 # Bun (standalone JS/TS runtime)
 tools_install_bun: true

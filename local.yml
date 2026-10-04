@@ -96,6 +96,64 @@
           changed_when: false
           failed_when: false
 
+        - name: Check for CUDA hardware acceleration support
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - |
+                if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q "^GPU "; then
+                  exit 0
+                fi
+                if [ -e /dev/nvidia0 ] || [ -e /dev/nvidiactl ]; then
+                  exit 0
+                fi
+                for d in /sys/bus/pci/devices/*; do
+                  if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                    v=$(cat "$d/vendor")
+                    c=$(cat "$d/class")
+                    if [ "$v" = "0x10de" ] && [ "${c#0x03}" != "$c" ]; then
+                      exit 0
+                    fi
+                  fi
+                done
+                exit 1
+          register: _preflight_cuda_stat
+          changed_when: false
+          failed_when: false
+
+        - name: Check for Vulkan hardware acceleration support
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - |
+                if command -v vulkaninfo >/dev/null 2>&1; then
+                  pattern="deviceType\s*=\s*PHYSICAL_DEVICE_TYPE_(DISCRETE_GPU|INTEGRATED_GPU|VIRTUAL_GPU)"
+                  if vulkaninfo --summary 2>/dev/null | grep -E "$pattern" >/dev/null 2>&1; then
+                    exit 0
+                  fi
+                fi
+                if ls /dev/dri/renderD* >/dev/null 2>&1; then
+                  for d in /sys/bus/pci/devices/*; do
+                    if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                      v=$(cat "$d/vendor")
+                      c=$(cat "$d/class")
+                      case "$v" in
+                        0x8086|0x1002|0x10de)
+                          if [ "${c#0x03}" != "$c" ]; then
+                            exit 0
+                          fi
+                          ;;
+                      esac
+                    fi
+                  done
+                fi
+                exit 1
+          register: _preflight_vulkan_stat
+          changed_when: false
+          failed_when: false
+
         - name: Set auto-detected subsystem facts
           ansible.builtin.set_fact:
             auto_enable_libvirt: >-
@@ -107,6 +165,13 @@
                 | bool
               }}
             auto_enable_containerd: "{{ pull_enable_containerd | default(true) | bool }}"
+            has_cuda_device: "{{ (_preflight_cuda_stat.rc | default(1)) == 0 }}"
+            has_vulkan_device: "{{ (_preflight_vulkan_stat.rc | default(1)) == 0 }}"
+            auto_enable_transcribe: >-
+              {{
+                ((_preflight_cuda_stat.rc | default(1)) == 0) or
+                ((_preflight_vulkan_stat.rc | default(1)) == 0)
+              }}
 
         - name: Display pre-flight capability findings
           ansible.builtin.debug:
@@ -116,6 +181,7 @@
               - "KVM Support: {{ _preflight_kvm_stat.stat.exists | default(false) }} -> Libvirt: {{ auto_enable_libvirt }}"
               - "Default Target: {{ _preflight_default_target.stdout | default('unknown') }} -> Desktop: {{ auto_enable_desktop }}"
               - "Containers: {{ auto_enable_containerd }}"
+              - "GPU Acceleration: CUDA={{ has_cuda_device }}, Vulkan={{ has_vulkan_device }} -> Transcribe: {{ auto_enable_transcribe }}"
 
   roles:
     - role: base

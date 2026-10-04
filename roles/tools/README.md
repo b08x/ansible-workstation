@@ -19,11 +19,13 @@ Installs the official [Bun](https://bun.sh/) standalone JavaScript runtime to `/
 
 ### 2. Transcribe.cpp (`tasks/transcribe-cpp.yml`)
 Clones and compiles [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) (Whisper-based audio transcription CLI) with automatic hardware acceleration detection:
-- **CUDA (NVIDIA)**: Probes `command -v nvcc` &rarr; builds with `GGML_CUDA=ON`.
+- **GPU Accelerator Pre-flight Check**: Probes for hardware CUDA devices (`nvidia-smi`, `/dev/nvidia*`, sysfs PCI vendor `0x10de`) and Vulkan physical GPU devices (`vulkaninfo`, DRM render nodes). If neither CUDA nor Vulkan hardware devices are present, transcribe.cpp compilation is automatically **skipped** by default (`tools_transcribe_require_gpu: true`).
+- **CUDA (NVIDIA)**: Detected CUDA device + `command -v nvcc` &rarr; builds with `GGML_CUDA=ON` and `TRANSCRIBE_CUDA=ON`.
 - **Intel oneAPI / SYCL**: Probes `command -v icx` or `dpcpp` &rarr; builds with `GGML_SYCL=ON`.
-- **CPU (Fallback)**: Defaults to CPU build with AVX2 vector optimizations.
+- **Vulkan**: Detected Vulkan physical GPU (Intel Iris/Arc, AMD Radeon, NVIDIA) &rarr; builds with `GGML_VULKAN=ON` and `TRANSCRIBE_VULKAN=ON`.
+- **CPU (Fallback)**: Defaults to CPU build only when GPU gating is disabled (`tools_transcribe_require_gpu: false`).
 - Installs binary to `/usr/local/bin/transcribe`.
-- Fully idempotent: checks existing binary state and git commit SHA before recompiling.
+- Fully idempotent: checks existing binary state before initiating pre-flight checks and recompilation.
 
 ### 3. User-Space Go Toolchain (`tasks/go.yml`)
 Installs the official standalone Go distribution into `~/.local/go` and symlinks binaries into `~/.local/bin/go`.
@@ -69,11 +71,13 @@ Installs Mistral's Vibe CLI (`mistral-vibe`) via `uv tool install`.
 | `tools_bun_dest` | `/usr/local/bin/bun` | Target executable binary destination |
 | `tools_bun_force_install` | `false` | Force re-download and re-extraction |
 | `tools_install_transcribe` | `true` | Enable/disable transcribe.cpp compilation |
+| `tools_transcribe_require_gpu` | `true` | Skip compilation if neither CUDA nor Vulkan devices are present |
 | `tools_transcribe_repo` | `https://github.com/handy-computer/transcribe.cpp.git` | Git repository URL |
 | `tools_transcribe_version` | `main` | Git ref / branch / tag to compile |
 | `tools_transcribe_build_dir` | `/tmp/transcribe.cpp-build` | Temporary CMake build directory |
 | `tools_transcribe_dest` | `/usr/local/bin/transcribe` | Target executable binary destination |
 | `tools_transcribe_force_build` | `false` | Force CMake rebuild even if binary is present |
+| `tools_transcribe_cleanup` | `true` | Clean up CMake build directory after compilation |
 | `tools_install_go` | `true` | Enable/disable user Go toolchain installation |
 | `tools_go_version` | `1.27.1` | Go release version to download |
 | `tools_go_url` | *(derived from version)* | Download URL for official Go archive |
