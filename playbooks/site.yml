@@ -11,5 +11,5 @@
 - name: User Environment
   import_playbook: user.yml
 
-- name: Coding Agents
-  import_playbook: coding_agents.yml
+- name: Tools and Agent Toolchains
+  import_playbook: tools.yml

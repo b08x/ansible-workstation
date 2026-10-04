@@ -45,13 +45,14 @@ The Syncopated workstation platform uses a three-tier layered architecture estab
 | :--- | :--- | :--- | :--- | :--- |
 | **Base RPM Packages** | OSBuild | `osbuild` / `bootc` | `kernel`, `podman`, `gcc`, `glibc` | Immutable appliance foundations. Baked at build time. |
 | **Host RPM Packages** | Ansible | `ansible.builtin.dnf` | `sox`, `tesseract-devel`, `yad`, `wl-clipboard`, `fzf` | Dynamic host capabilities, desktop environments, hardware dev libraries. |
-| **System Binaries** | Ansible | `roles/tools`, `roles/coding_agents` | `/usr/local/bin/bun`, `/usr/local/bin/transcribe`, `/usr/local/bin/agy` | Globally shared utilities requiring compilation or system-wide drop. |
+| **System Binaries** | Ansible | `roles/tools` | `/usr/local/bin/bun`, `/usr/local/bin/transcribe` | Globally shared utilities requiring compilation or system-wide drop. |
 | **System Flatpaks** | Ansible | `roles/desktop/tasks/flatpak.yml` | `ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy` | System-wide utility and administration GUI applications. |
 | **User Flatpaks** | Yadm | `yadm/bootstrap.d/80-install-user-flatpaks.sh` | `Obsidian`, `Typora`, `Audacity`, `freac`, `Helvum`, `Podman Desktop`, `DBeaver` | User productivity, authoring, and media creation applications installed per-user. |
 | **User Rust / Cargo** | Yadm | `yadm/bootstrap.d/20-cargo.sh` | `bottom`, `choose`, `git-cliff`, `gping`, `ripgrep_all`, `sd`, `gitui`, `eza` | Unprivileged user CLI tools compiled against user rustup toolchain in `~/.cargo/bin`. Removed from Ansible. |
 | **User Ruby Gems** | Yadm | `yadm/bootstrap.d/30-ruby.sh` | `pry`, `solargraph`, `ruby-lsp`, `rubocop`, `bubblezone`, `huh`, `ntcharts` | User gemsets installed against rbenv Rubies in `~/.local/bin`. |
 | **Python Environments** | Ansible + Yadm | Ansible (binary), Yadm (environment) | `uv`, `python3.13` (Ansible); `UV_PYTHON_PREFERENCE="only-managed"` (Yadm) | Ansible installs python/uv runtimes; user dotfiles set shell resolution policies. |
-| **Coding Agents** | Ansible + Yadm | Ansible (binaries), Yadm (config) | CLI binaries via npm/go; configs via `~/.claude/`, `~/.config/crush/` | Ansible never overwrites user-tracked agent configurations. |
+| **Coding Agents** | Ansible + Yadm | `roles/tools` (binaries), Yadm (config) | CLI binaries (`agy`, `claude`, `crush`, `opencode`, `vibe`); configs via `~/.claude/`, `~/.config/crush/` | Ansible `roles/tools` manages binaries; Yadm manages configs and shared skills. |
+
 | **Homebrew (Linuxbrew)**| Opt-In Only | `base_install_homebrew: false` | `/home/linuxbrew/.linuxbrew` | Disabled by default across all profiles to prevent unmanaged duplicate toolchains. |
 
 ---

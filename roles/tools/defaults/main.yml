@@ -1,6 +1,16 @@
 ---
 # defaults file for tools
+# Defines default configuration and feature flags for host utilities and agent CLI installations.
 
+# Target user account for user-space installations
+tools_user: "{{ workstation_user | default(user.name | default(ansible_user_id)) }}"
+tools_user_home: "{{ user.home | default('/home/' ~ tools_user) }}"
+tools_user_local_bin: "{{ tools_user_home }}/.local/bin"
+tools_user_go_bin: "{{ tools_user_home }}/go/bin"
+
+# -- System Tools (Root/System-wide in /usr/local/bin) --
+
+# transcribe.cpp (Whisper transcription CLI)
 tools_install_transcribe: true
 tools_transcribe_repo: "https://github.com/handy-computer/transcribe.cpp.git"
 tools_transcribe_version: "main"
@@ -8,7 +18,42 @@ tools_transcribe_build_dir: "/tmp/transcribe.cpp-build"
 tools_transcribe_dest: "/usr/local/bin/transcribe"
 tools_transcribe_force_build: false
 
+# Bun (standalone JS/TS runtime)
 tools_install_bun: true
 tools_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
 tools_bun_dest: "/usr/local/bin/bun"
 tools_bun_force_install: false
+
+# -- User Tools & Toolchains (User-space in ~/.local/bin and ~/.local/go) --
+
+# Go toolchain (User-space modern Go for Crush and Go tooling, e.g. on EL10 hosts)
+tools_install_go: true
+tools_go_version: "1.27.1"
+tools_go_url: "https://go.dev/dl/go{{ tools_go_version }}.linux-amd64.tar.gz"
+tools_go_dest_dir: "{{ tools_user_home }}/.local/go"
+tools_go_force_install: false
+
+# Antigravity CLI (agy)
+tools_install_antigravity: true
+tools_antigravity_install_url: "https://antigravity.google/cli/install.sh"
+tools_antigravity_force_install: false
+
+# Claude Code CLI
+tools_install_claude: true
+tools_claude_npm_package: "@anthropic-ai/claude-code"
+tools_claude_force_install: false
+
+# Crush CLI (Charm)
+tools_install_crush: true
+tools_crush_go_package: "github.com/charmbracelet/crush@latest"
+tools_crush_force_install: false
+
+# OpenCode CLI
+tools_install_opencode: true
+tools_opencode_npm_package: "opencode-ai"
+tools_opencode_force_install: false
+
+# Mistral Vibe CLI
+tools_install_vibe: true
+tools_vibe_package: "mistral-vibe"
+tools_vibe_force_install: false

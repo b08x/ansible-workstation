@@ -1,12 +1,48 @@
 ---
 # tasks file for tools
+# Dispatches system utilities and user-space coding agent CLI installers.
+
+- name: Starting tools tasks
+  ansible.builtin.debug:
+    msg: "Starting tools installation tasks for user {{ tools_user }}"
+  tags: ["always"]
 
 - name: Include transcribe.cpp compilation tasks
   ansible.builtin.include_tasks: transcribe-cpp.yml
-  when: tools_install_transcribe | bool
+  when: tools_install_transcribe | default(true) | bool
   tags: ["transcribe", "tools"]
 
 - name: Include bun installation tasks
   ansible.builtin.include_tasks: bun.yml
-  when: tools_install_bun | bool
+  when: tools_install_bun | default(true) | bool
   tags: ["bun", "tools"]
+
+- name: Include user-space Go toolchain installation tasks
+  ansible.builtin.include_tasks: go.yml
+  when: tools_install_go | default(true) | bool
+  tags: ["go", "tools"]
+
+- name: Include Antigravity CLI installation tasks
+  ansible.builtin.include_tasks: antigravity.yml
+  when: tools_install_antigravity | default(true) | bool
+  tags: ["antigravity", "agents", "tools"]
+
+- name: Include Claude Code CLI installation tasks
+  ansible.builtin.include_tasks: claude.yml
+  when: tools_install_claude | default(true) | bool
+  tags: ["claude", "agents", "tools"]
+
+- name: Include Crush CLI installation tasks
+  ansible.builtin.include_tasks: crush.yml
+  when: tools_install_crush | default(true) | bool
+  tags: ["crush", "agents", "tools"]
+
+- name: Include OpenCode CLI installation tasks
+  ansible.builtin.include_tasks: opencode.yml
+  when: tools_install_opencode | default(true) | bool
+  tags: ["opencode", "agents", "tools"]
+
+- name: Include Mistral Vibe CLI installation tasks
+  ansible.builtin.include_tasks: vibe.yml
+  when: tools_install_vibe | default(true) | bool
+  tags: ["vibe", "agents", "tools"]

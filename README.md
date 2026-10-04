@@ -162,9 +162,10 @@ A strict three-tier taxonomy governs distribution across tooling (see [`docs/lay
   composing are maintained in the companion
   [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository.
 - **Ansible — the system above the floor (Layer 1).** Host-level packages (`base_packages`),
-  system services, hardware acceleration, system utilities (`roles/tools`), system-wide Flatpaks
-  (`roles/desktop`), and coding agent binary drops (`roles/coding_agents`). Idempotent by contract —
+  system services, hardware acceleration, system utilities and coding agent CLIs (`roles/tools`), and system-wide Flatpaks
+  (`roles/desktop`). Idempotent by contract —
   re-running a playbook against a converged host should report zero changes.
+
 - **yadm — the user (Layer 2).** Dotfiles, shell environment (`~/.zshrc`), user version managers
   (`rbenv`, `rustup`), default Ruby gems, user Cargo crates, and user-space Flatpaks
   (`80-install-user-flatpaks.sh`). The one layer a re-image does not erase, and therefore the one

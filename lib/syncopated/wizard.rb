@@ -47,7 +47,7 @@ module Syncopated
             { name: "Podman Container Stack", value: "b08x.devworkstation.containerd" },
             { name: "Libvirt Virtualization", value: "b08x.devworkstation.libvirt" },
             { name: "Network Configuration", value: "b08x.devworkstation.networking" },
-            { name: "Coding Agents (Antigravity, Claude, Crush)", value: "b08x.devworkstation.coding_agents" },
+            { name: "Host Tools & Coding Agents (Bun, Transcribe, Claude, Crush)", value: "tools" },
             { name: "Local LLMOps (Ollama, Difify, Langfuse)", value: "b08x.llmops.run" },
           ]
 

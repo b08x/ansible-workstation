@@ -1,0 +1,40 @@
+---
+# tasks file for Mistral Vibe CLI in roles/tools
+# Config files (~/.vibe/config.toml) are managed by Yadm dotfiles.
+
+- name: Check for uv command availability
+  ansible.builtin.command: which uv
+  register: tools_uv_check
+  changed_when: false
+  failed_when: false
+  tags: ["vibe", "agents", "tools"]
+
+- name: Check if Vibe CLI binary exists
+  ansible.builtin.stat:
+    path: "{{ tools_user_local_bin }}/vibe"
+  register: tools_vibe_stat
+  tags: ["vibe", "agents", "tools"]
+
+- name: Install Mistral Vibe CLI
+  when:
+    - tools_uv_check.rc == 0
+    - >
+      (not (tools_vibe_stat.stat.exists | default(false))) or
+      (tools_vibe_force_install | default(false) | bool)
+  tags: ["vibe", "agents", "tools"]
+  become: true
+  become_user: "{{ tools_user }}"
+  block:
+    - name: Install Vibe CLI via uv tool
+      ansible.builtin.command: "uv tool install {{ tools_vibe_package }}"
+      environment:
+        PATH: "{{ tools_user_local_bin }}:{{ ansible_env.PATH }}"
+      changed_when: true
+
+- name: Warn when uv is missing for Vibe CLI
+  ansible.builtin.debug:
+    msg: "WARNING: uv not found in PATH — cannot install Vibe CLI. Install uv via the base/user role."
+  when:
+    - tools_uv_check.rc != 0
+    - not (tools_vibe_stat.stat.exists | default(false))
+  tags: ["vibe", "agents", "tools"]

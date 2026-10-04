@@ -1,0 +1,33 @@
+---
+# tasks file for Antigravity CLI (agy) in roles/tools
+# Config files and MCP definitions are managed by Yadm dotfiles.
+
+- name: Check if Antigravity CLI binary exists
+  ansible.builtin.stat:
+    path: "{{ tools_user_local_bin }}/agy"
+  register: tools_antigravity_stat
+  tags: ["antigravity", "agents", "tools"]
+
+- name: Install Antigravity CLI
+  when: >
+    (not (tools_antigravity_stat.stat.exists | default(false))) or
+    (tools_antigravity_force_install | default(false) | bool)
+  tags: ["antigravity", "agents", "tools"]
+  become: true
+  become_user: "{{ tools_user }}"
+  block:
+    - name: Download Antigravity CLI install script
+      ansible.builtin.get_url:
+        url: "{{ tools_antigravity_install_url }}"
+        dest: /tmp/agy_install.sh
+        mode: "0755"
+
+    - name: Execute Antigravity CLI install script
+      ansible.builtin.command: bash /tmp/agy_install.sh
+      changed_when: true
+
+  always:
+    - name: Clean up Antigravity install script
+      ansible.builtin.file:
+        path: /tmp/agy_install.sh
+        state: absent

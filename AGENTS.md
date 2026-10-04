@@ -13,12 +13,13 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
 
 - `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers), Tag-as-Select role filtering, and reboot assessment.
 - `playbooks/site.yml` — full workstation provisioning. Targets the `workstations` group
-  (tinybot, gir, soundbot) in two plays: a privileged system play (base, tuning,
-  desktop, libvirt, containerd) and an unprivileged user play (user,
-  coding_agents).
+  (tinybot, gir, soundbot) across modular plays: base (base), system (tuning, networking, containerd, desktop, libvirt),
+  user (user), and tools (tools).
 - `playbooks/base.yml` — the system play of `site.yml` on its own, for base-only runs.
+- `playbooks/tools.yml` — host tools, compiled utilities, and coding agent CLIs.
 
-Roles live directly in `roles/`: `base`, `coding_agents`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
+Roles live directly in `roles/`: `base`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
+
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
 blueprints have been moved into the standalone `osbuild` repository at

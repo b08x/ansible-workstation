@@ -12,7 +12,7 @@ class PlaybookModel
     {
       name: "Full Workstation (Desktop, Containers, AI Agents)",
       desc: "Installs a complete dev environment including VS Code, Podman, and AI tools.",
-      roles: %w[base desktop containerd coding_agents dotfiles],
+      roles: %w[base desktop containerd tools dotfiles],
     },
     {
       name: "Minimal Headless Server",

@@ -1,0 +1,46 @@
+---
+# tasks file for Crush CLI (Charm) in roles/tools
+# Config files (~/.config/crush/crushrc) are managed by Yadm dotfiles.
+
+- name: Check if Crush binary exists in local bin
+  ansible.builtin.stat:
+    path: "{{ tools_user_local_bin }}/crush"
+  register: tools_crush_local_stat
+  tags: ["crush", "agents", "tools"]
+
+- name: Check if Crush binary exists in go bin
+  ansible.builtin.stat:
+    path: "{{ tools_user_go_bin }}/crush"
+  register: tools_crush_go_stat
+  tags: ["crush", "agents", "tools"]
+
+- name: Install Crush CLI via Go
+  when: >
+    (not (tools_crush_local_stat.stat.exists | default(false)) and
+     not (tools_crush_go_stat.stat.exists | default(false))) or
+    (tools_crush_force_install | default(false) | bool)
+  tags: ["crush", "agents", "tools"]
+  become: true
+  become_user: "{{ tools_user }}"
+  block:
+    - name: Ensure user go bin directory exists
+      ansible.builtin.file:
+        path: "{{ tools_user_go_bin }}"
+        state: directory
+        mode: "0755"
+
+    - name: Compile and install Crush CLI
+      ansible.builtin.command:
+        cmd: "go install {{ tools_crush_go_package }}"
+      environment:
+        GOPATH: "{{ tools_user_home }}/go"
+        PATH: "{{ tools_user_local_bin }}:{{ tools_user_home }}/.local/go/bin:{{ ansible_env.PATH }}"
+      changed_when: true
+
+    - name: Symlink Crush binary to user local bin
+      ansible.builtin.file:
+        src: "{{ tools_user_go_bin }}/crush"
+        dest: "{{ tools_user_local_bin }}/crush"
+        state: link
+        force: true
+      when: tools_crush_local_stat.stat.exists | default(false) is false or tools_crush_force_install | default(false) | bool
