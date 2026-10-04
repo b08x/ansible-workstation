@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  author: b08x
+  description: Hardware-accelerated tools and utilities
+  company: Syncopated
+
+  license: GPL-2.0-or-later
+
+  min_ansible_version: "2.14"
+
+  galaxy_tags:
+    - tools
+    - transcription
+    - bun
+
+dependencies: []

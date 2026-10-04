@@ -1,0 +1,104 @@
+---
+# tasks file for transcribe.cpp in roles/tools
+
+- name: Check if transcribe binary exists
+  ansible.builtin.stat:
+    path: "{{ tools_transcribe_dest }}"
+  register: tools_transcribe_stat
+  tags: ["transcribe", "tools"]
+
+- name: Check for nvcc compiler
+  ansible.builtin.command:
+    argv: [sh, -c, "command -v nvcc"]
+  register: tools_nvcc_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+  tags: ["transcribe", "tools"]
+
+- name: Check for Intel oneAPI compiler
+  ansible.builtin.command:
+    argv: [sh, -c, "command -v icx || command -v dpcpp || test -f /opt/intel/oneapi/compiler/latest/bin/icx"]
+  register: tools_oneapi_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+  tags: ["transcribe", "tools"]
+
+- name: Determine transcribe build backend
+  ansible.builtin.set_fact:
+    tools_transcribe_backend: >-
+      {{ 'cuda' if (tools_nvcc_check.rc | default(1)) == 0 else
+         ('sycl' if (tools_oneapi_check.rc | default(1)) == 0 else 'cpu') }}
+  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+  tags: ["transcribe", "tools"]
+
+- name: Set CMake flags based on backend
+  ansible.builtin.set_fact:
+    tools_transcribe_cmake_args: >-
+      {{ '-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON' if tools_transcribe_backend == 'cuda' else
+         ('-DGGML_SYCL=ON' if tools_transcribe_backend == 'sycl' else
+          '-DGGML_CUDA=OFF -DTRANSCRIBE_CUDA=OFF') }}
+  when: not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+  tags: ["transcribe", "tools"]
+
+- name: Build and install transcribe.cpp
+  when:
+    - not tools_transcribe_stat.stat.exists or (tools_transcribe_force_build | default(false) | bool)
+    - not (ansible_check_mode | default(false))
+  tags: ["transcribe", "tools"]
+  block:
+    - name: Clone transcribe.cpp repository
+      ansible.builtin.git:
+        repo: "{{ tools_transcribe_repo }}"
+        dest: "{{ tools_transcribe_build_dir }}"
+        version: "{{ tools_transcribe_version }}"
+        recursive: true
+        force: true
+
+    - name: Configure transcribe.cpp build with CMake
+      ansible.builtin.command:
+        cmd: "cmake -B build -DCMAKE_BUILD_TYPE=Release {{ tools_transcribe_cmake_args }}"
+        chdir: "{{ tools_transcribe_build_dir }}"
+      changed_when: true
+
+    - name: Compile transcribe.cpp
+      ansible.builtin.command:
+        cmd: "cmake --build build --config Release -j{{ ansible_processor_vcpus | default(4) }}"
+        chdir: "{{ tools_transcribe_build_dir }}"
+      changed_when: true
+
+    - name: Find compiled transcribe binary
+      ansible.builtin.find:
+        paths:
+          - "{{ tools_transcribe_build_dir }}/build/bin"
+          - "{{ tools_transcribe_build_dir }}/build"
+        patterns:
+          - "transcribe*"
+        file_type: file
+      register: tools_transcribe_binaries
+
+    - name: Install transcribe binary to destination
+      ansible.builtin.copy:
+        src: >-
+          {{ (tools_transcribe_binaries.files
+              | selectattr('path', 'search', 'transcribe(-cli)?$')
+              | map(attribute='path') | first)
+              | default(tools_transcribe_build_dir ~ '/build/bin/transcribe-cli') }}
+        dest: "{{ tools_transcribe_dest }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: true
+      become: true
+
+  always:
+    - name: Clean up transcribe build directory
+      ansible.builtin.file:
+        path: "{{ tools_transcribe_build_dir }}"
+        state: absent
+      when:
+        - tools_transcribe_cleanup | default(true) | bool
+        - not (ansible_check_mode | default(false))

@@ -9,5 +9,9 @@ base_packages:
   - fzf
   - git
   - openssh-server
+  - sox
+  - tesseract-devel
+  - wl-clipboard
+  - yad
   - zram-generator
   - zsh

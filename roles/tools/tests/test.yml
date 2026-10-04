@@ -1,0 +1,6 @@
+---
+- name: Test tools role
+  hosts: localhost
+  remote_user: root
+  roles:
+    - tools

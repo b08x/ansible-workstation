@@ -49,10 +49,21 @@
   when: coding_agents_antigravity_state == 'present'
   tags: ["skills", "coding_agents", "antigravity"]
 
+- name: Check Antigravity skills directory stat
+  ansible.builtin.stat:
+    path: "{{ coding_agents_antigravity_skills_dir }}"
+  register: coding_agents_antigravity_skills_stat
+  when: coding_agents_antigravity_state == 'present'
+  tags: ["skills", "coding_agents", "antigravity"]
+
 - name: Create Antigravity skills symlink
   ansible.builtin.file:
     src: "{{ coding_agents_skills_dir }}"
     dest: "{{ coding_agents_antigravity_skills_dir }}"
     state: link
-  when: coding_agents_antigravity_state == 'present'
+  when:
+    - coding_agents_antigravity_state == 'present'
+    - not (coding_agents_antigravity_skills_stat.stat.exists and
+           coding_agents_antigravity_skills_stat.stat.isdir and
+           not (coding_agents_antigravity_skills_stat.stat.islnk | default(false)))
   tags: ["skills", "coding_agents", "antigravity"]

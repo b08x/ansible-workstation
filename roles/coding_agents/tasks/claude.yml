@@ -66,12 +66,23 @@
         state: directory
         mode: "0755"
 
+    - name: Check whether Claude Code settings file exists
+      ansible.builtin.stat:
+        path: "{{ coding_agents_claude_config_dir }}/settings.json"
+      register: coding_agents_claude_settings_stat
+
     - name: Deploy Claude Code settings
       ansible.builtin.template:
         src: claude/settings.json.j2
         dest: "{{ coding_agents_claude_config_dir }}/settings.json"
         backup: true
         mode: "0644"
+      when: not coding_agents_claude_settings_stat.stat.exists
+
+    - name: Check whether Claude Code MCP config file exists
+      ansible.builtin.stat:
+        path: "{{ coding_agents_claude_config_dir }}/.mcp.json"
+      register: coding_agents_claude_mcp_stat
 
     - name: Deploy Claude Code MCP config
       ansible.builtin.template:
@@ -79,6 +90,7 @@
         dest: "{{ coding_agents_claude_config_dir }}/.mcp.json"
         backup: true
         mode: "0644"
+      when: not coding_agents_claude_mcp_stat.stat.exists
       tags: ["mcp"]
 
     - name: Ensure Claude Code agents directory exists
