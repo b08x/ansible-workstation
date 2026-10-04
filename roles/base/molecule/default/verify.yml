@@ -18,7 +18,6 @@
       ansible.builtin.command: "{{ item }}"
       become: false
       loop:
-        - /usr/local/go/bin/go version
         - git flow version
         - fzf --version
         - inxi --version

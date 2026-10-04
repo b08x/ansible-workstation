@@ -99,11 +99,6 @@
   ansible.builtin.include_tasks: gitflow.yml
   tags: ["gitflow", "base"]
 
-- name: Include Go installation tasks
-  ansible.builtin.include_tasks: go.yml
-  when: base_install_go | default(true) | bool
-  tags: ["go", "base"]
-
 - name: Include inxi installation tasks
   ansible.builtin.include_tasks: inxi.yml
   tags: ["inxi", "base"]
