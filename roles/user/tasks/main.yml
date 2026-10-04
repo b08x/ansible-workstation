@@ -14,10 +14,6 @@
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
   tags: ["user", "distro"]
 
-- name: Include cargo installation tasks
-  ansible.builtin.include_tasks: cargo.yml
-  when: user_install_cargo | default(true) | bool
-  tags: ["cargo", "user"]
 
 - name: Include pip configuration tasks
   ansible.builtin.include_tasks: pip.yml
@@ -30,8 +26,3 @@
 - name: Include Ranger installation tasks
   ansible.builtin.include_tasks: ranger.yml
   tags: ["ranger", "user"]
-
-- name: Include rbenv configuration tasks
-  ansible.builtin.include_tasks: rbenv.yml
-  when: user_install_rbenv | default(true) | bool
-  tags: ["rbenv", "ruby", "user"]

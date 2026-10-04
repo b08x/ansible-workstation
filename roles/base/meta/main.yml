@@ -28,18 +28,10 @@ galaxy_info:
   # To view available platforms and versions (or releases), visit:
   # https://galaxy.ansible.com/api/v1/platforms/
   #
-  platforms:
-    - name: Fedora
-      versions:
-        - "43"
-    - name: AlmaLinux
-      versions:
-        - "9"
-        - "10"
-    - name: EL # Enterprise Linux clones (Rocky, and others)
-      versions:
-        - "9"
-        - "10"
+  # platforms:
+  # - name: Fedora
+  #   versions:
+  #   - all
 
   galaxy_tags:
     []

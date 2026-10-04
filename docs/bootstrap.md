@@ -1,36 +1,76 @@
 # Workstation Bootstrap Guide
 
-This document describes the bootstrap process for provisioning a fresh workstation using Ansible and yadm.
+This document describes the bootstrap process for provisioning a fresh workstation across Ansible and Yadm.
 
-## The Ansible/YADM Boundary
+## The Provisioning Taxonomy
 
-This project enforces a strict boundary between system-level and user-level configuration:
-- **Ansible** handles system-level provisioning (packages, services, repositories, system config). It must be run on the system.
-- **YADM** handles user-level dotfiles and user-specific tools (NPM globals, cargo, pipx, VS Code extensions, shell config). Its bootstrap script is self-contained.
+This project enforces a strict boundary between immutable base images, host-level provisioning, and user configuration. See [docs/layering-architecture.md](layering-architecture.md) for the full taxonomy matrix:
 
-## Prerequisites
+- **OSBuild (Layer 0)**: Builds the immutable base appliance (kernel, hardware drivers, container runtimes).
+- **Ansible (Layer 1)**: Manages host-level packages, hardware acceleration, system Flatpaks, system utilities (`bun`, `transcribe.cpp`), and coding agent binaries.
+- **Yadm (Layer 2)**: Manages unprivileged user dotfiles, shell configuration, language version managers (`rbenv`, `rustup`), default gems, user Cargo crates, and user Flatpaks (`Obsidian`, `Typora`, media utilities).
 
-Before running the `bin/setup` script on a fresh ISO install, ensure:
+---
 
-1. **Base system is installed:** You should have a working Fedora or AlmaLinux installation.
-2. **GPG Key Setup:** If your yadm dotfiles use `yadm encrypt` (e.g. for SSH keys), you MUST have your GPG private key available to decrypt them.
-   - If you have your GPG key backed up, import it first: `gpg --import private.key`
-   - Without the GPG key, `bin/setup` will warn you and `yadm decrypt` will fail.
-3. **SSH Keys for YADM (optional):** If you clone yadm via SSH, you need your SSH keys. Since yadm typically manages your SSH keys encrypted with GPG, it's a chicken-and-egg problem. You can clone the repo using HTTPS first, decrypt the SSH keys via GPG, and then change the remote to SSH.
+## Provisioning Workflows
 
-## Using `bin/setup`
+Depending on whether you are provisioning locally on a fresh machine or orchestrating across the inventory, two workflows are supported:
 
-The `bin/setup` script is a TUI orchestrator that guides you through the process:
+### Workflow A: Autonomous Pull Bootstrap (`local.yml`)
 
-1. **Prereq check** — Verifies `git`, `ansible-playbook`, and `gum` are available (installs via `sudo dnf` if missing).
-2. **GPG key check** — Warns if no GPG key exists.
-3. **Run Ansible** — Executes `ansible-playbook playbooks/site.yml` to provision the system. You will be prompted for your `sudo` password.
-4. **Install YADM** — Downloads and installs yadm to `/usr/local/bin/yadm` if not present.
-5. **YADM Clone** — Asks for your dotfiles repository URL and clones it.
-6. **YADM Decrypt** — Prompts to decrypt your dotfiles secrets (requires GPG key).
-7. **YADM Bootstrap** — Runs your dotfiles' `~/.config/yadm/bootstrap` script for user-level setup.
+The root [`local.yml`](../local.yml) playbook is designed for local workstation convergence via `ansible-pull`. It implements the 15 Ansible Design Patterns:
+- **Pre-flight Hardware Auto-Detection**: Dynamically probes for KVM hardware acceleration (`/dev/kvm`), graphical display target (`systemctl get-default`), and container runtime support.
+- **Tag-as-Select Filtering**: Every role is tagged (`base`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop`, `tools`, `system`, `virt`).
+- **Check-Mode Safety**: All pre-flight probes and post-flight assessments run with `check_mode: false`.
+- **Reboot Assessment**: Checks `needs-restarting -r` (EL/Fedora) and `/var/run/reboot-required` (Debian) and outputs a formatted status summary.
 
-To start the process, run:
+#### Standalone Execution
+```bash
+# Pull and apply from the GitLab workstation repository
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git local.yml
+
+# Dry-run check mode
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --check local.yml
+
+# Selective execution (e.g. skip virtualization)
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --skip-tags virt local.yml
+```
+
+#### Integrated with Yadm Bootstrap
+Yadm's bootstrap pipeline executes `01-ansible-pull.sh` as its first step. It is an optional, prompted step:
+- Prompts with `gum confirm` in interactive terminals.
+- Can be automated via environment variables:
+  ```bash
+  SYNCOPATED_ANSIBLE_PULL=yes yadm bootstrap
+  ```
+- Pulls from `https://gitlab.com/syncopatedX/workstation.git` with `ANSIBLE_STDOUT_CALLBACK=default`.
+
+---
+
+### Workflow B: Interactive TUI Orchestrator (`bin/setup`)
+
+The `bin/setup` script is an interactive TUI orchestrator that guides you through an end-to-end setup:
+
+1. **Prerequisite Check**: Verifies `git`, `ansible-playbook`, and `gum` are available (installs via `sudo dnf` if missing).
+2. **GPG Key Check**: Validates secret keys required for decrypting dotfiles secrets.
+3. **Run Ansible**: Executes `ansible-playbook playbooks/site.yml -K` against the local host.
+4. **Install Yadm**: Ensures `/usr/local/bin/yadm` is installed.
+5. **Yadm Clone & Decrypt**: Clones your dotfiles repository and prompts for secret decryption.
+6. **Yadm Bootstrap**: Runs `~/.config/yadm/bootstrap` for unprivileged toolchains and user applications.
+
 ```bash
 ./bin/setup
 ```
+
+---
+
+## Prerequisites
+
+Before starting bootstrap on a fresh installation:
+
+1. **Base system installed**: Fedora or AlmaLinux workstation installation.
+2. **GPG Key Setup**: If your Yadm dotfiles use `yadm encrypt` (e.g. for SSH keys), import your private key:
+   ```bash
+   gpg --import private.key
+   ```
+3. **Network access**: Outbound HTTPS access to GitLab (`gitlab.com/syncopatedX/workstation.git`) and package repositories.

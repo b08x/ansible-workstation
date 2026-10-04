@@ -1,0 +1,14 @@
+---
+# defaults file for tools
+
+tools_install_transcribe: true
+tools_transcribe_repo: "https://github.com/handy-computer/transcribe.cpp.git"
+tools_transcribe_version: "main"
+tools_transcribe_build_dir: "/tmp/transcribe.cpp-build"
+tools_transcribe_dest: "/usr/local/bin/transcribe"
+tools_transcribe_force_build: false
+
+tools_install_bun: true
+tools_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
+tools_bun_dest: "/usr/local/bin/bun"
+tools_bun_force_install: false

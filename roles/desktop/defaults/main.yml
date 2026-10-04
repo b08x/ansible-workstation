@@ -9,6 +9,12 @@ desktop_environment: gnome
 
 desktop_vscode_flatpak: false
 
+desktop_system_flatpaks:
+  - com.mattjakeman.ExtensionManager
+  - com.github.tchx84.Flatseal
+  - io.github.flattool.Warehouse
+  - io.github.dvlv.boxbuddyrs
+
 # Antigravity Hub + IDE (the agy CLI is installed by the coding_agents role)
 desktop_antigravity_state: present
 desktop_antigravity_hub_url: "https://storage.googleapis.com/antigravity-public/antigravity-hub/2.11.0-6376446768316416/linux-x64/Antigravity.tar.gz"

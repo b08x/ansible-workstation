@@ -70,11 +70,15 @@ base_packages:
   - readline-devel
   - ruby-build
   - sqlite
+  - sox
+  - tesseract-devel
   - uv
   - vala
   - wayland-devel
   - wayland-protocols-devel
   - wireplumber
+  - wl-clipboard
+  - yad
   # EL 10 dropped zlib/zlib-devel; zlib-ng-compat-devel is the ABI-compatible
   # zlib-ng replacement (https://github.com/rvm/rvm/issues/5478). Rocky 9 still
   # ships zlib-devel, which is why the base role loads per-major vars for Rocky.

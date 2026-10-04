@@ -1,78 +1,56 @@
-# b08x.devworkstation desktop Role
+# Desktop Role (`roles/desktop`)
 
-A brief description of the role goes here.
+Provisions the graphical workstation environment, system-wide desktop integration tools, GNOME shell extensions, Antigravity IDE, and system-level Flatpaks on Fedora and Enterprise Linux.
 
-## Requirements
+## Scope & Taxonomy
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Under the [distribution taxonomy](../../docs/layering-architecture.md):
+- **Ansible (`roles/desktop`)**: Manages system-level desktop packages, display acceleration, system-wide GNOME extensions, Flathub system remote, and **system-management Flatpaks** (`ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy`).
+- **Yadm (`80-install-user-flatpaks.sh`)**: Manages unprivileged **user-space desktop applications** (`Obsidian`, `Typora`, `Audacity`, `fre:ac`, `Helvum`, `Podman Desktop`, `DBeaver`).
 
-## Role Variables
+## Features
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+1. **System Flatpaks (`tasks/flatpak.yml`)**:
+   - Ensures the `flathub` system remote is present.
+   - Installs system-scoped Flatpaks via `community.general.flatpak` (`method: system`).
+2. **GNOME Desktop (`tasks/gnome.yml`, `tasks/gnome_extensions.yml`)**:
+   - Installs system GNOME extensions (`dash-to-dock`, `appindicator`, `user-theme`, etc.).
+   - Configures desktop themes and gsettings overrides.
+3. **Developer Workstation Utilities**:
+   - **VS Code**: Configures official Microsoft RPM repository and package.
+   - **Antigravity Hub & IDE**: Downloads and extracts Google Antigravity Hub and IDE archives into system application paths.
+   - **Input Remapper**: Installs and enables `input-remapper` daemon for hardware key rebinding.
 
-## Dependencies
+## Key Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Default | Description |
+|---|---|---|
+| `desktop_environment` | `gnome` | Desktop environment target (e.g. `gnome`) |
+| `desktop_system_flatpaks` | *(4 packages)* | System management Flatpaks (`ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy`) |
+| `desktop_antigravity_state` | `present` | State of Antigravity Hub and IDE installation |
+| `desktop_antigravity_hub_url` | *(Google storage URL)* | Official tarball archive for Antigravity Hub |
+| `desktop_antigravity_ide_url` | *(Google storage URL)* | Official tarball archive for Antigravity IDE |
+| `desktop_gnome_extensions` | *(list)* | DNF system packages for GNOME extensions |
+| `desktop_vscode_flatpak` | `false` | When true, installs VS Code via Flatpak instead of native RPM |
 
-## Example Playbook
+## Tags
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+| Tag | Purpose |
+|---|---|
+| `desktop` | All desktop provisioning tasks |
+| `flatpaks` | Flathub remote and system Flatpak installations |
+| `gnome` | GNOME packages, styling, and extension management |
+| `antigravity` | Antigravity Hub and IDE installation |
+| `vscode` | Visual Studio Code repository and package |
+| `input-remapper` | Input remapper daemon and configuration |
+
+## Example Usage
 
 ```yaml
-- name: Execute tasks on servers
-  hosts: servers
+- name: Configure desktop environment
+  hosts: localhost
+  become: true
   roles:
-    - role: b08x.devworkstation.run
-      run_x: 42
+    - role: desktop
+      tags: ["desktop"]
 ```
-
-Another way to consume this role would be:
-
-```yaml
-- name: Initialize the run role from b08x.devworkstation
-  hosts: servers
-  gather_facts: false
-  tasks:
-    - name: Trigger invocation of run role
-      ansible.builtin.include_role:
-        name: b08x.devworkstation.run
-      vars:
-        run_x: 42
-```
-
-## Role Idempotency
-
-Designation of the role as idempotent (True/False)
-
-## Role Atomicity
-
-Designation of the role as atomic if applicable (True/False)
-
-## Roll-back capabilities
-
-Define the roll-back capabilities of the role
-
-## Argument Specification
-
-Including an example of how to add an argument Specification file that validates the arguments provided to the role.
-
-```yaml
-argument_specs:
-  main:
-    short_description: Role description.
-    options:
-      string_arg1:
-        description: string argument description.
-        type: "str"
-        default: "x"
-        choices: ["x", "y"]
-```
-
-## License
-
-<!-- TO-DO: Update the license to the one you want to use (delete this line after setting the license) -->
-BSD
-
-## Author Information
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).

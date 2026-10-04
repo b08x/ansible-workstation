@@ -5,8 +5,8 @@
 A deliberately boring foundation under a fast-moving ecosystem.
 
 Ansible control repository for provisioning Fedora and AlmaLinux machines —
-system configuration, virtualisation, container runtimes, custom image
-builds, and a local LLM ops stack — from a single inventory.
+system configuration, virtualisation, and container runtimes — from a single
+inventory.
 
 Kept as a working notebook: the roles, playbooks, and plugins are the current
 entries of a decade's experiments, and the git history keeps the earlier
@@ -95,25 +95,39 @@ can be picked up and pointed at any host list, not only mine.
 
 The state of the entries, facet by facet:
 
-- **Image builds run on all three targets.** The `osbuild` role composes
-  Fedora, AlmaLinux, and Rocky Linux ISOs from declarative blueprints —
-  Fedora and AlmaLinux through `playbooks/osbuild.yml`, Rocky through
-  `playbooks/osbuild-rocky-iso.yml`. Repository GPG keys are fetched locally
-  and verified before any compose; the target distribution is asserted
-  before anything touches the host. The base image as a reproducible
-  artifact instead of a live-edited system.
-- **Full workstation provisioning runs on Fedora and AlmaLinux.** `site.yml`
-  imports four plays — base, system, user, coding agents — against the
-  `workstations` group, with roles living natively in `roles/` after a
-  deliberate restructuring out of git submodules. Rocky Linux is a declared
-  target and has not been walked yet.
-- **The remediation pipeline works.** `playbooks/remediate.yml` reads a
-  failing host, asks a model for a diagnosis and a draft playbook, checks
-  the draft mechanically, and executes nothing without a typed `yes`. It
-  runs against the real fleet and carries 159 pytest tests that need no
-  network.
-- **Standalone deployments work.** Langfuse deploys under Podman, Dify under
-  Docker, each from its own playbook with service-specific defaults.
+- **Image builds live in a dedicated standalone repository.** The `osbuild`
+  machinery — composing Fedora, AlmaLinux, and Rocky Linux ISOs, appliances,
+  and container disks from declarative blueprints — has been extracted to
+  the standalone [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository
+  alongside the package taxonomy and `package_tracker.py` management tooling.
+  Repository GPG keys are fetched locally and verified before any compose;
+  the target distribution is asserted before anything touches the host. The base
+  image remains the reproducible artifact floor beneath this fleet, decoupled so
+  image composition evolves without entangling host configuration runs.
+- **RPM package development lives in a dedicated standalone repository.** The
+  `rpm_dev` role, mock build chroots, and packaging environments have been
+  extracted to the standalone [`rpmbuild`](https://gitlab.com/syncopatedX/rpmbuild)
+  repository. Package specs and repo builds iterate in isolated mock
+  containers without polluting workstation state.
+- **LLMOps and remediation live in a dedicated standalone repository.**
+  Dedicated AI application platforms (`dify`, `langfuse`), agent runtimes
+  (`hermes`, `ollama`), their dedicated service playbooks, and the autonomous
+  LLM diagnose-and-remediate pipeline with mechanical safety guards have been
+  extracted to the standalone [`llmops`](https://gitlab.com/syncopatedX/llmops)
+  repository. Decoupled from host provisioning, the LLM runtime and its self-healing
+  pipeline evolve alongside model updates without risking the workstation baseline.
+- **Full workstation provisioning runs on Fedora, AlmaLinux, and Rocky Linux.**
+  - `playbooks/site.yml` imports four plays — base, system, user, coding agents —
+    against the `workstations` group in inventory for multi-host push provisioning.
+  - `local.yml` provides an autonomous local pull and convergence playbook
+    specifically designed for `ansible-pull` and local bootstrap. It implements the
+    15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical
+    display, containers), Tag-as-Select role filtering, check-mode safety, and post-flight
+    reboot verification.
+  - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](docs/layering-architecture.md),
+    partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
+  - System-level utilities (`bun` and hardware-accelerated `transcribe.cpp`) live natively
+    in `roles/tools`.
 - **Observability runs in both directions.** The `llm_analyzer` callback
   records what every play and task actually does to an append-only trace
   store, and `scripts/llm_trainset.py` turns those traces into a scored DSPy
@@ -140,22 +154,28 @@ explicitly, layer by layer, because the parts only make sense as a whole.
 
 ### Layers
 
-- **The image — the floor.** Kernel, drivers, the base package set. Built,
+A strict three-tier taxonomy governs distribution across tooling (see [`docs/layering-architecture.md`](docs/layering-architecture.md)):
+
+- **The image — the floor (Layer 0).** Kernel, drivers, container runtimes, and the base package set. Built,
   never mutated in place; a change is a new artifact with rollback, not a
-  live edit to a running system.
-- **Ansible — the system above the floor.** Repositories, services, container
-  runtimes, system-wide capability toggles. Idempotent by contract —
-  re-running a playbook against a converged host should report zero changes —
-  with explicit variable tiers and firewall rules co-located with the
-  services that need them.
-- **yadm — the user.** Dotfiles, shell, per-user paths. The one layer a
-  re-image does not erase, and therefore the one layer where drift is
-  permitted — under version control, where a change is recoverable and
+  live edit to a running system. Declarative blueprint generation and image
+  composing are maintained in the companion
+  [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository.
+- **Ansible — the system above the floor (Layer 1).** Host-level packages (`base_packages`),
+  system services, hardware acceleration, system utilities (`roles/tools`), system-wide Flatpaks
+  (`roles/desktop`), and coding agent binary drops (`roles/coding_agents`). Idempotent by contract —
+  re-running a playbook against a converged host should report zero changes.
+- **yadm — the user (Layer 2).** Dotfiles, shell environment (`~/.zshrc`), user version managers
+  (`rbenv`, `rustup`), default Ruby gems, user Cargo crates, and user-space Flatpaks
+  (`80-install-user-flatpaks.sh`). The one layer a re-image does not erase, and therefore the one
+  layer where drift is permitted — under version control, where a change is recoverable and
   attributable.
 - **Containers — the fast layer.** Everything that legitimately churns —
   language models, agent harnesses, RAG pipelines, tokenizers — runs inside
-  its own dependency closure and never touches the host ABI. Free to be
-  reckless precisely because the ground underneath it is not.
+  its own dependency closure and never touches the host ABI. Dedicated containerized
+  service stacks (Dify, Langfuse, Hermes, Ollama) and remediation tooling are
+  managed in the companion [`llmops`](https://gitlab.com/syncopatedX/llmops) repository,
+  free to be reckless precisely because the ground underneath them is not.
 
 ### Software arrival, in three tiers
 
@@ -183,12 +203,13 @@ loop *acts* is gated by a human:
   store; one explains the run to the human at the terminal. Agents drift
   without grounding; humans do too. The trace is the grounding for the
   machine; the rendered log, for you.
-- **Remediate — `playbooks/remediate.yml`.** Reads a failing host's state,
-  asks a model for a diagnosis and a draft playbook, checks the draft
-  mechanically — guards reject a draft that removes a volume, or replaces a
-  working container without proving its replacement first — and executes
-  nothing without an explicit `yes`. Confirmed fixes are indexed as
-  reference for the next similar failure on any host.
+- **Remediate — `llmops/playbooks/remediate.yml`.** Operating from the companion
+  [`llmops`](https://gitlab.com/syncopatedX/llmops) repository, the remediation
+  pipeline reads a failing host's state across the fleet, asks a model for a
+  diagnosis and a draft playbook, checks the draft mechanically — guards reject
+  a draft that removes a volume, or replaces a working container without proving
+  its replacement first — and executes nothing without an explicit `yes`. Confirmed
+  fixes are indexed as reference for the next similar failure on any host.
 - **Learn — `scripts/llm_trainset.py`.** Turns the accumulated traces into a
   DSPy trainset and scores it without running a playbook.
 

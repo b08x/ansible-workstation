@@ -1,78 +1,52 @@
-# b08x.devworkstation user Role
+# User Role (`roles/user`)
 
-A brief description of the role goes here.
+Sets up the unprivileged workstation user environment, user directory layout, secondary group memberships, and user-space runtime tooling.
 
-## Requirements
+## Scope & Taxonomy
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+Under the [distribution taxonomy](../../docs/layering-architecture.md):
+- **Ansible (`roles/user`)**: Manages the host user account, group memberships (`audio`, `video`, `render`, `input`), standard directory scaffolding (`~/.local/bin`, `~/Workspace`), and the system drop for `uv`.
+- **Yadm**: Single owner of unprivileged dotfiles, shell rc configuration (`~/.zshrc`), language version managers (`rbenv`, `rustup`), default gems, and user Cargo crates (`bootstrap.d/20-cargo.sh`).
+- **Decoupled**: Redundant Rustup installers, Cargo crate compilation loops, and `.zshrc` `lineinfile` modifications were eliminated from this role.
 
-## Role Variables
+## Features
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+1. **User Account & Directories (`tasks/user.yml`, `tasks/directories.yml`)**:
+   - Ensures the primary user exists with correct UID/GID and assigned shell.
+   - Configures secondary group access for hardware acceleration, audio, and device input.
+   - Creates directory structure (`~/.local/bin`, `~/Workspace`, `~/.config`).
+2. **UV Python Tooling (`tasks/uv.yml`)**:
+   - Installs official Astral `uv` binary to `$HOME/.local/bin/uv`.
+   - Shell environment variables (such as `export UV_PYTHON_PREFERENCE="only-managed"`) are maintained in Yadm dotfile templates rather than Ansible inline mutations.
 
-## Dependencies
+## Key Variables
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+| Variable | Default | Description |
+|---|---|---|
+| `user.name` | `b08x` | Primary workstation user account name |
+| `user.group` | `b08x` | Primary group name |
+| `user.home` | `/home/b08x` | Home directory path |
+| `user.shell` | `/usr/bin/zsh` | Login shell path |
+| `user.secondary_groups` | `"input,video,audio,render"` | Comma-separated secondary groups |
+| `user_install_uv` | `true` | When true, installs the `uv` Python manager |
+| `user_uv_version` | `"latest"` | Target version tag for `uv` |
 
-## Example Playbook
+## Tags
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+| Tag | Purpose |
+|---|---|
+| `user` | All tasks in the user role |
+| `directories` | Directory structure creation |
+| `uv` | UV installation tasks |
+| `profile` | User account and shell verification |
+
+## Example Usage
 
 ```yaml
-- name: Execute tasks on servers
-  hosts: servers
+- name: Setup workstation user environment
+  hosts: workstations
+  become: false
   roles:
-    - role: b08x.devworkstation.run
-      run_x: 42
+    - role: user
+      tags: ["user"]
 ```
-
-Another way to consume this role would be:
-
-```yaml
-- name: Initialize the run role from b08x.devworkstation
-  hosts: servers
-  gather_facts: false
-  tasks:
-    - name: Trigger invocation of run role
-      ansible.builtin.include_role:
-        name: b08x.devworkstation.run
-      vars:
-        run_x: 42
-```
-
-## Role Idempotency
-
-Designation of the role as idempotent (True/False)
-
-## Role Atomicity
-
-Designation of the role as atomic if applicable (True/False)
-
-## Roll-back capabilities
-
-Define the roll-back capabilities of the role
-
-## Argument Specification
-
-Including an example of how to add an argument Specification file that validates the arguments provided to the role.
-
-```yaml
-argument_specs:
-  main:
-    short_description: Role description.
-    options:
-      string_arg1:
-        description: string argument description.
-        type: "str"
-        default: "x"
-        choices: ["x", "y"]
-```
-
-## License
-
-<!-- TO-DO: Update the license to the one you want to use (delete this line after setting the license) -->
-BSD
-
-## Author Information
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
