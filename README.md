@@ -5,8 +5,8 @@
 A deliberately boring foundation under a fast-moving ecosystem.
 
 Ansible control repository for provisioning Fedora and AlmaLinux machines —
-system configuration, virtualisation, container runtimes, and a local
-LLM ops stack — from a single inventory.
+system configuration, virtualisation, and container runtimes — from a single
+inventory.
 
 Kept as a working notebook: the roles, playbooks, and plugins are the current
 entries of a decade's experiments, and the git history keeps the earlier
@@ -104,18 +104,23 @@ The state of the entries, facet by facet:
   the target distribution is asserted before anything touches the host. The base
   image remains the reproducible artifact floor beneath this fleet, decoupled so
   image composition evolves without entangling host configuration runs.
+- **RPM package development lives in a dedicated standalone repository.** The
+  `rpm_dev` role, mock build chroots, and packaging environments have been
+  extracted to the standalone [`rpmbuild`](https://gitlab.com/syncopatedX/rpmbuild)
+  repository. Package specs and repo builds iterate in isolated mock
+  containers without polluting workstation state.
+- **LLMOps and remediation live in a dedicated standalone repository.**
+  Dedicated AI application platforms (`dify`, `langfuse`), agent runtimes
+  (`hermes`, `ollama`), their dedicated service playbooks, and the autonomous
+  LLM diagnose-and-remediate pipeline with mechanical safety guards have been
+  extracted to the standalone [`llmops`](https://gitlab.com/syncopatedX/llmops)
+  repository. Decoupled from host provisioning, the LLM runtime and its self-healing
+  pipeline evolve alongside model updates without risking the workstation baseline.
 - **Full workstation provisioning runs on Fedora and AlmaLinux.** `site.yml`
   imports four plays — base, system, user, coding agents — against the
   `workstations` group, with roles living natively in `roles/` after a
   deliberate restructuring out of git submodules. Rocky Linux is a declared
   target and has not been walked yet.
-- **The remediation pipeline works.** `playbooks/remediate.yml` reads a
-  failing host, asks a model for a diagnosis and a draft playbook, checks
-  the draft mechanically, and executes nothing without a typed `yes`. It
-  runs against the real fleet and carries 159 pytest tests that need no
-  network.
-- **Standalone deployments work.** Langfuse deploys under Podman, Dify under
-  Docker, each from its own playbook with service-specific defaults.
 - **Observability runs in both directions.** The `llm_analyzer` callback
   records what every play and task actually does to an append-only trace
   store, and `scripts/llm_trainset.py` turns those traces into a scored DSPy
@@ -158,8 +163,10 @@ explicitly, layer by layer, because the parts only make sense as a whole.
   attributable.
 - **Containers — the fast layer.** Everything that legitimately churns —
   language models, agent harnesses, RAG pipelines, tokenizers — runs inside
-  its own dependency closure and never touches the host ABI. Free to be
-  reckless precisely because the ground underneath it is not.
+  its own dependency closure and never touches the host ABI. Dedicated containerized
+  service stacks (Dify, Langfuse, Hermes, Ollama) and remediation tooling are
+  managed in the companion [`llmops`](https://gitlab.com/syncopatedX/llmops) repository,
+  free to be reckless precisely because the ground underneath them is not.
 
 ### Software arrival, in three tiers
 
@@ -187,12 +194,13 @@ loop *acts* is gated by a human:
   store; one explains the run to the human at the terminal. Agents drift
   without grounding; humans do too. The trace is the grounding for the
   machine; the rendered log, for you.
-- **Remediate — `playbooks/remediate.yml`.** Reads a failing host's state,
-  asks a model for a diagnosis and a draft playbook, checks the draft
-  mechanically — guards reject a draft that removes a volume, or replaces a
-  working container without proving its replacement first — and executes
-  nothing without an explicit `yes`. Confirmed fixes are indexed as
-  reference for the next similar failure on any host.
+- **Remediate — `llmops/playbooks/remediate.yml`.** Operating from the companion
+  [`llmops`](https://gitlab.com/syncopatedX/llmops) repository, the remediation
+  pipeline reads a failing host's state across the fleet, asks a model for a
+  diagnosis and a draft playbook, checks the draft mechanically — guards reject
+  a draft that removes a volume, or replaces a working container without proving
+  its replacement first — and executes nothing without an explicit `yes`. Confirmed
+  fixes are indexed as reference for the next similar failure on any host.
 - **Learn — `scripts/llm_trainset.py`.** Turns the accumulated traces into a
   DSPy trainset and scores it without running a playbook.
 
