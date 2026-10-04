@@ -9,13 +9,16 @@ are followed.
 
 All Ansible roles are located directly in `roles/`. The project has been consolidated into a single monolithic repository.
 
-All playbooks live in `playbooks/`, not at the repo root:
+All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at the repository root for pull-based local provisioning:
 
-- `site.yml` — full workstation provisioning. Targets the `workstations` group
+- `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers), Tag-as-Select role filtering, and reboot assessment.
+- `playbooks/site.yml` — full workstation provisioning. Targets the `workstations` group
   (tinybot, gir, soundbot) in two plays: a privileged system play (base, tuning,
   desktop, libvirt, containerd) and an unprivileged user play (user,
   coding_agents).
-- `base.yml` — the system play of `site.yml` on its own, for base-only runs.
+- `playbooks/base.yml` — the system play of `site.yml` on its own, for base-only runs.
+
+Roles live directly in `roles/`: `base`, `coding_agents`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
 blueprints have been moved into the standalone `osbuild` repository at
@@ -27,7 +30,7 @@ have been moved into the standalone `rpmbuild` repository at
 remediation plugin pipeline have been moved into the standalone `llmops` repository
 at `~/WorkspaceV3/Syncopated/llmops`.
 
-Repo-root YAML is configuration, not plays: `ansible-navigator.yml` and the
+Repo-root YAML configuration: `ansible-navigator.yml`, `local.yml` (pull playbook), and the
 `argspec_validation_plays*.yml` pair.
 
 ## Commands

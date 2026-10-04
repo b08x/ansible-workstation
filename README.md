@@ -116,11 +116,18 @@ The state of the entries, facet by facet:
   extracted to the standalone [`llmops`](https://gitlab.com/syncopatedX/llmops)
   repository. Decoupled from host provisioning, the LLM runtime and its self-healing
   pipeline evolve alongside model updates without risking the workstation baseline.
-- **Full workstation provisioning runs on Fedora and AlmaLinux.** `site.yml`
-  imports four plays — base, system, user, coding agents — against the
-  `workstations` group, with roles living natively in `roles/` after a
-  deliberate restructuring out of git submodules. Rocky Linux is a declared
-  target and has not been walked yet.
+- **Full workstation provisioning runs on Fedora, AlmaLinux, and Rocky Linux.**
+  - `playbooks/site.yml` imports four plays — base, system, user, coding agents —
+    against the `workstations` group in inventory for multi-host push provisioning.
+  - `local.yml` provides an autonomous local pull and convergence playbook
+    specifically designed for `ansible-pull` and local bootstrap. It implements the
+    15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical
+    display, containers), Tag-as-Select role filtering, check-mode safety, and post-flight
+    reboot verification.
+  - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](docs/layering-architecture.md),
+    partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
+  - System-level utilities (`bun` and hardware-accelerated `transcribe.cpp`) live natively
+    in `roles/tools`.
 - **Observability runs in both directions.** The `llm_analyzer` callback
   records what every play and task actually does to an append-only trace
   store, and `scripts/llm_trainset.py` turns those traces into a scored DSPy
@@ -147,19 +154,21 @@ explicitly, layer by layer, because the parts only make sense as a whole.
 
 ### Layers
 
-- **The image — the floor.** Kernel, drivers, the base package set. Built,
+A strict three-tier taxonomy governs distribution across tooling (see [`docs/layering-architecture.md`](docs/layering-architecture.md)):
+
+- **The image — the floor (Layer 0).** Kernel, drivers, container runtimes, and the base package set. Built,
   never mutated in place; a change is a new artifact with rollback, not a
   live edit to a running system. Declarative blueprint generation and image
   composing are maintained in the companion
   [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository.
-- **Ansible — the system above the floor.** Repositories, services, container
-  runtimes, system-wide capability toggles. Idempotent by contract —
-  re-running a playbook against a converged host should report zero changes —
-  with explicit variable tiers and firewall rules co-located with the
-  services that need them.
-- **yadm — the user.** Dotfiles, shell, per-user paths. The one layer a
-  re-image does not erase, and therefore the one layer where drift is
-  permitted — under version control, where a change is recoverable and
+- **Ansible — the system above the floor (Layer 1).** Host-level packages (`base_packages`),
+  system services, hardware acceleration, system utilities (`roles/tools`), system-wide Flatpaks
+  (`roles/desktop`), and coding agent binary drops (`roles/coding_agents`). Idempotent by contract —
+  re-running a playbook against a converged host should report zero changes.
+- **yadm — the user (Layer 2).** Dotfiles, shell environment (`~/.zshrc`), user version managers
+  (`rbenv`, `rustup`), default Ruby gems, user Cargo crates, and user-space Flatpaks
+  (`80-install-user-flatpaks.sh`). The one layer a re-image does not erase, and therefore the one
+  layer where drift is permitted — under version control, where a change is recoverable and
   attributable.
 - **Containers — the fast layer.** Everything that legitimately churns —
   language models, agent harnesses, RAG pipelines, tokenizers — runs inside
