@@ -39,11 +39,11 @@ Under the [workstation layering taxonomy](../../docs/layering-architecture.md), 
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular subtask files (`gnome.yml`, `gnome_extensions.yml`, `theme.yml`, `flatpak.yml`, `vscode.yml`, `antigravity.yml`, `input-remapper.yml`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular subtask files (`gnome.yml`, `theme.yml`, `flatpak.yml`, `vscode.yml`, `antigravity.yml`, `input-remapper.yml`).
 2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, defining distribution packages (`desktop_packages.qt`, `gtk`, `gnome`, `theme`) cleanly without inline conditional mess.
 3. **Failure-Shape Pattern (Shape 1: Context Re-raise)**:
    - `tasks/theme.yml`: Catches failures in both Fedora DNF installation and Enterprise Linux source builds (meson/ninja), outputs diagnostic repository/compilation context, and cleanly halts execution via `ansible.builtin.fail`.
-4. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `desktop` tag and fine-grained feature tags (`gnome`, `extensions`, `theme`, `flathub`, `flatpaks`, `vscode`, `antigravity`, `input-remapper`, `packages`).
+4. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `desktop` tag and fine-grained feature tags (`gnome`, `theme`, `flathub`, `flatpaks`, `vscode`, `antigravity`, `input-remapper`, `packages`).
 5. **Backup-on-Write Pattern**: Managed configuration files (`/etc/yum.repos.d/vscode.repo`, `/opt/antigravity/.installed_url`) specify `backup: true` to prevent accidental overwrites.
 6. **Handler Notification Pattern**: Changes to service unit files (such as input-remapper) notify `Daemon reload` (`systemd daemon-reload`).
 7. **User Context Isolation (`become_user`)**: User-scoped configurations (GNOME extension dconf state) execute directly under `become_user: "{{ user.name }}"` to ensure appropriate permissions in user schemas.
@@ -58,12 +58,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups (`@gnome-desktop`, `@graphical-server-environment`, `gdm`, `gnome-tweaks`).
 - Inspects systemd default target and promotes to `graphical.target` when not already set.
 
-### 2. GNOME Shell Extensions & dconf (`tasks/gnome_extensions.yml`)
-- Installs DNF-packaged system extensions (`gnome-shell-extension-dash-to-dock`, `appindicator`, `user-theme`, `apps-menu`, `auto-move-windows`, etc.).
-- Translates package names to canonical GNOME extension UUIDs via `desktop_package_to_id_map`.
-- Reads existing enabled extensions via `gsettings get org.gnome.shell enabled-extensions`.
-- Updates `/org/gnome/shell/enabled-extensions` in dconf as `{{ user.name }}`, cleanly computing the intersection of enabled and locally installed extensions.
-- Reports missing system or user extensions with non-fatal diagnostic warnings.
+### 2. GNOME Shell Extensions (Layer 2 Bootstrap)
+- GNOME extensions have been decoupled from the system Ansible role and are managed idempotently via Layer 2 yadm bootstrap (`~/.config/yadm/bootstrap.d/40-gnome-extensions.sh`).
+- Parses extensions from `~/.config/yadm/files/gnome-extensions.txt`.
+- Dynamically discovers and installs missing DNF packages and validates UUID enablement status.
 
 ### 3. Desktop Theming (`tasks/theme.yml`)
 - **Fedora**: Installs the complete Ubuntu Yaru theme family from DNF packages (`yaru-theme`, `gnome-shell-theme-yaru`, `yaru-gtk*-theme`, `yaru-icon-theme`, `yaru-sound-theme`).
@@ -133,8 +131,7 @@ These variables are namespaced with `desktop_*` and control role-specific behavi
 | `desktop_antigravity_state` | `"present"` | State of Antigravity Hub and IDE installation (`present` or `absent`). |
 | `desktop_antigravity_hub_url` | *(Google storage URL)* | Download URL for Antigravity Hub archive. |
 | `desktop_antigravity_ide_url` | *(Google storage URL)* | Download URL for Antigravity IDE archive. |
-| `desktop_gnome_extensions` | *(list)* | DNF system package names for GNOME shell extensions. |
-| `desktop_gnome_user_extensions` | *(list)* | Extension UUIDs for user extensions installed in `~/.local/share/gnome-shell/extensions`. |
+
 
 ### Tier 2: Distribution Variables (`vars/*.yml`)
 
