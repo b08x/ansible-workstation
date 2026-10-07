@@ -201,19 +201,19 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 Converge only NAS role tasks:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "nas"
+ansible-playbook playbooks/workstation.yml --tags "nas"
 ```
 
 Reconfigure only NFS exports without touching services:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "nfs_config"
+ansible-playbook playbooks/workstation.yml --tags "nfs_config"
 ```
 
 Update Samba configuration and restart daemon:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "nas_samba"
+ansible-playbook playbooks/workstation.yml --tags "nas_samba"
 ```
 
 ---

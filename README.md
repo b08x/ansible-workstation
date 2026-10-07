@@ -117,7 +117,7 @@ The state of the entries, facet by facet:
   repository. Decoupled from host provisioning, the LLM runtime and its self-healing
   pipeline evolve alongside model updates without risking the workstation baseline.
 - **Full workstation provisioning runs on Fedora, AlmaLinux, and Rocky Linux.**
-  - `playbooks/site.yml` imports four plays — base, system, user, coding agents —
+  - `playbooks/workstation.yml` includes four plays — base, system, user, coding agents —
     against the `workstations` group in inventory for multi-host push provisioning.
   - `local.yml` provides an autonomous local pull and convergence playbook
     specifically designed for `ansible-pull` and local bootstrap. It implements the

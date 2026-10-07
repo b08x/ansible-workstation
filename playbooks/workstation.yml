@@ -36,3 +36,55 @@
   roles:
     - role: base
       tags: ["base", "system"]
+
+- name: System Configuration
+  hosts: workstations
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      become: false
+      tags: ["always"]
+  roles:
+    - role: tuning
+      tags: ["tuning", "system"]
+    - role: networking
+      tags: ["networking", "system"]
+    - role: containerd
+      tags: ["containerd", "virt"]
+    - role: desktop
+      tags: ["desktop", "system"]
+    - role: libvirt
+      tags: ["libvirt", "virt"]
+
+- name: User Workstation Setup
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    path:
+      - "{{ ansible_user }}/.local/bin"
+      - "{{ ansible_user }}/.cargo/bin"
+      - "{{ ansible_user }}/go/bin"
+  environment:
+    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: user
+      tags: ["user", "system"]
+
+- name: Host Tools and Coding Agent Utilities
+  hosts: workstations
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Gather facts
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: tools
+      tags: ["tools", "system"]

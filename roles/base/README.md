@@ -177,7 +177,7 @@ Use tags with `--tags` or `--skip-tags` for granular task execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Standard inclusion in `playbooks/base.yml`:
+Standard inclusion in `playbooks/workstation.yml`:
 
 ```yaml
 - name: System Provisioning and Base Configuration
@@ -194,19 +194,19 @@ Standard inclusion in `playbooks/base.yml`:
 Run only repository and package configuration:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "repos,packages"
+ansible-playbook playbooks/workstation.yml --tags "repos,packages"
 ```
 
 Run Intel hardware acceleration setup:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "intel"
+ansible-playbook playbooks/workstation.yml --tags "intel"
 ```
 
 Provision base tools (`gitflow`, `inxi`, `yadm`):
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "gitflow,inxi,yadm"
+ansible-playbook playbooks/workstation.yml --tags "gitflow,inxi,yadm"
 ```
 
 ---

@@ -13,7 +13,7 @@ about what the settings trade against each other.
 
 ```bash
 AI_PROVIDER=gemini GEMINI_API_KEY=... AI_MODEL=gemini-1.5-pro \
-  ansible-playbook playbooks/site.yml
+  ansible-playbook playbooks/workstation.yml
 ```
 
 Provider routing is delegated to litellm through `dspy.LM`

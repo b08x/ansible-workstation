@@ -6,7 +6,7 @@ Foundational workstation network interface, DNS, and connection profile orchestr
 
 ## Overview & Architecture
 
-Under the [workstation layering taxonomy](../../docs/layering-architecture.md), the `networking` role operates at **Layer 1 (Ansible Machine Orchestration)** within `playbooks/system.yml` and `local.yml`. It provides the foundational host network orchestration layer beneath higher-level virtualization and network service roles (`libvirt`, `containerd`, `nas`).
+Under the [workstation layering taxonomy](../../docs/layering-architecture.md), the `networking` role operates at **Layer 1 (Ansible Machine Orchestration)** within `playbooks/workstation.yml` and `local.yml`. It provides the foundational host network orchestration layer beneath higher-level virtualization and network service roles (`libvirt`, `containerd`, `nas`).
 
 ```
 +--------------------------------------------------------------------------+
@@ -47,7 +47,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 The role currently serves as the verified baseline networking hook in the workstation orchestration pipeline:
 
-- **Active Pipeline Integration**: Executed on every `site.yml` and `local.yml` run prior to container and virtualization roles.
+- **Active Pipeline Integration**: Executed on every `workstation.yml` and `local.yml` run prior to container and virtualization roles.
 - **Validation**: Enforces argument specifications via `meta/argument_specs.yml`.
 - **Target Subsystems** (for site-specific extension): NetworkManager keyfile management, static DNS configuration via `systemd-resolved`, interface MTU tuning, and custom routing policies.
 
@@ -98,7 +98,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included in `playbooks/system.yml` as part of the base system configuration stage:
+Included in `playbooks/workstation.yml` as part of the base system configuration stage:
 
 ```yaml
 - name: System Configuration
@@ -136,7 +136,7 @@ In `local.yml`, executed during local workstation bootstrap:
 Run only the networking role:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "networking"
+ansible-playbook playbooks/workstation.yml --tags "networking"
 ```
 
 ---

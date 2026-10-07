@@ -183,7 +183,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included in `playbooks/tools.yml` (and imported in `playbooks/site.yml`):
+Included in `playbooks/workstation.yml`:
 
 ```yaml
 - name: Developer Tools & Coding Agents
@@ -213,7 +213,7 @@ In `local.yml`, executed during local workstation bootstrap:
 Run only coding agent CLI installations:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "agents"
+ansible-playbook playbooks/workstation.yml --tags "agents"
 ```
 
 Rebuild transcribe.cpp with force build flag:

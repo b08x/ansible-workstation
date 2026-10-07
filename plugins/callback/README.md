@@ -54,7 +54,7 @@ Run against a different provider without touching `ansible.cfg`:
 
 ```bash
 AI_PROVIDER=gemini GEMINI_API_KEY=... AI_MODEL=gemini-1.5-pro \
-  ansible-playbook playbooks/site.yml
+  ansible-playbook playbooks/workstation.yml
 ```
 
 #### Two settings that are easy to get wrong

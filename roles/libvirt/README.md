@@ -156,7 +156,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included within `playbooks/system.yml` as part of the virtualization stack:
+Included within `playbooks/workstation.yml` as part of the virtualization stack:
 
 ```yaml
 - name: System Configuration
@@ -195,7 +195,7 @@ In `local.yml`, hardware preflight checks detect CPU virtualization extensions (
 Run only the libvirt role during a workstation convergence:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "libvirt"
+ansible-playbook playbooks/workstation.yml --tags "libvirt"
 ```
 
 Reconfigure only user permissions and bridge access:

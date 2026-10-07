@@ -197,7 +197,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included in `playbooks/system.yml` as the first role in system provisioning:
+Included in `playbooks/workstation.yml` as the first role in system provisioning:
 
 ```yaml
 - name: System Configuration
@@ -235,7 +235,7 @@ In `local.yml`, executed during local workstation bootstrap:
 Run full system tuning:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "tuning"
+ansible-playbook playbooks/workstation.yml --tags "tuning"
 ```
 
 Apply only CachyOS sysctl parameters:

@@ -157,7 +157,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included within `playbooks/system.yml` as part of the system provisioning stage:
+Included within `playbooks/workstation.yml` as part of the system provisioning stage:
 
 ```yaml
 - name: System Configuration
@@ -196,7 +196,7 @@ In `local.yml`, hardware preflight checks detect container requirements and gate
 Run only the container role during a workstation convergence:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "containerd"
+ansible-playbook playbooks/workstation.yml --tags "containerd"
 ```
 
 Provision Podman and Distrobox without Docker:

@@ -45,6 +45,13 @@ Yadm's bootstrap pipeline executes `01-ansible-pull.sh` as its first step. It is
   ```
 - Pulls from `https://gitlab.com/syncopatedX/workstation.git` with `ANSIBLE_STDOUT_CALLBACK=default`.
 
+Choosing which yadm bootstrap steps run:
+- On a terminal, `yadm bootstrap` shows a multi-select menu of every step (preflight, shell, decrypt, alternates and each `bootstrap.d` script). All steps start selected; unselected steps are reported as "not run".
+- `yadm bootstrap --all` skips the menu and runs every step. Without a terminal the menu is also skipped.
+- `yadm bootstrap --only cargo,ruby` runs just the named steps; an unknown name exits with status 2 and lists the valid names.
+- Each installable item (crate, gem, flatpak, VS Code extension, toolchain) runs under a spinner titled with its readable name. Installer output goes to `~/.bootstrap.log` and is shown only when the item fails.
+- When a selected step needs `sudo`, bootstrap runs `sudo -v` once before the first spinner.
+
 ---
 
 ### Workflow B: Interactive TUI Orchestrator (`bin/setup`)
@@ -53,7 +60,7 @@ The `bin/setup` script is an interactive TUI orchestrator that guides you throug
 
 1. **Prerequisite Check**: Verifies `git`, `ansible-playbook`, and `gum` are available (installs via `sudo dnf` if missing).
 2. **GPG Key Check**: Validates secret keys required for decrypting dotfiles secrets.
-3. **Run Ansible**: Executes `ansible-playbook playbooks/site.yml -K` against the local host.
+3. **Run Ansible**: Executes `ansible-playbook playbooks/workstation.yml -K` against the local host.
 4. **Install Yadm**: Ensures `/usr/local/bin/yadm` is installed.
 5. **Yadm Clone & Decrypt**: Clones your dotfiles repository and prompts for secret decryption.
 6. **Yadm Bootstrap**: Runs `~/.config/yadm/bootstrap` for unprivileged toolchains and user applications.

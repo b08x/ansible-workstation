@@ -170,7 +170,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 
 ### 1. Inclusion in Orchestration Playbooks
 
-Included within `playbooks/system.yml` as part of the workstation system configuration:
+Included within `playbooks/workstation.yml` as part of the workstation system configuration:
 
 ```yaml
 - name: System Configuration
@@ -209,7 +209,7 @@ In `local.yml`, hardware preflight checks detect graphical display capabilities 
 Run only desktop role tasks:
 
 ```bash
-ansible-playbook playbooks/site.yml --tags "desktop"
+ansible-playbook playbooks/workstation.yml --tags "desktop"
 ```
 
 Provision only system Flatpaks and Flathub:

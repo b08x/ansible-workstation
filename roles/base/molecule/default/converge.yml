@@ -1,5 +1,5 @@
 ---
-# Mirrors playbooks/base.yml: facts are gathered as root.
+# Mirrors playbooks/workstation.yml: facts are gathered as root.
 - name: Converge
   hosts: molecule
   become: true
