@@ -1,7 +1,7 @@
 ---
 tuning_cpupower_governor: powersave
-tuning_cpupower_min_freq: # or "600MHz"
-tuning_cpupower_max_freq: # or "3800MHz"
+tuning_cpupower_min_freq: "400MHz"
+tuning_cpupower_max_freq: "3800MHz"
 tuning_irqbalance_enabled: false
 
 nas_nfs_exports:
