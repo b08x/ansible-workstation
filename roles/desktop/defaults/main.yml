@@ -8,6 +8,9 @@ desktop_my_variable: "default_value"
 desktop_environment: gnome
 
 desktop_vscode_flatpak: false
+desktop_vscode_force_install: false
+
+desktop_theme_force_install: false
 
 desktop_system_flatpaks:
   - com.mattjakeman.ExtensionManager

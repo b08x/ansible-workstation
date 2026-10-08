@@ -1,42 +1,60 @@
 ---
-- name: Install VS Code via Flatpak
-  when: desktop_vscode_flatpak | default(false) | bool
+- name: Check if VS Code binary is present
+  ansible.builtin.command: which code
+  register: desktop_vscode_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["vscode", "desktop"]
+
+- name: Install Visual Studio Code
+  when: >
+    (desktop_vscode_check.rc != 0) or
+    (desktop_vscode_force_install | default(false) | bool)
+  tags: ["vscode", "desktop"]
   block:
     - name: Install VS Code via Flatpak
+      when: desktop_vscode_flatpak | default(false) | bool
       community.general.flatpak:
         name: com.visualstudio.code
         state: present
         method: system
         remote: flathub
+      tags: ["vscode", "desktop"]
 
-- name: Install VS Code from dnf repo
-  when: not (desktop_vscode_flatpak | default(false) | bool)
-  block:
-    - name: Import Microsoft GPG key
-      ansible.builtin.rpm_key:
-        key: https://packages.microsoft.com/keys/microsoft.asc
-        state: present
+    - name: Install VS Code from dnf repo
+      when: not (desktop_vscode_flatpak | default(false) | bool)
+      tags: ["vscode", "desktop"]
+      block:
+        - name: Import Microsoft GPG key
+          ansible.builtin.rpm_key:
+            key: https://packages.microsoft.com/keys/microsoft.asc
+            state: present
+          tags: ["vscode", "desktop"]
 
-    - name: Add Visual Studio Code repository
-      ansible.builtin.copy:
-        dest: /etc/yum.repos.d/vscode.repo
-        owner: root
-        group: root
-        mode: "0644"
-        content: |
-          [code]
-          name=Visual Studio Code
-          baseurl=https://packages.microsoft.com/yumrepos/vscode
-          enabled=1
-          gpgcheck=1
-          gpgkey=https://packages.microsoft.com/keys/microsoft.asc
-        backup: true
+        - name: Add Visual Studio Code repository
+          ansible.builtin.copy:
+            dest: /etc/yum.repos.d/code.repo
+            owner: root
+            group: root
+            mode: "0644"
+            content: |
+              [code]
+              name=Visual Studio Code
+              baseurl=https://packages.microsoft.com/yumrepos/vscode
+              enabled=1
+              gpgcheck=1
+              gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+            backup: true
+          tags: ["vscode", "desktop"]
 
-    - name: Update package cache (dnf)
-      ansible.builtin.dnf:
-        update_cache: true
+        - name: Update package cache (dnf)
+          ansible.builtin.dnf:
+            update_cache: true
+          tags: ["vscode", "desktop"]
 
-    - name: Install Visual Studio Code (dnf)
-      ansible.builtin.dnf:
-        name: code
-        state: present
+        - name: Install Visual Studio Code (dnf)
+          ansible.builtin.dnf:
+            name: code
+            state: present
+          tags: ["vscode", "desktop"]

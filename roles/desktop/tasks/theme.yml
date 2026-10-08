@@ -6,9 +6,18 @@
   ansible.builtin.debug:
     msg: "Starting theme tasks"
 
+- name: Check if Yaru theme is installed
+  tags: ["theme", "packages", "build"]
+  ansible.builtin.stat:
+    path: /usr/share/themes/Yaru
+  register: desktop_theme_yaru
+
 - name: Install Yaru theme packages (Fedora)
   tags: ["theme", "packages"]
-  when: ansible_distribution == "Fedora"
+  when:
+    - ansible_distribution == "Fedora"
+    - (not desktop_theme_yaru.stat.exists | default(false)) or
+      (desktop_theme_force_install | default(false) | bool)
   block:
     - name: Install Yaru theme from dnf (Fedora)
       ansible.builtin.dnf:
@@ -31,7 +40,10 @@
 
 - name: Build Yaru theme from source (EL family)
   tags: ["theme", "packages", "build"]
-  when: ansible_distribution in ["AlmaLinux", "Rocky"]
+  when:
+    - ansible_distribution in ["AlmaLinux", "Rocky"]
+    - (not desktop_theme_yaru.stat.exists | default(false)) or
+      (desktop_theme_force_install | default(false) | bool)
   block:
     - name: Install build dependencies (EL family)
       ansible.builtin.dnf:
@@ -39,46 +51,38 @@
         state: present
         allowerasing: true
 
-    - name: Check if Yaru theme is installed
-      ansible.builtin.stat:
-        path: /usr/share/themes/Yaru
-      register: desktop_theme_yaru
+    - name: Ensure clean state for Yaru clone
+      ansible.builtin.file:
+        path: /tmp/yaru
+        state: absent
 
-    - name: Build and install Yaru theme
-      when: not desktop_theme_yaru.stat.exists | default(false)
-      block:
-        - name: Ensure clean state for Yaru clone
-          ansible.builtin.file:
-            path: /tmp/yaru
-            state: absent
+    - name: Clone Yaru repository
+      ansible.builtin.git:
+        repo: https://github.com/ubuntu/yaru.git
+        dest: /tmp/yaru
+        clone: true
+        update: false
+        recursive: true
+        version: "master"
+      become: false
 
-        - name: Clone Yaru repository
-          ansible.builtin.git:
-            repo: https://github.com/ubuntu/yaru.git
-            dest: /tmp/yaru
-            clone: true
-            update: false
-            recursive: true
-            version: "master"
-          become: false
+    - name: Run meson build
+      ansible.builtin.command:
+        cmd: meson setup build
+        chdir: /tmp/yaru
+      changed_when: false
+      become: false
 
-        - name: Run meson build
-          ansible.builtin.command:
-            cmd: meson setup build
-            chdir: /tmp/yaru
-          changed_when: false
-          become: false
+    - name: Install Yaru theme (ninja install)
+      ansible.builtin.command:
+        cmd: ninja -C build install
+        chdir: /tmp/yaru
+      changed_when: false
 
-        - name: Install Yaru theme (ninja install)
-          ansible.builtin.command:
-            cmd: ninja -C build install
-            chdir: /tmp/yaru
-          changed_when: false
-
-        - name: Clean up Yaru clone
-          ansible.builtin.file:
-            path: /tmp/yaru
-            state: absent
+    - name: Clean up Yaru clone
+      ansible.builtin.file:
+        path: /tmp/yaru
+        state: absent
   rescue:
     # Shape 1 (add context, then re-raise): same contract as the Fedora branch.
     # A half-built theme is a failure, not a warning.

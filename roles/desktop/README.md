@@ -64,6 +64,8 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Dynamically discovers and installs missing DNF packages and validates UUID enablement status.
 
 ### 3. Desktop Theming (`tasks/theme.yml`)
+- Checks `/usr/share/themes/Yaru` directory via `ansible.builtin.stat` to skip redundant installation or source builds when the theme is already present.
+- Supports forcing re-installation/re-build via `desktop_theme_force_install: true`.
 - **Fedora**: Installs the complete Ubuntu Yaru theme family from DNF packages (`yaru-theme`, `gnome-shell-theme-yaru`, `yaru-gtk*-theme`, `yaru-icon-theme`, `yaru-sound-theme`).
 - **Enterprise Linux (AlmaLinux & Rocky Linux)**: Installs build dependencies, clones the upstream Yaru theme repository, and compiles/installs system-wide via `meson setup build` and `ninja -C build install`.
 
@@ -76,7 +78,9 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
   - `io.github.dvlv.boxbuddyrs`: BoxBuddy (GUI manager for Distrobox containers)
 
 ### 5. Visual Studio Code (`tasks/vscode.yml`)
+- Checks for existing `code` binary in `$PATH` to ensure idempotency and skip redundant repository and package operations when already present.
 - Supports native RPM installation (default) or Flatpak distribution (`desktop_vscode_flatpak: true`).
+- Supports forcing re-installation via `desktop_vscode_force_install: true`.
 - Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`).
 - User-space VS Code extensions have been decoupled from the system Ansible role and are managed idempotently via Layer 2 yadm bootstrap (`~/.config/yadm/bootstrap.d/91-install-vscode-extensions.sh`).
 
@@ -128,6 +132,8 @@ These variables are namespaced with `desktop_*` and control role-specific behavi
 | `desktop_environment` | `"gnome"` | Target desktop environment (e.g. `"gnome"`). |
 | `desktop_system_flatpaks` | *(4 packages)* | System management Flatpaks (`ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy`). |
 | `desktop_vscode_flatpak` | `false` | When true, installs VS Code via Flatpak instead of native DNF package. |
+| `desktop_vscode_force_install` | `false` | When true, forces installation even if `code` binary is already present. |
+| `desktop_theme_force_install` | `false` | When true, forces theme installation/build even if `/usr/share/themes/Yaru` is present. |
 | `desktop_antigravity_state` | `"present"` | State of Antigravity Hub and IDE installation (`present` or `absent`). |
 | `desktop_antigravity_hub_url` | *(Google storage URL)* | Download URL for Antigravity Hub archive. |
 | `desktop_antigravity_ide_url` | *(Google storage URL)* | Download URL for Antigravity IDE archive. |
