@@ -13,13 +13,6 @@
   ansible.builtin.command: udevadm trigger
   changed_when: false
 
-- name: Restart zram
-  ansible.builtin.systemd:
-    name: "systemd-zram-setup@{{ tuning_zram_device | default('zram0') }}.service"
-    state: restarted
-    daemon_reload: true
-  ignore_errors: "{{ ansible_check_mode }}"
-
 - name: Restart tuned
   ansible.builtin.systemd:
     name: tuned

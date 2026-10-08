@@ -25,9 +25,11 @@
     group: root
     mode: "0644"
     backup: true
+  # No "Restart zram": the kernel rejects comp_algorithm writes (EBUSY) while
+  # the device is initialized, and a restart must first swap off live pages.
+  # The new configuration takes effect at the next boot.
   notify:
     - Reload systemd
-    - Restart zram
   tags: ["tuning", "zram"]
 
 - name: Ensure /etc/udev/rules.d directory exists

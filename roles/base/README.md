@@ -12,7 +12,7 @@ In accordance with the [distribution layering taxonomy](../../docs/layering-arch
   - Manages host-level RPM foundation packages (`base_packages`) via DNF.
   - Configures DNF package manager optimizations (`fastestmirror`, `dnf-plugins-core`, metadata caching).
   - Orchestrates distribution and third-party repositories: EPEL, CRB/PowerTools, RPM Fusion (Free & Non-Free), and Fedora COPR.
-  - Configures core system services: OpenSSH daemon (`sshd`) and ZRAM compressed swap (`zram-generator`).
+  - Configures core system services: OpenSSH daemon (`sshd`) and installs `zram-generator` (configured by the `tuning` role).
   - Provisions Intel hardware acceleration (graphics drivers, media runtimes, firmware) and optional Intel oneAPI toolkit.
   - Installs base developer CLI utilities: `git-flow` (COPR on Fedora, source build on EL), `inxi` (package with upstream fallback), `yadm` binary bootstrap to `/usr/local/bin/yadm`, and `zsh` verification.
   - Provisions optional Homebrew (Linuxbrew) prefix at `/home/linuxbrew/.linuxbrew` (Fedora opt-in).
@@ -33,11 +33,11 @@ The `base` role implements the **15 Ansible Design Patterns** to guarantee cross
    - Package variable sets dynamically resolve per-major files before falling back to distro-wide files via `first_found` (e.g., `vars/Rocky-9.yml` vs `vars/Rocky-10.yml` vs `vars/AlmaLinux.yml` vs `vars/Fedora.yml`).
    - Repository setup tasks route to `tasks/distro/EL.yml` for RHEL-derivative distributions (AlmaLinux, Rocky) and `tasks/distro/Fedora.yml` for Fedora.
 3. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `base` tag and specific functional tags (`packages`, `repos`, `dnf`, `epel`, `rpmfusion`, `copr`, `intel`, `gitflow`, `inxi`, `homebrew`, `zsh`, `yadm`), allowing fine-grained partial convergence.
-4. **Backup-on-Write Pattern**: All templated or written configuration files (`fastestmirror.conf`, `epel.repo`, `zram-generator.conf`, `/etc/profile.d/intel-oneapi.sh`, user shell configuration files) set `backup: true` to prevent data loss.
+4. **Backup-on-Write Pattern**: All templated or written configuration files (`epel.repo`, `/etc/profile.d/intel-oneapi.sh`, user shell configuration files) set `backup: true` to prevent data loss.
 5. **Block-as-Unit Pattern**: Tasks are organized into logical blocks paired with rescue handlers that implement standardized failure shape patterns.
 6. **Conditional Feature Flags**: Subsystems are gated with explicit boolean checks (`enable_third_party_repos | default(true) | bool`, `base_enable_rpmfusion | bool`, `base_install_homebrew | bool`, `intel_oneapi_install | default(false) | bool`).
 7. **Debug-as-Progress-Indicator Pattern**: Role entry logs execution start via `ansible.builtin.debug` tagged `["base", "always"]`.
-8. **Handler Notification Pattern**: ZRAM configuration changes notify `Restart zram service` with virtualization guards preventing containerized failures, followed by an immediate handler flush.
+8. **Handler Notification Pattern**: Configuration changes notify handlers, followed by an immediate handler flush.
 
 ---
 
@@ -58,7 +58,6 @@ The role standardizes block-and-rescue error handling into three distinct shapes
 ### 1. DNF Performance Optimization (`tasks/dnf.yml`)
 - Installs `dnf-plugins-core`.
 - Configures `/etc/dnf/dnf.conf` with `fastestmirror=True`.
-- Deploys `/etc/dnf/plugins/fastestmirror.conf` with optimized thread and timeout parameters (`maxthreads=15`, `socket_timeout=3`).
 - Refreshes metadata cache (`dnf makecache`) only when configuration values change.
 
 ### 2. Enterprise Linux Repositories (`tasks/distro/EL.yml`)
@@ -82,10 +81,9 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 - Kernel development headers and modules (`kernel-devel`, `kernel-headers`, `kernel-modules-extra`).
 - Python and Ruby build dependencies (`python3-devel`, `rbenv`, `ruby-build`, `readline-devel`, `libffi-devel`, `libyaml-devel`).
 
-### 5. System Services & ZRAM (`tasks/main.yml`, `handlers/main.yml`)
+### 5. System Services (`tasks/main.yml`, `handlers/main.yml`)
 - Enables and starts `sshd` system service.
-- Configures compressed RAM swap via `/etc/systemd/zram-generator.conf` (`zram-size = RAM // 2`, `compression-algorithm = zstd`, `swap-priority = 100`).
-- Triggers `systemd-zram-setup@zram0.service` restart via handler with virtualization check (`'container' not in ansible_virtualization_tech_guest`).
+- Installs `zram-generator`. The `tuning` role owns `/etc/systemd/zram-generator.conf`.
 
 ### 6. Intel Hardware Acceleration (`tasks/intel.yml`)
 - **Graphics Drivers**: Installs `intel-media-driver`, `libva-intel-driver`, `intel-gpu-firmware`, `intel-audio-firmware`, `intel-vsc-firmware`, and `intel-vpl-gpu-rt`. Non-fatal on non-Intel hardware unless `base_intel_graphics_required: true`.
@@ -159,7 +157,7 @@ Use tags with `--tags` or `--skip-tags` for granular task execution:
 | `packages` | DNF package installation and package-specific variables |
 | `distro` | Distribution-specific variable and repository includes |
 | `repos` / `repositories` | DNF and third-party repository configuration tasks |
-| `dnf` / `mirrors` | DNF performance and `fastestmirror` plugin tasks |
+| `dnf` / `mirrors` | DNF performance and `fastestmirror` tasks |
 | `epel` | EPEL repository installation and mirror configuration (EL) |
 | `rpmfusion` | RPM Fusion Free & Non-Free GPG key and repository installation |
 | `copr` | COPR repository enablement (Fedora) |

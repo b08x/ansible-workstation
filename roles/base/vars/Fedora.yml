@@ -5,7 +5,7 @@ base_packages:
   - nodejs
   - npm
   # Required by the role's own tasks: sshd is enabled in main.yml, git and zsh
-  # run the oh-my-zsh installer, zram-generator reads the config main.yml writes.
+  # run the oh-my-zsh installer. zram-generator is configured by the tuning role.
   - fzf
   - git
   - openssh-server

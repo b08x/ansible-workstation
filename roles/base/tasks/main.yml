@@ -71,19 +71,6 @@
     enabled: true
     state: started
 
-- name: Configure zram-generator
-  ansible.builtin.copy:
-    content: |
-      [zram0]
-      zram-size = {{ (ansible_memtotal_mb | int) // 2 }}
-      compression-algorithm = zstd
-      swap-priority = 100
-    dest: /etc/systemd/zram-generator.conf
-    mode: "0644"
-    backup: true
-  notify:
-    - Restart zram service
-
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
