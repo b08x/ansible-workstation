@@ -1,7 +1,7 @@
 ---
 - name: Check if input-remapper is installed
   ansible.builtin.stat:
-    path: /etc/systemd/system/input-remapper.service
+    path: /usr/bin/input-remapper-gtk
   register: desktop_input_remapper_service
   tags: ["input-remapper", "desktop"]
 
