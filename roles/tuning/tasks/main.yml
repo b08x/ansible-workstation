@@ -53,10 +53,11 @@
   when: tuning_tuned_enabled | default(true) | bool
   tags: ["tuning", "tuned"]
 
-- name: Configure rtirq
-  ansible.builtin.include_tasks: rtirq.yml
-  when: tuning_rtirq_enabled | default(true) | bool
-  tags: ["tuning", "rtirq"]
+# There is no native rtirq package for el10, so we skip this task
+# - name: Configure rtirq
+#   ansible.builtin.include_tasks: rtirq.yml
+#   when: tuning_rtirq_enabled | default(false) | bool
+#   tags: ["tuning", "rtirq"]
 
 - name: Configure cpupower
   ansible.builtin.include_tasks: cpupower.yml
