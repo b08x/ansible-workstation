@@ -3,3 +3,11 @@ tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: # or "600MHz"
 tuning_cpupower_max_freq: # or "3800MHz"
 tuning_irqbalance_enabled: false
+
+nas_nfs_exports:
+  - path: "{{ user.home }}/Archive"
+    create_dir: true
+    is_root: false
+  - path: "{{ user.home }}/Workspace"
+    create_dir: false
+    is_root: false
