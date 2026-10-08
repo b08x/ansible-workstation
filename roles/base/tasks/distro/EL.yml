@@ -114,11 +114,18 @@
     - ansible_distribution_major_version == '10'
     - base_enable_syncopated_copr | default(true) | bool
   block:
+    - name: Check if syncopaed COPR is already enabled
+      ansible.builtin.command: "dnf repolist 2>&1 | grep -q syncopated"
+      register: base_copr_syncopated_check
+      changed_when: false
+      tags: ["copr"]
+
     - name: Enable b08x/syncopated COPR repository
       ansible.builtin.command:
         cmd: "dnf copr enable -y {{ base_syncopated_copr }}"
         creates: "/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:{{ base_syncopated_copr | replace('/', ':') }}.repo"
       register: base_copr_syncopated
+      when: base_copr_syncopated_check.rc != 0
       tags: ["copr"]
 
   rescue:
