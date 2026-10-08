@@ -15,15 +15,10 @@
         name: gitflow
         state: present
 
-- name: Install gitflow from COPR
+- name: Install gitflow from syncopated COPR
   when: ansible_distribution != 'Fedora'
   tags: ["gitflow", "base"]
   block:
-    - name: Enable gitflow COPR repository
-      community.general.copr:
-        name: "{{ base_gitflow_copr_el }}"
-        state: enabled
-
     - name: Install gitflow package
       ansible.builtin.dnf:
         name: gitflow
