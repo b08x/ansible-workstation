@@ -46,6 +46,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 5. **Backup-on-Write Pattern**: All templated and written configuration files (`41-realtime.conf`, `70-cachyos-settings.conf`, `zram-generator.conf`, udev rules, systemd drop-ins) set `backup: true` to protect manual configurations.
 6. **Handler Notification Pattern**: Changes to udev rules notify `Reload udev rules` and `Trigger udev rules`; changes to systemd drop-ins notify `Reload systemd`; service configurations notify respective restarts (`Restart zram`, `Restart tuned`, `Restart cpupower`, `Restart rtirq`, `Restart rtkit`).
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`) and Tier 2 role-namespaced variables (`tuning_*`).
+8. **Block-as-Unit Pattern (Shape 1: Context Re-raise)**: `tasks/sysctl.yml` wraps sysctl operations in a block-rescue structure that catches task failures, emits actionable diagnostic guidance regarding kernel parameters and optional key configuration, and cleanly re-raises the failure via `ansible.builtin.fail`.
 
 ---
 

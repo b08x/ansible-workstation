@@ -4,51 +4,66 @@
 # the knob does. Everything left is applied without a failure mask, so a
 # misspelled or unsupported key still fails the run.
 
-- name: Ensure sysctl drop-in directory exists
-  ansible.builtin.file:
-    path: "{{ tuning_sysctl_file | dirname }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
+- name: Configure and apply sysctl settings
   tags: ["tuning", "sysctl"]
+  block:
+    - name: Ensure sysctl drop-in directory exists
+      ansible.builtin.file:
+        path: "{{ tuning_sysctl_file | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
 
-- name: Check which optional sysctl keys this host supports
-  ansible.builtin.stat:
-    path: "/proc/sys/{{ item | replace('.', '/') }}"
-  loop: "{{ tuning_sysctl_optional }}"
-  register: tuning_sysctl_optional_stat
-  changed_when: false
-  tags: ["tuning", "sysctl"]
+    - name: Check which optional sysctl keys this host supports
+      ansible.builtin.stat:
+        path: "/proc/sys/{{ item | replace('.', '/') }}"
+      loop: "{{ tuning_sysctl_optional }}"
+      register: tuning_sysctl_optional_stat
+      changed_when: false
 
-- name: Collect optional sysctl keys this host does not support
-  ansible.builtin.set_fact:
-    tuning_sysctl_unsupported: >-
-      {{ tuning_sysctl_optional_stat.results
-         | rejectattr('stat.exists')
-         | map(attribute='item')
-         | list }}
-  tags: ["tuning", "sysctl"]
+    - name: Collect optional sysctl keys this host does not support
+      ansible.builtin.set_fact:
+        tuning_sysctl_unsupported: >-
+          {{ tuning_sysctl_optional_stat.results
+             | rejectattr('stat.exists')
+             | map(attribute='item')
+             | list }}
 
-- name: Report optional sysctl keys skipped on this host
-  ansible.builtin.debug:
-    msg: >-
-      Skipping optional sysctl keys unsupported on {{ inventory_hostname }}:
-      {{ tuning_sysctl_unsupported | join(', ') }}
-  when: tuning_sysctl_unsupported | length > 0
-  tags: ["tuning", "sysctl"]
+    - name: Report optional sysctl keys skipped on this host
+      ansible.builtin.debug:
+        msg: >-
+          Skipping optional sysctl keys unsupported on {{ inventory_hostname }}:
+          {{ tuning_sysctl_unsupported | join(', ') }}
+      when: tuning_sysctl_unsupported | length > 0
 
-- name: Set sysctl parameters
-  ansible.posix.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
-    sysctl_file: "{{ tuning_sysctl_file }}"
-    state: present
-    reload: true
-  loop: >-
-    {{ tuning_sysctl | dict2items
-       | rejectattr('key', 'in', tuning_sysctl_unsupported)
-       | list }}
-  loop_control:
-    label: "{{ item.key }}"
-  tags: ["tuning", "sysctl"]
+    - name: Set sysctl parameters
+      ansible.posix.sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_file: "{{ tuning_sysctl_file }}"
+        state: present
+        reload: true
+      loop: >-
+        {{ tuning_sysctl | dict2items
+           | rejectattr('key', 'in', tuning_sysctl_unsupported)
+           | list }}
+      loop_control:
+        label: "{{ item.key }}"
+
+  rescue:
+    # Shape 1 (add context, then re-raise): kernel parameters are critical to system
+    # tuning; a failure must provide actionable diagnostics and fail the run.
+    - name: Report sysctl configuration failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to apply sysctl parameter. Check that parameters defined in
+          tuning_sysctl are supported by the active kernel or add missing
+          hardware-dependent keys to tuning_sysctl_optional.
+          Failed task: {{ ansible_failed_task.name | default('unknown') }}.
+          Failed key: {{ ansible_failed_result.item.key | default(ansible_failed_result.item | default('unknown')) }}.
+          Error: {{ ansible_failed_result.msg | default('no details available') }}
+
+    - name: Fail the play on sysctl configuration failure
+      ansible.builtin.fail:
+        msg: "Sysctl configuration failed - see the preceding task output."
