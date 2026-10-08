@@ -14,6 +14,9 @@ desktop_system_flatpaks:
   - com.github.tchx84.Flatseal
   - io.github.flattool.Warehouse
   - io.github.dvlv.boxbuddyrs
+  - com.ranfdev.DistroShelf
+  - org.easycoding.TunedSwitcher
+  - app.devsuite.Ptyxis
 
 # Antigravity Hub + IDE (the agy CLI is installed by the coding_agents role)
 desktop_antigravity_state: present
