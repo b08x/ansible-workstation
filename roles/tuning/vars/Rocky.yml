@@ -1,5 +1,6 @@
 ---
 # Distribution specific variables for Rocky
+tuning_cpupower_enabled: false
 tuning_distro_packages:
   - zram-generator
   - kernel-tools

@@ -107,6 +107,7 @@ tuning_tuned_profile: throughput-performance
 # ----------------------------------------------------------------------------
 # CPU Power Configuration (/etc/default/cpupower)
 # ----------------------------------------------------------------------------
+tuning_cpupower_config_file: /etc/default/cpupower
 tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: ""
 tuning_cpupower_max_freq: ""

@@ -1,5 +1,6 @@
 ---
 # Distribution specific variables for Fedora
+tuning_cpupower_config_file: /etc/cpupower-service.conf
 tuning_distro_packages:
   - zram-generator
   - kernel-tools

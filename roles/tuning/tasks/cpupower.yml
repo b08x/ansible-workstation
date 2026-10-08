@@ -1,30 +1,60 @@
 ---
-- name: Install cpupower defaults
-  ansible.builtin.template:
-    src: etc/default/cpupower.j2
-    dest: /etc/default/cpupower
-    mode: "0644"
-    backup: true
-  notify: Restart cpupower
+- name: Manage cpupower when disabled
+  when: not (tuning_cpupower_enabled | default(true) | bool)
   tags: ["tuning", "cpupower"]
+  block:
+    - name: Disable and stop cpupower service
+      ansible.builtin.service:
+        name: cpupower
+        state: stopped
+        enabled: false
+      failed_when: false
 
-- name: Install cpupower systemd unit
-  ansible.builtin.template:
-    src: usr/lib/systemd/system/cpupower.service.j2
-    dest: /usr/lib/systemd/system/cpupower.service
-    mode: "0644"
-    backup: true
-  notify:
-    - Reload systemd
-    - Restart cpupower
-  tags: ["tuning", "cpupower"]
+    - name: Reset failed cpupower service state
+      ansible.builtin.command: systemctl reset-failed cpupower.service
+      changed_when: false
+      failed_when: false
 
-- name: Enable cpupower service
-  ansible.builtin.service:
-    name: cpupower
-    enabled: true
-  ignore_errors: "{{ ansible_check_mode }}"
+    - name: Remove unmanaged cpupower systemd unit on Enterprise Linux
+      ansible.builtin.file:
+        path: /usr/lib/systemd/system/cpupower.service
+        state: absent
+      notify: Reload systemd
+      when: ansible_distribution in ['AlmaLinux', 'Rocky']
+
+    - name: Remove cpupower defaults on Enterprise Linux
+      ansible.builtin.file:
+        path: "{{ tuning_cpupower_config_file | default('/etc/default/cpupower') }}"
+        state: absent
+      when: ansible_distribution in ['AlmaLinux', 'Rocky']
+
+- name: Manage cpupower when enabled
+  when: tuning_cpupower_enabled | default(true) | bool
   tags: ["tuning", "cpupower"]
+  block:
+    - name: Install cpupower defaults
+      ansible.builtin.template:
+        src: etc/default/cpupower.j2
+        dest: "{{ tuning_cpupower_config_file | default('/etc/default/cpupower') }}"
+        mode: "0644"
+        backup: true
+      notify: Restart cpupower
+
+    - name: Install cpupower systemd unit
+      ansible.builtin.template:
+        src: usr/lib/systemd/system/cpupower.service.j2
+        dest: /usr/lib/systemd/system/cpupower.service
+        mode: "0644"
+        backup: true
+      notify:
+        - Reload systemd
+        - Restart cpupower
+
+    - name: Enable cpupower service
+      ansible.builtin.service:
+        name: cpupower
+        enabled: true
+      ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Manage irqbalance service
   ansible.builtin.service:
@@ -34,4 +64,4 @@
   failed_when:
     - tuning_irqbalance_service.failed
     - "'Could not find the requested service' not in (tuning_irqbalance_service.msg | default(''))"
-  tags: ["tuning", "cpupower"]
+  tags: ["tuning", "cpupower", "irqbalance"]

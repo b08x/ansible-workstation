@@ -2,14 +2,17 @@
 # Define CPUs governor
 # valid governors: ondemand, performance, powersave, conservative, userspace.
 governor='{{ tuning_cpupower_governor }}'
+GOVERNOR='{{ tuning_cpupower_governor }}'
 
 # Limit frequency range
 # Valid suffixes: Hz, kHz (default), MHz, GHz, THz
 {% if tuning_cpupower_min_freq %}
 min_freq="{{ tuning_cpupower_min_freq }}"
+MIN_FREQ="{{ tuning_cpupower_min_freq }}"
 {% endif %}
 {% if tuning_cpupower_max_freq %}
 max_freq="{{ tuning_cpupower_max_freq }}"
+MAX_FREQ="{{ tuning_cpupower_max_freq }}"
 {% endif %}
 
 # Specific frequency to be set.

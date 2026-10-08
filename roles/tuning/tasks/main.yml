@@ -60,5 +60,4 @@
 
 - name: Configure cpupower
   ansible.builtin.include_tasks: cpupower.yml
-  when: tuning_cpupower_enabled | default(true) | bool
   tags: ["tuning", "cpupower"]

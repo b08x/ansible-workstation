@@ -147,6 +147,10 @@ argument_specs:
         type: str
         description: Active tuned profile name.
         default: throughput-performance
+      tuning_cpupower_config_file:
+        type: str
+        description: Configuration file path for cpupower service.
+        default: /etc/default/cpupower
       tuning_cpupower_governor:
         type: str
         description: CPU frequency scaling governor.
