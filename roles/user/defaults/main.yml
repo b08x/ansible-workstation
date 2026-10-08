@@ -5,4 +5,4 @@
 # This demonstrates proper role variable naming with the 'run_' prefix
 user_my_variable: "default_value"
 
-user_uv_python_version: 3.13
+user_uv_python_version: 3.12
