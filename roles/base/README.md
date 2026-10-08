@@ -67,6 +67,7 @@ Configures package sources for AlmaLinux and Rocky Linux:
 - Enables CRB (CodeReady Builder), `highavailability`, and `rt` repository channels.
 - Imports RPM Fusion Free and Non-Free GPG keys from `/usr/share/distribution-gpg-keys/rpmfusion/` matching `ansible_distribution_major_version`.
 - Installs RPM Fusion Free and Non-Free release packages via dynamic `$(rpm -E %rhel)` resolution.
+- Enables the Syncopated COPR repository (`b08x/syncopated`) on EL 10 hosts.
 
 ### 3. Fedora Repositories (`tasks/distro/Fedora.yml`)
 Configures package sources for Fedora:
@@ -92,7 +93,7 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 ### 7. Developer CLI Utilities
 - **Git Flow (`tasks/gitflow.yml`)**: On Fedora, installs `gitflow` from COPR (`elegos/gitflow`). On Enterprise Linux, clones and installs `gitflow-avh` from source to `/usr/local/bin/git-flow`.
 - **Inxi (`tasks/inxi.yml`)**: Installs the `inxi` system information tool via package manager with automatic fallback to upstream script download.
-- **Yadm (`tasks/yadm.yml`)**: Downloads the latest `yadm` standalone executable to `/usr/local/bin/yadm`.
+- **Yadm (`tasks/yadm.yml`)**: Checks for an existing `yadm` binary in `$PATH` (including `~/.local/bin`), skipping installation if present. Otherwise, downloads the standalone script to `{{ user.home }}/.local/bin/yadm`. Supports forcing reinstallation via `base_yadm_force_install: true`.
 - **Zsh (`tasks/zsh.yml`)**: Validates that `zsh` is installed as the foundation shell for user space.
 
 ### 8. Homebrew / Linuxbrew (`tasks/homebrew.yml`)
@@ -137,9 +138,13 @@ These variables are namespaced with `base_*` and control role-specific behavior:
 | Variable | Default | Description |
 |---|---|---|
 | `base_enable_rpmfusion` | `true` | Enable RPM Fusion Free and Non-Free repositories on Fedora hosts. |
+| `base_enable_syncopated_copr` | `true` | Enable the Syncopated COPR repository on EL 10 hosts. |
+| `base_syncopated_copr` | `b08x/syncopated` | COPR repository providing syncopated packages on EL 10. |
 | `base_copr_repos` | `[]` | List of Fedora COPR repositories (`owner/project`) to enable (e.g. `["atim/starship"]`). |
 | `base_gitflow_copr` | `elegos/gitflow` | COPR repository providing the `gitflow` package on Fedora. |
 | `base_install_homebrew` | `false` | Opt-in flag to install Linuxbrew into `/home/linuxbrew/.linuxbrew` (Fedora only). |
+| `base_yadm_url` | `https://github.com/TheLocehiliosan/yadm/raw/master/yadm` | Upstream download URL for standalone `yadm` executable. |
+| `base_yadm_force_install` | `false` | When true, forces installation even if `yadm` binary is already present. |
 | `base_intel_graphics_required` | `false` | Strictness flag: when `true`, failure to install Intel graphics drivers fails the play. |
 | `base_zoxide_required` | `false` | Strictness flag: when `true`, turns zoxide installation failure into a play failure. |
 | `base_dnf_priorities_required` | `false` | Strictness flag: when `true`, turns DNF priority configuration failure into a play failure. |
@@ -160,7 +165,7 @@ Use tags with `--tags` or `--skip-tags` for granular task execution:
 | `dnf` / `mirrors` | DNF performance and `fastestmirror` tasks |
 | `epel` | EPEL repository installation and mirror configuration (EL) |
 | `rpmfusion` | RPM Fusion Free & Non-Free GPG key and repository installation |
-| `copr` | COPR repository enablement (Fedora) |
+| `copr` | COPR repository enablement (Fedora and EL 10) |
 | `intel` | Intel graphics driver and media runtime installation |
 | `intel_oneapi` | Intel oneAPI toolkit repository and development packages |
 | `gitflow` | Git-flow package (Fedora) or source build (EL) installation |

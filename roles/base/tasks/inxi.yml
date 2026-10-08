@@ -4,12 +4,14 @@
 - name: Install inxi system information tool
   tags: ["inxi", "base"]
   block:
-    - name: Check if inxi is installed
-      ansible.builtin.command:
-        cmd: "stat /usr/local/bin/inxi"
+    - name: Check if inxi binary is present
+      ansible.builtin.command: which inxi
+      environment:
+        PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
       register: base_inxi_check
       changed_when: false
-      ignore_errors: true
+      failed_when: false
+      check_mode: false
 
     - name: Install inxi using package manager
       ansible.builtin.package:

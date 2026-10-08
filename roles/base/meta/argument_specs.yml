@@ -13,7 +13,23 @@ argument_specs:
         type: str
         description: COPR "owner/project" that provides the gitflow package on Fedora.
         default: elegos/gitflow
+      base_enable_syncopated_copr:
+        type: bool
+        description: Enable the Syncopated COPR repository on EL 10 hosts.
+        default: true
+      base_syncopated_copr:
+        type: str
+        description: COPR "owner/project" that provides syncopated packages on EL 10.
+        default: b08x/syncopated
       base_install_homebrew:
         type: bool
         description: Install Homebrew on Fedora hosts. Off by default.
+        default: false
+      base_yadm_url:
+        type: str
+        description: Download URL for the yadm standalone binary.
+        default: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
+      base_yadm_force_install:
+        type: bool
+        description: Force installation of yadm binary even if already found on the system.
         default: false

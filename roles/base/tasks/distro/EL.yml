@@ -108,6 +108,32 @@
       ansible.builtin.fail:
         msg: "RPM Fusion configuration failed - see the preceding task output."
 
+- name: Enable Syncopated COPR repository
+  tags: ["copr", "repositories"]
+  when:
+    - ansible_distribution_major_version == '10'
+    - base_enable_syncopated_copr | default(true) | bool
+  block:
+    - name: Enable b08x/syncopated COPR repository
+      ansible.builtin.command:
+        cmd: "dnf copr enable -y {{ base_syncopated_copr }}"
+        creates: "/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:{{ base_syncopated_copr | replace('/', ':') }}.repo"
+      register: base_copr_syncopated
+      tags: ["copr"]
+
+  rescue:
+    # Shape 1 (add context, then re-raise): Syncopated packages fail to resolve
+    # without this repository.
+    - name: Report Syncopated COPR setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to enable the {{ base_syncopated_copr }} COPR repository.
+          Check connectivity and that copr.fedorainfracloud.org is reachable.
+
+    - name: Fail the play on Syncopated COPR setup failure
+      ansible.builtin.fail:
+        msg: "Syncopated COPR repository configuration failed - see the preceding task output."
+
 # ----------------------------------------------------------------------------
 # DNF Performance Optimization
 # ----------------------------------------------------------------------------
@@ -152,4 +178,6 @@
   when: >
     (base_epel_install is changed) or
     (base_rpmfusion_keys is changed) or
-    (base_rpmfusion_repos is changed)
+    (base_rpmfusion_repos is changed) or
+    (base_copr_syncopated is changed)
+  tags: ["repositories"]

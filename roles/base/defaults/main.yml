@@ -14,11 +14,20 @@ base_enable_rpmfusion: true
 base_copr_repos: []
 
 # COPR that provides the gitflow package on Fedora (see tasks/gitflow.yml).
-base_gitflow_copr: elegos/gitflow
+base_gitflow_copr_fedora: elegos/gitflow
+base_gitflow_copr_el: b08x/syncopated
+
+# Syncopated COPR repository on EL 10 (see tasks/distro/EL.yml).
+base_enable_syncopated_copr: true
+base_syncopated_copr: b08x/syncopated
 
 # Homebrew is opt-in. When true, Fedora hosts get the official prefix
 # /home/linuxbrew/.linuxbrew (see tasks/homebrew.yml).
 base_install_homebrew: false
+
+# Yadm standalone binary configuration (see tasks/yadm.yml).
+base_yadm_url: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
+base_yadm_force_install: false
 
 # Rescue strictness. The Intel graphics, zoxide and DNF-priority blocks are
 # optional: they report a warning and continue when they fail, because the role

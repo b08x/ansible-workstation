@@ -7,7 +7,21 @@
   block:
     - name: Enable gitflow COPR repository
       community.general.copr:
-        name: "{{ base_gitflow_copr }}"
+        name: "{{ base_gitflow_copr_fedora }}"
+        state: enabled
+
+    - name: Install gitflow package
+      ansible.builtin.dnf:
+        name: gitflow
+        state: present
+
+- name: Install gitflow from COPR
+  when: ansible_distribution != 'Fedora'
+  tags: ["gitflow", "base"]
+  block:
+    - name: Enable gitflow COPR repository
+      community.general.copr:
+        name: "{{ base_gitflow_copr_el }}"
         state: enabled
 
     - name: Install gitflow package
@@ -16,16 +30,19 @@
         state: present
 
 - name: Check if git-flow is installed
-  ansible.builtin.stat:
-    path: /usr/local/bin/git-flow
-  register: base_gitflow_bin
-  when: ansible_distribution != 'Fedora'
+  ansible.builtin.command: which git-flow
+  environment:
+    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: base_gitflow_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
   tags: ["gitflow", "base"]
 
 - name: Deploy gitflow-avh from source
   when:
     - ansible_distribution != 'Fedora'
-    - not base_gitflow_bin.stat.exists
+    - ( base_gitflow_check.rc != 0) or (base_gitflow_force_install | default(false) | bool)
   tags: ["gitflow", "base"]
   block:
     - name: Ensure clean state for clone

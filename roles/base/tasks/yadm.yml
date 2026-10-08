@@ -1,7 +1,34 @@
 ---
-- name: Install yadm
-  ansible.builtin.get_url:
-    url: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
-    dest: "/usr/local/bin"
-    mode: "0755"
-  tags: ["yadm"]
+# tasks file for yadm in b08x.devworkstation.base
+
+- name: Check if yadm binary is present
+  ansible.builtin.command: which yadm
+  environment:
+    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: base_yadm_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["yadm", "base"]
+
+- name: Install yadm standalone binary
+  when: >
+    (base_yadm_check.rc != 0) or
+    (base_yadm_force_install | default(false) | bool)
+  tags: ["yadm", "base"]
+  block:
+    - name: Ensure user local bin directory exists
+      ansible.builtin.file:
+        path: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin"
+        state: directory
+        owner: "{{ user.name }}"
+        group: "{{ user.group | default(user.name) }}"
+        mode: "0755"
+
+    - name: Download yadm binary
+      ansible.builtin.get_url:
+        url: "{{ base_yadm_url | default('https://github.com/TheLocehiliosan/yadm/raw/master/yadm') }}"
+        dest: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin/yadm"
+        owner: "{{ user.name }}"
+        group: "{{ user.group | default(user.name) }}"
+        mode: "0755"

@@ -23,4 +23,4 @@
       ansible.builtin.command:
         cmd: dnf makecache
       changed_when: true
-      when: base_enable_fastestmirror.changed
+      when: base_enable_fastestmirror is changed # noqa: no-handler
