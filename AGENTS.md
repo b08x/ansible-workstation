@@ -41,6 +41,9 @@ ansible-playbook playbooks/workstation.yml
 # Run specific role only
 ansible-playbook playbooks/workstation.yml --tags "base"
 
+# Run pre-flight assertion checks across all roles (fail-fast validation)
+ansible-playbook playbooks/workstation.yml --tags "assert" --check
+
 # Lint (from collection dir)
 ansible-lint
 
@@ -101,6 +104,12 @@ The repository uses a unified pre-commit config.
 
 ### Firewall & Port Management
 - Port and firewall rules are **co-located** within the specific role or application task that requires them (e.g. using `ansible.posix.firewalld`), rather than centralized into a standalone firewall role. This ensures services remain self-contained, modular, and manage their own ingress needs directly.
+
+### Pre-flight Assertions (Fail-Fast Pattern)
+- Every role implements a modular `tasks/assert.yml` validating platform compatibility, package manager, init manager, effective root permissions (`id -u == 0` registered as `_<role>_effective_uid`), and identity variables before performing mutations.
+- Gated in `tasks/main.yml` by `<role>_assert_enabled | default(true) | bool`.
+- All assertion tasks are tagged with `["<role>", "assert", "always"]`.
+- Supports standalone pre-flight execution via `--tags assert` or `tasks_from: assert.yml`.
 
 ## Repo-local Plugins
 

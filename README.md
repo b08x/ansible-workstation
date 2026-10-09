@@ -126,6 +126,9 @@ The state of the entries, facet by facet:
     check-mode safety, and post-flight reboot verification.
   - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](docs/layering-architecture.md),
     partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
+  - All 10 roles frontload pre-flight assertions (`tasks/assert.yml`) to fail fast (< 1s)
+    on unmet preconditions (OS family, DNF package manager, effective root elevation
+    via `id -u`, and identity variables) before mutations occur.
   - System-level utilities (`bun` and GPU-gated `transcribe.cpp` supporting CUDA and Vulkan backends)
     live natively in `roles/tools`. Transcribe compilation is skipped automatically on hosts without
     detected GPU devices (`tools_transcribe_require_gpu: true`).

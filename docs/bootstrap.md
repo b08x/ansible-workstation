@@ -20,6 +20,7 @@ Depending on whether you are provisioning locally on a fresh machine or orchestr
 
 The root [`local.yml`](../local.yml) playbook is designed for local workstation convergence via `ansible-pull`. It implements the 15 Ansible Design Patterns:
 - **Pre-flight Hardware Auto-Detection**: Dynamically probes for KVM virtualization (`/dev/kvm`), graphical display target (`systemctl get-default`), container runtime support, and GPU hardware accelerators (CUDA via `/dev/nvidia*` / PCI `0x10de`, and Vulkan physical GPUs via `vulkaninfo` / DRM render nodes). Hardware facts (`has_cuda_device`, `has_vulkan_device`, `auto_enable_transcribe`) dynamically gate GPU-dependent tools like `transcribe.cpp`.
+- **Fail-Fast Precondition Assertions**: Every role executes frontloaded pre-flight assertions (`tasks/assert.yml`) validating platform compatibility, package managers, effective root permissions (`id -u == 0`), and identity prerequisites before attempting host mutations. Can be targeted or skipped via `--tags assert` / `--skip-tags assert`, or gated individually via `<role>_assert_enabled: true/false`.
 - **Tag-as-Select Filtering**: Every role is tagged (`base`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop`, `tools`, `system`, `virt`).
 - **Check-Mode Safety**: All pre-flight probes and post-flight assessments run with `check_mode: false`.
 - **Reboot Assessment**: Checks `needs-restarting -r` (EL/Fedora) and `/var/run/reboot-required` (Debian) and outputs a formatted status summary.
@@ -31,6 +32,9 @@ sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git local.yml
 
 # Dry-run check mode
 sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --check local.yml
+
+# Validate prerequisites across all roles (dry-run pre-flight check)
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --tags assert --check local.yml
 
 # Selective execution (e.g. skip virtualization)
 sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --skip-tags virt local.yml
