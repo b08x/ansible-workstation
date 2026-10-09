@@ -16,6 +16,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import time
 from typing import Any, Optional
+import warnings
 
 __metaclass__ = type
 
@@ -81,6 +82,14 @@ class AnsibleAnalyzer:
     def setup(self) -> None:
         if not self.api_key:
             raise ValueError(f"API key not provided for {self.provider}")
+
+        # Suppress cosmetic Pydantic v2 serializer warnings originating from
+        # LiteLLM's ModelResponse union mismatch (Choices vs StreamingChoices).
+        warnings.filterwarnings(
+            "ignore",
+            message=r".*(?:Pydantic serializer warnings|PydanticSerializationUnexpectedValue).*",
+            category=UserWarning,
+        )
 
         import dspy  # deferred: see class docstring
         from llm_signatures import SIGNATURE_VERSION, build
