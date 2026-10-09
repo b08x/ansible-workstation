@@ -1,2 +1,14 @@
 ---
 # internal vars file for b08x.devworkstation.desktop
+
+desktop_package_to_id_map:
+  gnome-shell-extension-appindicator: "appindicatorsupport@rgcjonas.gmail.com"
+  gnome-shell-extension-apps-menu: "apps-menu@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-auto-move-windows: "auto-move-windows@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-dash-to-dock: "dash-to-dock@micxgx.gmail.com"
+  gnome-shell-extension-gsconnect: "gsconnect@andyholmes.github.io"
+  gnome-shell-extension-launch-new-instance: "launch-new-instance@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-places-menu: "places-menu@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-user-theme: "user-theme@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-window-list: "window-list@gnome-shell-extensions.gcampax.github.com"
+  gnome-shell-extension-workspace-indicator: "workspace-indicator@gnome-shell-extensions.gcampax.github.com"

@@ -42,4 +42,26 @@ desktop_antigravity_ide_url: >-
   {{ 'https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/' ~
      '2.5.5-4923483625488384/linux-x64/Antigravity%20IDE.tar.gz' }}
 
-# GNOME Shell Extensions have been extracted to ~/.config/yadm/bootstrap.d/40-gnome-extensions.sh
+# GNOME Shell Extensions to ensure are installed via dnf
+desktop_gnome_extensions:
+  # System extensions (available via dnf)
+  - gnome-shell-extension-appindicator
+  - gnome-shell-extension-apps-menu
+  - gnome-shell-extension-auto-move-windows
+  - gnome-shell-extension-dash-to-dock
+  - gnome-shell-extension-places-menu
+  - gnome-shell-extension-user-theme
+  - gnome-shell-extension-window-list
+  - gnome-shell-extension-launch-new-instance
+  - gnome-shell-extension-workspace-indicator
+
+# User extensions (installed to ~/.local/share/gnome-shell/extensions/)
+# These are installed separately (e.g. via extensions.gnome.org) and will be enabled if present
+desktop_gnome_user_extensions:
+  - notification-timeout@chlumskyvaclav.gmail.com
+  - notification-configurator@exposedcat
+  - junk-notification-cleaner@murar8.github.com
+  - kando-integration@kando-menu.github.io
+
+# Control whether installed extensions are enabled in dconf (disabled by default)
+desktop_gnome_extensions_enable: false

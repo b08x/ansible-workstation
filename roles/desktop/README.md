@@ -59,10 +59,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups (`@gnome-desktop`, `@graphical-server-environment`, `gdm`, `gnome-tweaks`).
 - Inspects systemd default target and promotes to `graphical.target` when not already set.
 
-### 2. GNOME Shell Extensions (Layer 2 Bootstrap)
-- GNOME extensions have been decoupled from the system Ansible role and are managed idempotently via Layer 2 yadm bootstrap (`~/.config/yadm/bootstrap.d/40-gnome-extensions.sh`).
-- Parses extensions from `~/.config/yadm/files/gnome-extensions.txt`.
-- Dynamically discovers and installs missing DNF packages and validates UUID enablement status.
+### 2. GNOME Shell Extensions (`tasks/gnome_extensions.yml`)
+- Provisions system GNOME shell extension RPM packages via DNF (`desktop_gnome_extensions`).
+- By default, extensions are left disabled (`desktop_gnome_extensions_enable: false`).
+- When `desktop_gnome_extensions_enable` is set to `true`, enables configured extensions in dconf for the target user.
 
 ### 3. Desktop Theming (`tasks/theme.yml`)
 - Checks `/usr/share/themes/Yaru` directory via `ansible.builtin.stat` to skip redundant installation or source builds when the theme is already present.
@@ -139,6 +139,9 @@ These variables are namespaced with `desktop_*` and control role-specific behavi
 | `desktop_antigravity_state` | `"present"` | State of Antigravity Hub and IDE installation (`present` or `absent`). |
 | `desktop_antigravity_hub_url` | *(Google storage URL)* | Download URL for Antigravity Hub archive. |
 | `desktop_antigravity_ide_url` | *(Google storage URL)* | Download URL for Antigravity IDE archive. |
+| `desktop_gnome_extensions` | *(list)* | DNF system package names for GNOME shell extensions. |
+| `desktop_gnome_user_extensions` | *(list)* | Extension UUIDs for user extensions installed in `~/.local/share/gnome-shell/extensions`. |
+| `desktop_gnome_extensions_enable` | `false` | When true, enables configured extensions in dconf. Disabled by default. |
 
 
 ### Tier 2: Distribution Variables (`vars/*.yml`)
