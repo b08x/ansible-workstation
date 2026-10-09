@@ -2,6 +2,9 @@
 # defaults file for tools
 # Defines default configuration and feature flags for host utilities and agent CLI installations.
 
+# Control pre-flight assertions (Fail-Fast Pattern)
+tools_assert_enabled: true
+
 # Target user account for user-space installations
 tools_user: "{{ workstation_user | default(user.name | default(ansible_user_id)) }}"
 tools_user_home: "{{ user.home | default('/home/' ~ tools_user) }}"

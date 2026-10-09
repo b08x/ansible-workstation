@@ -38,8 +38,9 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary task coordinator.
 2. **Tag-as-Select Pattern**: Tasks are tagged with domain tags (`networking`, `system`, `always`) allowing targeted partial runs or execution as part of the broader system play.
 3. **Formal Argument Specification Pattern**: Uses `meta/argument_specs.yml` for compile-time parameter validation and type enforcement.
-4. **Debug-as-Progress-Indicator Pattern**: Role entry announces execution start via `ansible.builtin.debug` tagged `["always"]`.
+4. **Debug-as-Progress-Indicator Pattern**: Role entry announces execution start via `ansible.builtin.debug` tagged `["networking", "always"]`.
 5. **Two-Tier Variable Scoping**: Variables strictly adhere to the `networking_*` namespace (Tier 2 scope).
+6. **Fail-Fast Precondition Assertions (`tasks/assert.yml`)**: Pre-flight validation executed at role entry (`networking_assert_enabled`) asserting RedHat OS family support and effective root privileges (`id -u == 0`). Also available for standalone invocation via `tasks_from: assert.yml`.
 
 ---
 
@@ -61,6 +62,7 @@ These variables are namespaced with `networking_*` and control role-specific beh
 
 | Variable | Default | Type | Description |
 |---|---|---|---|
+| `networking_assert_enabled` | `true` | `bool` | Enable pre-flight environment, platform, and privilege assertions. |
 | `networking_my_variable` | `"default_value"` | `string` | Baseline role configuration parameter validated against `meta/argument_specs.yml`. |
 
 ---

@@ -1,0 +1,94 @@
+---
+# Pre-flight assertions for libvirt role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the libvirt role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The libvirt role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert package manager is DNF
+  ansible.builtin.assert:
+    that:
+      - ansible_pkg_mgr in ['dnf', 'dnf5']
+    fail_msg: >-
+      The libvirt role relies on DNF/DNF5 package management.
+      Detected package manager: '{{ ansible_pkg_mgr | default('unknown') }}'.
+    quiet: true
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert init system is systemd
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'systemd'
+    fail_msg: >-
+      The libvirt role manages libvirtd systemd units.
+      Detected service manager: '{{ ansible_service_mgr | default('unknown') }}'.
+    quiet: true
+  tags: ["libvirt", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _libvirt_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _libvirt_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The libvirt role installs virtualization packages and configures hypervisor daemons
+      requiring root privileges. Ensure 'become: true' is enabled for this play or role.
+    quiet: true
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert workstation user identity is defined
+  ansible.builtin.assert:
+    that:
+      - user is defined
+      - user.name is defined
+      - user.name | length > 0
+    fail_msg: >-
+      The libvirt role requires Tier 1 host variable 'user.name' to configure
+      group memberships for virtualization access. Ensure 'user.name' is set in host_vars/group_vars.
+    quiet: true
+  tags: ["libvirt", "assert", "always"]
+
+- name: Stat KVM acceleration device
+  ansible.builtin.stat:
+    path: /dev/kvm
+  register: _libvirt_kvm_device
+  when: libvirt_require_kvm | default(false) | bool
+  tags: ["libvirt", "assert", "always"]
+
+- name: Assert hardware KVM virtualization device exists
+  ansible.builtin.assert:
+    that:
+      - _libvirt_kvm_device.stat.exists
+    fail_msg: >-
+      Hardware acceleration device /dev/kvm was not detected. Ensure CPU virtualization
+      extensions (Intel VT-x or AMD-V) are enabled in UEFI/BIOS or hypervisor settings.
+    quiet: true
+  when: libvirt_require_kvm | default(false) | bool
+  tags: ["libvirt", "assert", "always"]

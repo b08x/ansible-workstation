@@ -2,15 +2,9 @@
 # Package installation for NAS role
 # Supports: Fedora, Rocky Linux 9 (RedHat family only)
 
-- name: Assert RedHat OS family
-  ansible.builtin.assert:
-    that:
-      - ansible_os_family == "RedHat"
-    fail_msg: "This role only supports RedHat family distributions (Fedora, Rocky Linux, RHEL)"
-    success_msg: "RedHat family detected: {{ ansible_distribution }}"
-
 - name: Load distribution-specific variables
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["nas", "nas_packages"]
 
 # =============================================================================
 # Package State Detection

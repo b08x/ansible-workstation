@@ -9,6 +9,11 @@
     msg: "Starting tts tasks"
   tags: ["always"]
 
+- name: Pre-flight role assertions (Fail-Fast Pattern)
+  ansible.builtin.include_tasks: assert.yml
+  when: tts_assert_enabled | default(true) | bool
+  tags: ["tts", "assert", "always"]
+
 - name: Display the value of whisper_my_variable
   ansible.builtin.debug:
     msg: "The value of whisper_my_variable is {{ whisper_my_variable }}"

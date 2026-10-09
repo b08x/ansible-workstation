@@ -7,6 +7,11 @@
     msg: "Starting tools installation tasks for user {{ tools_user }}"
   tags: ["always"]
 
+- name: Pre-flight role assertions (Fail-Fast Pattern)
+  ansible.builtin.include_tasks: assert.yml
+  when: tools_assert_enabled | default(true) | bool
+  tags: ["tools", "assert", "always"]
+
 - name: Include transcribe.cpp compilation tasks
   ansible.builtin.include_tasks: transcribe-cpp.yml
   when: tools_install_transcribe | default(true) | bool

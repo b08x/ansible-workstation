@@ -23,6 +23,7 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
 
 | Variable | Default | Description |
 |---|---|---|
+| `user_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments |
 | `user.name` | `b08x` | Primary workstation user account name |
 | `user.group` | `b08x` | Primary group name |
 | `user.home` | `/home/b08x` | Home directory path |
@@ -36,6 +37,7 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
 | Tag | Purpose |
 |---|---|
 | `user` | All tasks in the user role |
+| `assert` | Pre-flight requirement assertion tasks |
 | `directories` | Directory structure creation |
 | `uv` | UV installation tasks |
 | `profile` | User account and shell verification |

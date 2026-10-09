@@ -6,6 +6,11 @@
     msg: "Starting system tuning tasks"
   tags: ["tuning", "always"]
 
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: tuning_assert_enabled | default(true) | bool
+  tags: ["tuning", "assert", "always"]
+
 - name: Load distribution variables
   ansible.builtin.include_vars: "{{ tuning_distro_vars }}"
   vars:
@@ -17,6 +22,11 @@
                 errors='ignore') }}
   when: tuning_distro_vars is defined and tuning_distro_vars | length > 0
   tags: ["tuning", "always"]
+
+- name: Install distribution packages
+  ansible.builtin.include_tasks: packages.yml
+  when: tuning_packages_enabled | default(true) | bool
+  tags: ["tuning", "packages"]
 
 - name: Configure user groups
   ansible.builtin.include_tasks: user_groups.yml
@@ -62,3 +72,7 @@
 - name: Configure cpupower
   ansible.builtin.include_tasks: cpupower.yml
   tags: ["tuning", "cpupower"]
+
+- name: Flush tuning handlers immediately
+  ansible.builtin.meta: flush_handlers
+  tags: ["tuning", "always"]

@@ -5,4 +5,7 @@
 # This demonstrates proper role variable naming with the 'run_' prefix
 user_my_variable: "default_value"
 
+# Control pre-flight assertions (Fail-Fast Pattern)
+user_assert_enabled: true
+
 user_uv_python_version: 3.12

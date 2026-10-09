@@ -32,6 +32,15 @@
   when: tuning_cpupower_enabled | default(true) | bool
   tags: ["tuning", "cpupower"]
   block:
+    - name: Assert cpupower configuration parameters
+      ansible.builtin.assert:
+        that:
+          - tuning_cpupower_governor in ['powersave', 'performance', 'ondemand', 'conservative', 'userspace', 'schedutil']
+        fail_msg: >-
+          Invalid CPU governor '{{ tuning_cpupower_governor }}'.
+          Allowed values: powersave, performance, ondemand, conservative, userspace, schedutil.
+        quiet: true
+
     - name: Install cpupower defaults
       ansible.builtin.template:
         src: etc/default/cpupower.j2

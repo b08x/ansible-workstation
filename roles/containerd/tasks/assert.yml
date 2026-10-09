@@ -1,0 +1,67 @@
+---
+# Pre-flight assertions for containerd role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the containerd role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["containerd", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The containerd role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["containerd", "assert", "always"]
+
+- name: Assert package manager is DNF
+  ansible.builtin.assert:
+    that:
+      - ansible_pkg_mgr in ['dnf', 'dnf5']
+    fail_msg: >-
+      The containerd role relies on DNF/DNF5 package management.
+      Detected package manager: '{{ ansible_pkg_mgr | default('unknown') }}'.
+    quiet: true
+  tags: ["containerd", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _containerd_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["containerd", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _containerd_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The containerd role installs container runtimes and configures system services
+      requiring root privileges. Ensure 'become: true' is enabled for this play or role.
+    quiet: true
+  tags: ["containerd", "assert", "always"]
+
+- name: Assert workstation user identity for Docker group membership
+  ansible.builtin.assert:
+    that:
+      - user is defined
+      - user.name is defined
+      - user.name | length > 0
+    fail_msg: >-
+      containerd_use_docker is enabled, but 'user.name' is not defined.
+      Define 'user.name' in inventory (e.g. group_vars/all.yml) to add the user to the docker group.
+    quiet: true
+  when: containerd_use_docker | default(false) | bool
+  tags: ["containerd", "assert", "docker"]

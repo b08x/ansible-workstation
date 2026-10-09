@@ -1,6 +1,7 @@
 ---
 # defaults file for containerd
 
+containerd_assert_enabled: true
 containerd_use_docker: false
 containerd_use_podman: true
 

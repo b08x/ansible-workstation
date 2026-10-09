@@ -5,6 +5,10 @@ argument_specs:
   main:
     short_description: Role description.
     options:
+      networking_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
       networking_my_variable:
         type: str
         description: A simple string argument for demonstration.

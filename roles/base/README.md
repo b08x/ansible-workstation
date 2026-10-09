@@ -38,6 +38,7 @@ The `base` role implements the **15 Ansible Design Patterns** to guarantee cross
 6. **Conditional Feature Flags**: Subsystems are gated with explicit boolean checks (`enable_third_party_repos | default(true) | bool`, `base_enable_rpmfusion | bool`, `base_install_homebrew | bool`, `intel_oneapi_install | default(false) | bool`).
 7. **Debug-as-Progress-Indicator Pattern**: Role entry logs execution start via `ansible.builtin.debug` tagged `["base", "always"]`.
 8. **Handler Notification Pattern**: Configuration changes notify handlers, followed by an immediate handler flush.
+9. **Fail-Fast Precondition Assertions (`tasks/assert.yml`)**: Pre-flight validation executed at role entry (`base_assert_enabled`) asserting RedHat OS family support, DNF package manager availability, effective root privileges (`id -u == 0`), and target user identity definition. Also available for standalone invocation via `tasks_from: assert.yml`.
 
 ---
 
@@ -137,6 +138,7 @@ These variables are namespaced with `base_*` and control role-specific behavior:
 
 | Variable | Default | Description |
 |---|---|---|
+| `base_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
 | `base_enable_rpmfusion` | `true` | Enable RPM Fusion Free and Non-Free repositories on Fedora hosts. |
 | `base_enable_syncopated_copr` | `true` | Enable the Syncopated COPR repository on EL 10 hosts. |
 | `base_syncopated_copr` | `b08x/syncopated` | COPR repository providing syncopated packages on EL 10. |

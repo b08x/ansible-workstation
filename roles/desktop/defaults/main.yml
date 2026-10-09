@@ -4,6 +4,8 @@
 # Variable that will be displayed in debug output
 # This demonstrates proper role variable naming with the 'run_' prefix
 desktop_my_variable: "default_value"
+# Control pre-flight assertions (Fail-Fast Pattern)
+desktop_assert_enabled: true
 
 desktop_environment: gnome
 
@@ -14,12 +16,24 @@ desktop_theme_force_install: false
 
 desktop_system_flatpaks:
   - com.mattjakeman.ExtensionManager
+  - page.tesk.Refine
   - com.github.tchx84.Flatseal
   - io.github.flattool.Warehouse
   - io.github.dvlv.boxbuddyrs
   - com.ranfdev.DistroShelf
   - org.easycoding.TunedSwitcher
   - app.devsuite.Ptyxis
+  - io.github.vikdevelop.SaveDesktop
+  - io.podman_desktop.PodmanDesktop
+  - io.github.tanaybhomia.Whisp
+  - org.remmina.Remmina
+  - org.cutwire.Drift
+  - org.darktable.Darktable
+  - io.dbeaver.DBeaverCommunity
+  - com.saivert.pwvucontrol
+  - com.discordapp.Discord
+  - org.upscayl.Upscayl
+  - org.audacityteam.Audacity
 
 # Antigravity Hub + IDE (the agy CLI is installed by the coding_agents role)
 desktop_antigravity_state: present

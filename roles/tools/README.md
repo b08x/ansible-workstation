@@ -56,6 +56,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 5. **User Context Isolation (`become_user`)**: User-scoped tools and Go toolchains compile and install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership.
 6. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `agents`, `system`) and dedicated tool tags (`bun`, `transcribe`, `go`, `antigravity`, `claude`, `crush`, `opencode`, `vibe`).
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `user.home`) and Tier 2 namespaced role variables (`tools_*`).
+8. **Pre-flight Assertion Pattern**: Frontloads prerequisite validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, effective root privileges, target user configuration, Go toolchain parameters) are missing or misconfigured.
 
 ---
 
@@ -134,6 +135,7 @@ These variables are namespaced with `tools_*` and control role-specific behavior
 
 | Variable | Default | Description |
 |---|---|---|
+| `tools_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
 | `tools_user` | `{{ user.name }}` | Target workstation user for user-scoped tools. |
 | `tools_user_home` | `{{ user.home }}` | Home directory of target user. |
 | `tools_user_local_bin` | `{{ tools_user_home }}/.local/bin` | User binary execution directory. |
@@ -165,6 +167,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 | Tag | Scope | Description |
 |---|---|---|
 | `tools` | Role | Applies to all tasks within the `tools` role. |
+| `assert` | Validation | Executes pre-flight assertion tasks to validate system requirements and privileges. |
 | `agents` | Subsystem | Targets all AI coding agent CLI installation tasks (`agy`, `claude`, `crush`, `opencode`, `vibe`). |
 | `system` | Playbook | System configuration group tag shared across system provisioning roles. |
 | `bun` | Feature | Runs only Bun installation tasks. |

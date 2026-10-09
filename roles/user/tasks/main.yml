@@ -10,19 +10,22 @@
     msg: "Starting user tasks"
   tags: ["user", "always"]
 
+- name: Pre-flight role assertions (Fail-Fast Pattern)
+  ansible.builtin.include_tasks: assert.yml
+  when: user_assert_enabled | default(true) | bool
+  tags: ["user", "assert", "always"]
+
 - name: Include distribution variables
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
   tags: ["user", "distro"]
 
-
-- name: Include pip configuration tasks
-  ansible.builtin.include_tasks: pip.yml
-  tags: ["pip", "user"]
-
 - name: Include uv configuration tasks
   ansible.builtin.include_tasks: uv.yml
   tags: ["uv", "user"]
+# - name: Include pip configuration tasks
+#   ansible.builtin.include_tasks: pip.yml
+#   tags: ["pip", "user"]
 
-- name: Include Ranger installation tasks
-  ansible.builtin.include_tasks: ranger.yml
-  tags: ["ranger", "user"]
+# - name: Include Ranger installation tasks
+#   ansible.builtin.include_tasks: ranger.yml
+#   tags: ["ranger", "user"]

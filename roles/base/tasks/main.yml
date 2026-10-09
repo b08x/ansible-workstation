@@ -6,6 +6,11 @@
     msg: "Starting base tasks"
   tags: ["base", "always"]
 
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: base_assert_enabled | default(true) | bool
+  tags: ["base", "assert", "always"]
+
 - name: Include distribution package variables
   # Per-major file wins when present (EL 9 and EL 10 package names diverge,
   # e.g. zlib-devel vs zlib-ng-compat-devel); otherwise the distro-wide file.

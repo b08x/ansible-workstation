@@ -5,6 +5,18 @@ argument_specs:
   main:
     short_description: System tuning role implementing real-time audio, kernel, and CachyOS optimizations.
     options:
+      tuning_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      tuning_allow_containers:
+        type: bool
+        description: Permit execution inside container guests (skips host kernel assertion).
+        default: false
+      tuning_packages_enabled:
+        type: bool
+        description: Enable system tuning package installation.
+        default: true
       tuning_groups_enabled:
         type: bool
         description: Enable user group membership configuration.
@@ -49,6 +61,10 @@ argument_specs:
         type: bool
         description: State of irqbalance service.
         default: false
+      tuning_distro_packages:
+        type: list
+        elements: str
+        description: Distribution packages required for system tuning.
       tuning_groups:
         type: list
         elements: str

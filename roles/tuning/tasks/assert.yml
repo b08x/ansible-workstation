@@ -1,0 +1,79 @@
+---
+# Pre-flight assertions for tuning role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the tuning role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["tuning", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The tuning role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["tuning", "assert", "always"]
+
+- name: Assert systemd is the active init manager
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'systemd'
+    fail_msg: >-
+      The tuning role manages systemd services and manager drop-in configurations.
+      Active service manager is '{{ ansible_service_mgr | default('unknown') }}' (expected 'systemd').
+    quiet: true
+  tags: ["tuning", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _tuning_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["tuning", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _tuning_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The tuning role modifies kernel sysctl settings, udev rules, and system limits
+      requiring root privileges. Ensure 'become: true' is enabled for this play or role.
+    quiet: true
+  tags: ["tuning", "assert", "always"]
+
+- name: Assert host kernel access (container environment guard)
+  ansible.builtin.assert:
+    that:
+      - "'container' not in (ansible_virtualization_tech_guest | default([]))"
+    fail_msg: >-
+      The tuning role configures host kernel parameters, block device schedulers,
+      and ZRAM. Unprivileged containers cannot modify host kernel knobs.
+      Set 'tuning_allow_containers: true' to override this check for testing.
+    quiet: true
+  when: not (tuning_allow_containers | default(false) | bool)
+  tags: ["tuning", "assert", "always"]
+
+- name: Assert workstation user identity is defined
+  ansible.builtin.assert:
+    that:
+      - user is defined
+      - user.name is defined
+      - user.name | length > 0
+    fail_msg: >-
+      tuning_groups_enabled is true, but 'user.name' is not defined.
+      Define 'user.name' in inventory (e.g. group_vars/all.yml) or set workstation_user.
+    quiet: true
+  when: tuning_groups_enabled | default(true) | bool
+  tags: ["tuning", "assert", "groups"]

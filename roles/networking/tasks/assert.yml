@@ -1,0 +1,44 @@
+---
+# Pre-flight assertions for networking role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the networking role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["networking", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The networking role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["networking", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _networking_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["networking", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _networking_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The networking role manages network interfaces and system services
+      requiring root privileges. Ensure 'become: true' is enabled for this play or role.
+    quiet: true
+  tags: ["networking", "assert", "always"]

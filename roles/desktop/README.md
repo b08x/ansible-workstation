@@ -48,6 +48,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 6. **Handler Notification Pattern**: Changes to service unit files (such as input-remapper) notify `Daemon reload` (`systemd daemon-reload`).
 7. **User Context Isolation (`become_user`)**: User-scoped configurations (GNOME extension dconf state) execute directly under `become_user: "{{ user.name }}"` to ensure appropriate permissions in user schemas.
 8. **Pre-flight Idempotency Tracking**: Antigravity Hub and IDE verify previously extracted archive URLs via `.installed_url` stat and slurp checks, skipping redundant network downloads and extraction.
+9. **Pre-flight Assertion Pattern**: Frontloads system requirement verification (`tasks/assert.yml`) to fail fast when prerequisites (OS family, DNF package manager, effective root privileges, desktop environment) are not met.
 
 ---
 
@@ -129,6 +130,7 @@ These variables are namespaced with `desktop_*` and control role-specific behavi
 
 | Variable | Default | Description |
 |---|---|---|
+| `desktop_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
 | `desktop_environment` | `"gnome"` | Target desktop environment (e.g. `"gnome"`). |
 | `desktop_system_flatpaks` | *(4 packages)* | System management Flatpaks (`ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy`). |
 | `desktop_vscode_flatpak` | `false` | When true, installs VS Code via Flatpak instead of native DNF package. |
@@ -159,6 +161,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 | Tag | Scope | Description |
 |---|---|---|
 | `desktop` | Role | Applies to all tasks within the `desktop` role. |
+| `assert` | Validation | Executes pre-flight assertion tasks to validate system requirements and privileges. |
 | `packages` | Feature | Targets Qt, GTK, and GNOME DNF package installation. |
 | `gnome` | Feature | Executes GNOME desktop configuration and display target promotion. |
 | `extensions` | Feature | Manages GNOME Shell extensions installation and dconf enablement. |

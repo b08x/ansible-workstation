@@ -39,14 +39,16 @@ Under the [workstation layering taxonomy](../../docs/layering-architecture.md), 
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to composable subtask modules (`user_groups.yml`, `limits.yml`, `sysctl.yml`, `zram.yml`, `udev.yml`, `systemd.yml`, `tuned.yml`, `rtirq.yml`, `cpupower.yml`) gated by explicit boolean feature flags (`tuning_<subsystem>_enabled | default(true) | bool`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to composable subtask modules (`assert.yml`, `packages.yml`, `user_groups.yml`, `limits.yml`, `sysctl.yml`, `zram.yml`, `udev.yml`, `systemd.yml`, `tuned.yml`, `rtirq.yml`, `cpupower.yml`) gated by explicit boolean feature flags (`tuning_<subsystem>_enabled | default(true) | bool`).
 2. **Distro-Switching Pattern (Dialect A with `first_found`)**: Dynamic OS variable inclusion utilizing `lookup('ansible.builtin.first_found')` prioritizing major-version-specific files (e.g., `Rocky-9.yml` vs `Rocky-10.yml`) before falling back to distro-wide (`Fedora.yml`, `AlmaLinux.yml`, `Rocky.yml`) or `default.yml`.
 3. **Pre-flight Capability Checks**: `tasks/sysctl.yml` inspects `/proc/sys/` knob existence on the active kernel before applying parameters (`tuning_sysctl_optional`). Optional hardware/kernel keys (e.g., `dev.hpet.max-user-freq`, `kernel.unprivileged_userns_clone`) are skipped if absent, preventing fatal errors without resorting to dirty `ignore_errors: true` masks.
 4. **Tag-as-Select Pattern**: Every task and include is tagged with the primary `tuning` tag and granular subsystem tags (`sysctl`, `zram`, `udev`, `systemd`, `tuned`, `cpupower`, `rtirq`, `limits`, `groups`, `packages`).
 5. **Backup-on-Write Pattern**: All templated and written configuration files (`41-realtime.conf`, `70-cachyos-settings.conf`, `zram-generator.conf`, udev rules, systemd drop-ins) set `backup: true` to protect manual configurations.
-6. **Handler Notification Pattern**: Changes to udev rules notify `Reload udev rules` and `Trigger udev rules`; changes to systemd drop-ins notify `Reload systemd`; service configurations notify respective restarts (`Restart zram`, `Restart tuned`, `Restart cpupower`, `Restart rtirq`, `Restart rtkit`).
+6. **Handler Notification Pattern**: Changes to udev rules notify `Reload udev rules` and `Trigger udev rules`; changes to systemd drop-ins notify `Reload systemd`; service configurations notify respective restarts (`Restart zram`, `Restart tuned`, `Restart cpupower`, `Restart rtirq`, `Restart rtkit`). At role exit, `ansible.builtin.meta: flush_handlers` flushes pending handlers immediately before downstream roles execute.
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`) and Tier 2 role-namespaced variables (`tuning_*`).
 8. **Block-as-Unit Pattern (Shape 1: Context Re-raise)**: `tasks/sysctl.yml` wraps sysctl operations in a block-rescue structure that catches task failures, emits actionable diagnostic guidance regarding kernel parameters and optional key configuration, and cleanly re-raises the failure via `ansible.builtin.fail`.
+9. **Fail-Fast Precondition Assertions (`tasks/assert.yml`)**: Pre-flight validation executed at role entry (`tuning_assert_enabled`) asserting RedHat OS family support, effective root privileges (`id -u == 0`), active systemd init manager, container virtualization isolation, and target user identity definition. Also available for standalone invocation via `tasks_from: assert.yml`.
+10. **State Convergence & Asynchronous Daemon Polling (`tasks/tuned.yml`, `tasks/packages.yml`)**: Explicit upfront package dependency installation via `tasks/packages.yml` paired with a DBus readiness poll loop on `tuned-adm active` (`retries: 6, delay: 2`) preventing asynchronous startup race conditions on first run.
 
 ---
 
@@ -135,6 +137,9 @@ These variables are namespaced with `tuning_*` and control role-specific behavio
 #### Subsystem Activation Flags
 | Variable | Default | Description |
 |---|---|---|
+| `tuning_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
+| `tuning_allow_containers` | `false` | Permit execution inside container guests (skips host kernel check). |
+| `tuning_packages_enabled` | `true` | Enable distribution package dependency installation. |
 | `tuning_groups_enabled` | `true` | Enable user group membership tasks. |
 | `tuning_limits_enabled` | `true` | Enable realtime security limits configuration. |
 | `tuning_udev_enabled` | `true` | Enable udev hardware and power optimization rules. |

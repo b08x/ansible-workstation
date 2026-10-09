@@ -7,6 +7,14 @@
 - name: Configure and apply sysctl settings
   tags: ["tuning", "sysctl"]
   block:
+    - name: Assert sysctl parameters mapping
+      ansible.builtin.assert:
+        that:
+          - tuning_sysctl is mapping
+          - tuning_sysctl | length > 0
+        fail_msg: "tuning_sysctl must be a non-empty dictionary of sysctl parameters"
+        quiet: true
+
     - name: Ensure sysctl drop-in directory exists
       ansible.builtin.file:
         path: "{{ tuning_sysctl_file | dirname }}"

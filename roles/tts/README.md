@@ -8,7 +8,19 @@ Any pre-requisites that may not be covered by Ansible itself or the role should 
 
 ## Role Variables
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+| Variable | Default | Description |
+|---|---|---|
+| `tts_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
+| `whisper_my_variable` | `"default_value"` | Demonstration string variable. |
+
+## Tags
+
+| Tag | Scope | Description |
+|---|---|---|
+| `tts` | Role | Applies to all tasks within the `tts` role. |
+| `assert` | Validation | Executes pre-flight assertion tasks to validate system requirements. |
+| `always` | System | Preamble debug logging. |
+
 
 ## Dependencies
 

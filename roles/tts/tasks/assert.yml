@@ -1,0 +1,27 @@
+---
+# Pre-flight assertions for tts role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the tts role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["tts", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The tts role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["tts", "assert", "always"]

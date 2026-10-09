@@ -43,6 +43,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 5. **Backup-on-Write Pattern**: All templated and altered configuration files (`/etc/docker/daemon.json`, `/usr/lib/systemd/system/docker.service`, `/etc/modprobe.d/disable-overlay-redirect-dir.conf`) set `backup: true` to protect manual configurations.
 6. **Handler Notification Pattern**: Changes to Docker configuration or systemd service configurations trigger standard handler notifications (`Restart Docker` and `Reload systemd`).
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`) and Tier 2 role-namespaced variables (`containerd_*`).
+8. **Fail-Fast Precondition Assertions (`tasks/assert.yml`)**: Pre-flight validation executed at role entry (`containerd_assert_enabled`) asserting RedHat OS family support, DNF package manager availability, effective root privileges (`id -u == 0`), and target user identity definition when Docker group management is active. Also available for standalone invocation via `tasks_from: assert.yml`.
 
 ---
 
@@ -110,6 +111,7 @@ These variables are namespaced with `containerd_*` and control role-specific beh
 
 | Variable | Default | Description |
 |---|---|---|
+| `containerd_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
 | `containerd_use_podman` | `true` | Enable Podman runtime and related CLI packages. |
 | `containerd_use_docker` | `false` | Enable Docker Community Edition engine and repository configuration. |
 | `containerd_podman_packages` | `["podman", "podman-compose", "podman-docker"]` | List of Podman packages installed on the host. |

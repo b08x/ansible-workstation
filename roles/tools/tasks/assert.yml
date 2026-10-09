@@ -1,0 +1,70 @@
+---
+# Pre-flight assertions for tools role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the tools role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["tools", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The tools role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["tools", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _tools_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["tools", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _tools_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The tools role installs system binaries into /usr/local/bin and executes
+      delegated user installers via become_user. Ensure 'become: true' is enabled.
+    quiet: true
+  tags: ["tools", "assert", "always"]
+
+- name: Assert target workstation user identity is defined
+  ansible.builtin.assert:
+    that:
+      - tools_user is defined
+      - tools_user | length > 0
+      - tools_user_home is defined
+      - tools_user_home.startswith('/')
+    fail_msg: >-
+      The tools role requires a valid target user ('tools_user') and home directory ('tools_user_home')
+      to install user-scoped toolchains and coding agent CLIs.
+    quiet: true
+  tags: ["tools", "assert", "always"]
+
+- name: Assert Go toolchain configuration when enabled
+  ansible.builtin.assert:
+    that:
+      - tools_go_version is defined
+      - tools_go_version | length > 0
+      - tools_go_dest_dir is defined
+      - tools_go_dest_dir.startswith('/')
+    fail_msg: >-
+      Invalid Go toolchain settings. Ensure 'tools_go_version' and 'tools_go_dest_dir' are properly configured.
+    quiet: true
+  when: tools_install_go | default(true) | bool
+  tags: ["tools", "assert", "go"]

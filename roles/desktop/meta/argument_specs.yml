@@ -9,3 +9,7 @@ argument_specs:
         type: str
         description: A simple string argument for demonstration.
         default: "default_value"
+      desktop_assert_enabled:
+        type: bool
+        default: true
+        description: Run pre-flight validation assertions to fail fast on invalid environments.

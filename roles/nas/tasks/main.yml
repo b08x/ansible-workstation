@@ -2,6 +2,16 @@
 # Main orchestration for NAS role
 # Supports: RedHat family only (Fedora, Rocky Linux 9, RHEL)
 
+- name: Starting NAS tasks
+  ansible.builtin.debug:
+    msg: "Starting NAS orchestration tasks"
+  tags: ["nas", "always"]
+
+- name: Pre-flight role assertions (Fail-Fast Pattern)
+  ansible.builtin.include_tasks: assert.yml
+  when: nas_assert_enabled | default(true) | bool
+  tags: ["nas", "assert", "always"]
+
 # =============================================================================
 # Package Installation
 # =============================================================================

@@ -45,6 +45,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 5. **Backup-on-Write Pattern**: All templated or modified configuration files (`/etc/libvirt/libvirtd.conf`, `/etc/qemu/bridge.conf`, `/etc/lvm/lvm.conf`) specify `backup: true` to prevent data loss.
 6. **Handler Notification Pattern**: Changes to `/etc/libvirt/libvirtd.conf` notify `Restart libvirtd`.
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `use_kvm`) and Tier 2 role-namespaced variables (`libvirt_*`).
+8. **Pre-flight Assertion Pattern**: Frontloads system requirement verification (`tasks/assert.yml`) to fail fast when prerequisites (OS family, DNF package manager, systemd init manager, effective root privileges, user identity, optional KVM device presence) are not met.
 
 ---
 
@@ -112,6 +113,8 @@ These variables are namespaced with `libvirt_*` and control role-specific behavi
 
 | Variable | Default | Description |
 |---|---|---|
+| `libvirt_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
+| `libvirt_require_kvm` | `false` | When true, strictly asserts the presence of `/dev/kvm` hardware device. |
 | `libvirt_service` | `"libvirtd.service"` | Name of the primary Libvirt systemd service unit. |
 | `libvirt_service_enabled` | `true` | Whether to enable and start the Libvirt service. |
 | `libvirt_users` | `["{{ user.name }}"]` | User accounts added to the `libvirt` group. |
@@ -138,6 +141,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 | Tag | Scope | Description |
 |---|---|---|
 | `libvirt` | Role | Applies to all tasks within the `libvirt` role. |
+| `assert` | Validation | Executes pre-flight assertion tasks to validate system requirements and privileges. |
 | `virt` | Playbook | Tag grouping container and virtualization roles (`containerd`, `libvirt`). |
 | `install` | Feature | Executes `@virtualization` package installation. |
 | `config` | Feature | Deploys `/etc/libvirt/libvirtd.conf` and QEMU bridge settings. |

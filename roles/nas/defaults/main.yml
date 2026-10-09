@@ -5,6 +5,9 @@
 # Service Enable Flags
 # =============================================================================
 
+# Control pre-flight assertions (Fail-Fast Pattern)
+nas_assert_enabled: true
+
 # Enable/disable individual NAS services
 nas_enable_nfs: true
 nas_enable_samba: false

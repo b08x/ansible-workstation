@@ -1,6 +1,12 @@
 ---
 # defaults file for libvirt
 
+# Control pre-flight assertions (Fail-Fast Pattern)
+libvirt_assert_enabled: true
+
+# Whether to strictly require /dev/kvm device node during pre-flight assertions
+libvirt_require_kvm: false
+
 # Name of the libvirt service.
 libvirt_service: "libvirtd.service"
 

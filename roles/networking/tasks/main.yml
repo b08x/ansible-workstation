@@ -4,7 +4,12 @@
 - name: Starting networking tasks
   ansible.builtin.debug:
     msg: "Starting networking tasks"
-  tags: ["always"]
+  tags: ["networking", "always"]
+
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: networking_assert_enabled | default(true) | bool
+  tags: ["networking", "assert", "always"]
 
 - name: Display the value of networking_my_variable
   ansible.builtin.debug:

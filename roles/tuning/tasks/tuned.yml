@@ -1,6 +1,16 @@
 ---
 # Tuned profile management
 
+- name: Assert tuned configuration validity
+  ansible.builtin.assert:
+    that:
+      - tuning_tuned_profile is defined
+      - tuning_tuned_profile | length > 0
+    fail_msg: "tuning_tuned_profile must be defined when tuning_tuned_enabled is true"
+    quiet: true
+  when: tuning_tuned_enabled | default(true) | bool
+  tags: ["tuning", "tuned", "always"]
+
 - name: Enable and start tuned service
   ansible.builtin.systemd:
     name: tuned
@@ -9,9 +19,12 @@
   ignore_errors: "{{ ansible_check_mode }}"
   tags: ["tuning", "tuned"]
 
-- name: Check current active tuned profile
+- name: Wait for tuned daemon to become ready on DBus
   ansible.builtin.command: tuned-adm active
   register: tuning_tuned_active
+  retries: 6
+  delay: 2
+  until: tuning_tuned_active.rc == 0
   changed_when: false
   failed_when: false
   when:

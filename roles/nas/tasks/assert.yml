@@ -1,0 +1,109 @@
+---
+# Pre-flight assertions for nas role (Fail-Fast Pattern)
+
+- name: Assert Ansible facts are gathered
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family is defined
+      - ansible_distribution is defined
+    fail_msg: >-
+      Ansible facts must be gathered before executing the nas role.
+      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    quiet: true
+  tags: ["nas", "assert", "always"]
+
+- name: Assert supported OS family and distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+    fail_msg: >-
+      The nas role only supports RedHat-family distributions
+      (Fedora, AlmaLinux, Rocky Linux). Current host is
+      {{ ansible_distribution | default('Unknown') }}
+      ({{ ansible_os_family | default('Unknown') }}).
+    success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+    quiet: false
+  tags: ["nas", "assert", "always"]
+
+- name: Assert package manager is DNF
+  ansible.builtin.assert:
+    that:
+      - ansible_pkg_mgr in ['dnf', 'dnf5']
+    fail_msg: >-
+      The nas role relies on DNF/DNF5 package management.
+      Detected package manager: '{{ ansible_pkg_mgr | default('unknown') }}'.
+    quiet: true
+  tags: ["nas", "assert", "always"]
+
+- name: Assert init system is systemd
+  ansible.builtin.assert:
+    that:
+      - ansible_service_mgr == 'systemd'
+    fail_msg: >-
+      The nas role manages network storage systemd services.
+      Detected service manager: '{{ ansible_service_mgr | default('unknown') }}'.
+    quiet: true
+  tags: ["nas", "assert", "always"]
+
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _nas_effective_uid
+  changed_when: false
+  check_mode: false
+  tags: ["nas", "assert", "always"]
+
+- name: Assert effective root privileges
+  ansible.builtin.assert:
+    that:
+      - _nas_effective_uid.stdout | trim == '0'
+    fail_msg: >-
+      The nas role provisions storage packages, firewall rules, and system services
+      requiring root privileges. Ensure 'become: true' is enabled for this play or role.
+    quiet: true
+  tags: ["nas", "assert", "always"]
+
+- name: Assert at least one NAS storage service is enabled
+  ansible.builtin.assert:
+    that:
+      - (nas_enable_nfs | default(true) | bool) or
+        (nas_enable_samba | default(false) | bool) or
+        (nas_enable_rsync | default(false) | bool)
+    fail_msg: >-
+      At least one NAS protocol service must be enabled:
+      'nas_enable_nfs', 'nas_enable_samba', or 'nas_enable_rsync'.
+    quiet: true
+  tags: ["nas", "assert", "always"]
+
+- name: Assert NFS export configurations are valid
+  ansible.builtin.assert:
+    that:
+      - nas_nfs_exports is iterable
+      - nas_nfs_exports | length > 0
+    fail_msg: >-
+      When 'nas_enable_nfs' is true, 'nas_nfs_exports' must contain at least one valid export definition.
+    quiet: true
+  when: nas_enable_nfs | default(true) | bool
+  tags: ["nas", "assert", "nas_nfs"]
+
+- name: Assert Samba share configurations are valid
+  ansible.builtin.assert:
+    that:
+      - nas_samba_shares is iterable
+      - nas_samba_shares | length > 0
+    fail_msg: >-
+      When 'nas_enable_samba' is true, 'nas_samba_shares' must contain at least one valid share definition.
+    quiet: true
+  when: nas_enable_samba | default(false) | bool
+  tags: ["nas", "assert", "nas_samba"]
+
+- name: Assert Rsync module configurations are valid
+  ansible.builtin.assert:
+    that:
+      - nas_rsync_modules is iterable
+      - nas_rsync_modules | length > 0
+    fail_msg: >-
+      When 'nas_enable_rsync' is true, 'nas_rsync_modules' must contain at least one valid module definition.
+    quiet: true
+  when: nas_enable_rsync | default(false) | bool
+  tags: ["nas", "assert", "nas_rsync"]

@@ -4,6 +4,9 @@
 # ----------------------------------------------------------------------------
 # Subsystem Feature Flags (Task Dispatcher Pattern)
 # ----------------------------------------------------------------------------
+tuning_assert_enabled: true
+tuning_allow_containers: false
+tuning_packages_enabled: true
 tuning_groups_enabled: true
 tuning_limits_enabled: true
 tuning_udev_enabled: true
@@ -15,6 +18,14 @@ tuning_rtirq_enabled: true
 tuning_rtkit_enabled: true
 tuning_cpupower_enabled: true
 tuning_irqbalance_enabled: false
+
+# ----------------------------------------------------------------------------
+# Package Dependencies
+# ----------------------------------------------------------------------------
+tuning_distro_packages:
+  - zram-generator
+  - kernel-tools
+  - tuned
 
 # ----------------------------------------------------------------------------
 # User Groups Configuration

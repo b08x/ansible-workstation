@@ -4,7 +4,12 @@
 - name: Starting containerd tasks
   ansible.builtin.debug:
     msg: "Starting containerd tasks"
-  tags: ["always"]
+  tags: ["containerd", "always"]
+
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: containerd_assert_enabled | default(true) | bool
+  tags: ["containerd", "assert", "always"]
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars:
