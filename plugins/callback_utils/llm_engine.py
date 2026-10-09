@@ -31,6 +31,7 @@ PROVIDER_ENV_VARS = {
     "groq": "GROQ_API_KEY",
     "cohere": "COHERE_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
 }
 
 # Startup reachability probe. The budget is deliberately not minimal: a

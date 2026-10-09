@@ -22,8 +22,8 @@ already carries its provider prefix is passed through untouched
 (`model_string`, `llm_engine.py:73-78`). This is why OpenRouter's own namespaced
 slugs — `openrouter/anthropic/claude-3-opus` — work without special-casing.
 
-Six providers resolve a key from a named variable (`llm_engine.py:27-34`):
-`openai`, `openrouter`, `gemini`, `groq`, `cohere`, `anthropic`.
+Seven providers resolve a key from a named variable (`llm_engine.py:27-35`):
+`openai`, `openrouter`, `gemini`, `groq`, `cohere`, `anthropic`, `mistral`.
 
 ## The throughput settings
 

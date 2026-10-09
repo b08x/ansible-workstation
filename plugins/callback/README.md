@@ -40,7 +40,7 @@ Every option is settable in the `[callback_llm_analyzer]` section of
 
 | Option | Env | Default | Notes |
 | :--- | :--- | :--- | :--- |
-| `provider` | `AI_PROVIDER` | `openai` | `openai`, `gemini`, `groq`, `openrouter`, `cohere`, `anthropic` |
+| `provider` | `AI_PROVIDER` | `openai` | `openai`, `gemini`, `groq`, `openrouter`, `cohere`, `anthropic`, `mistral` |
 | `api_key` | `<PROVIDER>_API_KEY` | — | e.g. `OPENROUTER_API_KEY`. The provider-specific variable takes precedence over `api_key` in `ansible.cfg`. |
 | `model` | `AI_MODEL` | `gpt-4` | |
 | `temperature` | `AI_TEMPERATURE` | `0.4` | |

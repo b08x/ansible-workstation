@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import yaml
-
 from ansible.plugins.callback import CallbackBase
 
 __metaclass__ = type
@@ -69,7 +68,7 @@ DOCUMENTATION = """
     options:
       provider:
         description: AI provider to use
-        choices: ['openai', 'gemini', 'groq', 'openrouter', 'cohere', 'anthropic']
+        choices: ['openai', 'gemini', 'groq', 'openrouter', 'cohere', 'anthropic', 'mistral']
         default: openai
         env:
           - name: AI_PROVIDER
@@ -85,6 +84,7 @@ DOCUMENTATION = """
           - For OpenRouter: OPENROUTER_API_KEY
           - For Cohere: COHERE_API_KEY
           - For Anthropic: ANTHROPIC_API_KEY
+          - For Mistral: MISTRAL_API_KEY
           The API key must be set either through this option or the corresponding environment variable.
         env:
           - name: OPENAI_API_KEY
@@ -93,6 +93,7 @@ DOCUMENTATION = """
           - name: OPENROUTER_API_KEY
           - name: COHERE_API_KEY
           - name: ANTHROPIC_API_KEY
+          - name: MISTRAL_API_KEY
         ini:
           - section: callback_llm_analyzer
             key: api_key
@@ -219,6 +220,12 @@ DOCUMENTATION = """
       provider = openrouter
       api_key = sk-xxx  # Or set via OPENROUTER_API_KEY environment variable
       model = anthropic/claude-3-opus
+
+      # Example using Mistral
+      [callback_llm_analyzer]
+      provider = mistral
+      api_key = xxx  # Or set via MISTRAL_API_KEY environment variable
+      model = mistral-medium-latest
 """
 
 
