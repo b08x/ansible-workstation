@@ -45,7 +45,7 @@ tuning_sysctl_optional:
   - kernel.nmi_watchdog
 
 tuning_sysctl:
-  vm.swappiness: 100
+  vm.swappiness: 150
   vm.vfs_cache_pressure: 50
   vm.dirty_bytes: 268435456
   vm.page-cluster: 0

@@ -60,7 +60,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 ### 1. CachyOS Sysctl Profile (`tasks/sysctl.yml`)
 Deploys `/etc/sysctl.d/70-cachyos-settings.conf` with balanced workstation throughput and responsiveness:
 - **Memory & VFS**:
-  - `vm.swappiness = 100`: High swappiness working in tandem with ZRAM compressed RAM.
+  - `vm.swappiness = 150`: High swappiness working in tandem with ZRAM compressed RAM.
   - `vm.vfs_cache_pressure = 50`: Retains directory and inode caches longer.
   - `vm.dirty_bytes = 268435456` (256 MB) & `vm.dirty_background_bytes = 67108864` (64 MB): Enforces absolute dirty byte writeback limits instead of percentage ratios, preventing multi-second I/O stalls during large file writes.
   - `vm.page-cluster = 0`: Disables swap page read-ahead for zero-latency random swap reads from ZRAM.
