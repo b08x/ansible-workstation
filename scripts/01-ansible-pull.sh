@@ -77,10 +77,11 @@ main() {
     return "${RC_SKIPPED:-2}"
   fi
   info "Applying $PLAYBOOK (user tags) from $PLAYBOOK_URL"
-  mkdir -p "$CHECKOUT"
+  local log_dir="${XDG_CACHE_HOME:-$HOME/.cache}/syncopated"
+  mkdir -p "$log_dir"
   export ANSIBLE_STDOUT_CALLBACK=default
   export ANSIBLE_INVENTORY_ENABLED="host_list,script,auto,yaml,toml,ini"
-  export ANSIBLE_LOG_PATH="${CHECKOUT}/ansible.log"
+  export ANSIBLE_LOG_PATH="${log_dir}/ansible.log"
   local -a pull_args=(
     --url "$PLAYBOOK_URL"
     --directory "$CHECKOUT"
