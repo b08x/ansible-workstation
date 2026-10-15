@@ -35,13 +35,16 @@ Under the [workstation layering taxonomy](../../docs/layering-architecture.md), 
 +--------------------------------------------------------------------------+
 ```
 
+> [!NOTE]
+> **Physical Host vs. Virtual Machine Capabilities**: CPU scaling governors and hardware frequency controls (`cpupower`) are physical bare-metal host capabilities requiring direct access to CPU performance scaling drivers (`intel_pstate`, `amd_pstate`, or ACPI `cpufreq`). Virtual machine guests do not have direct access to hardware frequency scaling and delegate CPU frequency management entirely to the underlying hypervisor. The role accounts for this distinction dynamically via `ansible_virtualization_role`.
+
 ### Design Patterns Implemented
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
 1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to composable subtask modules (`assert.yml`, `packages.yml`, `user_groups.yml`, `limits.yml`, `sysctl.yml`, `zram.yml`, `udev.yml`, `systemd.yml`, `tuned.yml`, `rtirq.yml`, `cpupower.yml`) gated by explicit boolean feature flags (`tuning_<subsystem>_enabled | default(true) | bool`).
 2. **Distro-Switching Pattern (Dialect A with `first_found`)**: Dynamic OS variable inclusion utilizing `lookup('ansible.builtin.first_found')` prioritizing major-version-specific files (e.g., `Rocky-9.yml` vs `Rocky-10.yml`) before falling back to distro-wide (`Fedora.yml`, `AlmaLinux.yml`, `Rocky.yml`) or `default.yml`.
-3. **Pre-flight Capability Checks**: `tasks/sysctl.yml` inspects `/proc/sys/` knob existence on the active kernel before applying parameters (`tuning_sysctl_optional`). Optional hardware/kernel keys (e.g., `dev.hpet.max-user-freq`, `kernel.unprivileged_userns_clone`) are skipped if absent, preventing fatal errors without resorting to dirty `ignore_errors: true` masks.
+3. **Pre-flight Capability Checks & Virtualization Awareness**: [sysctl.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/tasks/sysctl.yml) inspects `/proc/sys/` knob existence on the active kernel before applying parameters (`tuning_sysctl_optional`). Optional hardware/kernel keys (e.g., `dev.hpet.max-user-freq`, `kernel.unprivileged_userns_clone`) are skipped if absent, preventing fatal errors without resorting to dirty `ignore_errors: true` masks. Furthermore, hardware power management is virtualization-aware: `cpupower.service` activation in [cpupower.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/tasks/cpupower.yml#L67) and service restart handlers in [main.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/handlers/main.yml#L28) are conditionally gated by `ansible_virtualization_role != 'guest'` to prevent failed unit states on virtual machine hypervisor guests.
 4. **Tag-as-Select Pattern**: Every task and include is tagged with the primary `tuning` tag and granular subsystem tags (`sysctl`, `zram`, `udev`, `systemd`, `tuned`, `cpupower`, `rtirq`, `limits`, `groups`, `packages`).
 5. **Backup-on-Write Pattern**: All templated and written configuration files (`41-realtime.conf`, `70-cachyos-settings.conf`, `zram-generator.conf`, udev rules, systemd drop-ins) set `backup: true` to protect manual configurations.
 6. **Handler Notification Pattern**: Changes to udev rules notify `Reload udev rules` and `Trigger udev rules`; changes to systemd drop-ins notify `Reload systemd`; service configurations notify respective restarts (`Restart zram`, `Restart tuned`, `Restart cpupower`, `Restart rtirq`, `Restart rtkit`). At role exit, `ansible.builtin.meta: flush_handlers` flushes pending handlers immediately before downstream roles execute.
@@ -96,9 +99,12 @@ Configures PAM limits in `/etc/security/limits.d/41-realtime.conf` for the `audi
 - Deploys drop-ins in `/etc/systemd/system.conf.d/00-timeout.conf` and `/etc/systemd/user.conf.d/00-timeout.conf` reducing `DefaultTimeoutStartSec` to `15s` and `DefaultTimeoutStopSec` to `10s` to eliminate hung shutdown waits.
 - Configures user file descriptor limits in `/etc/systemd/user.conf.d/10-limits.conf` (`DefaultLimitNOFILE=1024:1048576`).
 
-### 6. Tuned Profile & CPU Governor (`tasks/tuned.yml`, `tasks/cpupower.yml`)
-- Configures and enables `tuned` with the `throughput-performance` profile.
-- Configures `/etc/default/cpupower` and starts `cpupower.service` with the `powersave` governor (utilizing Intel HWP / AMD CPPC dynamic scaling).
+### 6. Tuned Profile & CPU Governor ([tuned.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/tasks/tuned.yml), [cpupower.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/tasks/cpupower.yml))
+- **Tuned Dynamic Optimization**: Configures and enables `tuned` with the `throughput-performance` profile.
+- **CPU Scaling & Power Controls**: Configures CPU frequency governors and operational parameters via [cpupower.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/tasks/cpupower.yml):
+  - **Standardized Uppercase Variables**: Deploys configuration to `/etc/default/cpupower` (or `/etc/cpupower-service.conf` on Fedora via [Fedora.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/vars/Fedora.yml)) exporting uppercase variables (`GOVERNOR`, `MIN_FREQ`, `MAX_FREQ`) matching the `/usr/libexec/cpupower` parsing contract. Sets `GOVERNOR="powersave"` by default (leveraging modern Intel HWP or AMD CPPC autonomous hardware frequency scaling) with optional `MIN_FREQ` and `MAX_FREQ` boundary controls.
+  - **Fedora RPM Unit Preservation**: Preserves the native `/usr/lib/systemd/system/cpupower.service` shipped by Fedora's `kernel-tools` RPM (`when: ansible_distribution != 'Fedora'`), while generating and deploying the systemd unit from [cpupower.service.j2](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/templates/usr/lib/systemd/system/cpupower.service.j2) on Enterprise Linux distributions (AlmaLinux, Rocky Linux).
+  - **Virtualization Guest Awareness**: Skips `cpupower.service` enablement and handler notifications on virtual machine guests (`when: ansible_virtualization_role != 'guest'`), as guest VMs delegate frequency scaling to the underlying hypervisor and lack cpufreq hardware drivers.
 
 ### 7. Realtime IRQ Prioritization (`tasks/rtirq.yml`)
 - Deploys `/etc/rtirq.conf` to prioritize sound card hardware IRQs (`snd`, `usb`) ahead of storage and network adapters.
@@ -115,7 +121,7 @@ Configures PAM limits in `/etc/security/limits.d/41-realtime.conf` for the `audi
 | **CachyOS Sysctl Profile** | Complete | Complete (with knob probe) | Complete (with knob probe) |
 | **I/O Schedulers** | `kyber`, `mq-deadline`, `bfq` | `kyber`, `mq-deadline`, `bfq` | `kyber`, `mq-deadline`, `bfq` |
 | **Tuned Service** | `tuned` | `tuned` | `tuned` |
-| **CPU Power Service** | `kernel-tools` / `cpupower` | `kernel-tools` / `cpupower` | `kernel-tools` / `cpupower` |
+| **CPU Power Service** | Native RPM unit & `/etc/cpupower-service.conf` (physical hosts only) | Templated unit & `/etc/default/cpupower` (physical hosts only) | Templated unit & `/etc/default/cpupower` (physical hosts only) |
 | **Realtime Limits** | `/etc/security/limits.d/` | `/etc/security/limits.d/` | `/etc/security/limits.d/` |
 
 ---
@@ -149,7 +155,7 @@ These variables are namespaced with `tuning_*` and control role-specific behavio
 | `tuning_tuned_enabled` | `true` | Enable Tuned service and profile enforcement. |
 | `tuning_rtirq_enabled` | `true` | Enable rtirq IRQ thread prioritization. |
 | `tuning_rtkit_enabled` | `true` | Enable rtkit-daemon service. |
-| `tuning_cpupower_enabled` | `true` | Enable CPU scaling governor configuration. |
+| `tuning_cpupower_enabled` | `true` | Enable CPU scaling governor configuration (service start and restart handlers skipped on VM guests). |
 | `tuning_irqbalance_enabled`| `false` | Enable/disable irqbalance service. |
 
 #### Sysctl & Memory Configuration
@@ -174,7 +180,10 @@ These variables are namespaced with `tuning_*` and control role-specific behavio
 | `tuning_systemd_timeout_stop_sec` | `"10s"` | Systemd unit stop timeout limit. |
 | `tuning_systemd_user_limit_nofile` | `"1024:1048576"` | Systemd user NOFILE file descriptor limits. |
 | `tuning_tuned_profile` | `"throughput-performance"`| Active tuned profile. |
-| `tuning_cpupower_governor` | `"powersave"` | Active CPU scaling governor. |
+| `tuning_cpupower_config_file` | `/etc/default/cpupower` | Path to cpupower configuration file (`/etc/cpupower-service.conf` on Fedora via [Fedora.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/vars/Fedora.yml)). |
+| `tuning_cpupower_governor` | `"powersave"` | Active CPU scaling governor (`powersave`, `performance`, `ondemand`, `conservative`, `userspace`, `schedutil`). |
+| `tuning_cpupower_min_freq` | `""` | Optional minimum CPU frequency boundary limit (e.g., `"1.2GHz"`). |
+| `tuning_cpupower_max_freq` | `""` | Optional maximum CPU frequency boundary limit (e.g., `"3.8GHz"`). |
 
 ---
 
@@ -305,9 +314,21 @@ groups {{ user.name }} | grep audio
 # Check active Tuned profile
 tuned-adm active
 
-# Check active CPU governor across cores
+# Check active CPU governor across cores (physical bare-metal hosts)
 cpupower frequency-info
 ```
+
+> [!NOTE]
+> **Virtual Machine Guests (`ansible_virtualization_role == 'guest'`)**:
+> Virtual machines delegate hardware CPU power and frequency scaling to the underlying hypervisor. Running `cpupower frequency-info` on a VM guest is expected to report:
+> ```text
+> analyzing CPU 0:
+>   no or unknown cpufreq driver is active on this CPU
+>   boost state support:
+>     Supported: no
+>     Active: no
+> ```
+> This is normal and expected behavior. The role automatically skips `cpupower.service` enablement and restart handlers on VM guests, ensuring idempotent runs without failed service states.
 
 ---
 

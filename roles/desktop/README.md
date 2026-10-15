@@ -39,35 +39,37 @@ Under the [workstation layering taxonomy](../../docs/layering-architecture.md), 
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular subtask files (`gnome.yml`, `theme.yml`, `flatpak.yml`, `vscode.yml`, `antigravity.yml`, `input-remapper.yml`).
+1. **Task Dispatcher Pattern**: [`tasks/main.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/main.yml) acts as the primary dispatcher routing execution to modular subtask files (`gnome.yml`, `theme.yml`, `flatpak.yml`, `vscode.yml`, `antigravity.yml`, `input-remapper.yml`).
 2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, defining distribution packages (`desktop_packages.qt`, `gtk`, `gnome`, `theme`) cleanly without inline conditional mess.
 3. **Failure-Shape Pattern (Shape 1: Context Re-raise)**:
-   - `tasks/theme.yml`: Catches failures in both Fedora DNF installation and Enterprise Linux source builds (meson/ninja), outputs diagnostic repository/compilation context, and cleanly halts execution via `ansible.builtin.fail`.
+   - [`tasks/theme.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/theme.yml): Catches failures in both Fedora DNF installation and Enterprise Linux source builds (meson/ninja), outputs diagnostic repository/compilation context, and cleanly halts execution via `ansible.builtin.fail`.
 4. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `desktop` tag and fine-grained feature tags (`gnome`, `theme`, `flathub`, `flatpaks`, `vscode`, `antigravity`, `input-remapper`, `packages`).
 5. **Backup-on-Write Pattern**: Managed configuration files (`/etc/yum.repos.d/vscode.repo`, `/opt/antigravity/.installed_url`) specify `backup: true` to prevent accidental overwrites.
 6. **Handler Notification Pattern**: Changes to service unit files (such as input-remapper) notify `Daemon reload` (`systemd daemon-reload`).
 7. **User Context Isolation (`become_user`)**: User-scoped configurations (GNOME extension dconf state) execute directly under `become_user: "{{ user.name }}"` to ensure appropriate permissions in user schemas.
 8. **Pre-flight Idempotency Tracking**: Antigravity Hub and IDE verify previously extracted archive URLs via `.installed_url` stat and slurp checks, skipping redundant network downloads and extraction.
-9. **Pre-flight Assertion Pattern**: Frontloads system requirement verification (`tasks/assert.yml`) to fail fast when prerequisites (OS family, DNF package manager, effective root privileges, desktop environment) are not met.
+9. **Pre-flight Assertion Pattern**: Frontloads system requirement verification ([`tasks/assert.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/assert.yml)) to fail fast when prerequisites (OS family, DNF package manager, effective root privileges, desktop environment) are not met.
+10. **Check-Mode Safety Pattern**: Read-only command probes ([`systemctl get-default`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome.yml#L18-L23) in [`tasks/gnome.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome.yml) and [`gsettings get`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome_extensions.yml#L42-L48) in [`tasks/gnome_extensions.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome_extensions.yml)) specify `check_mode: false` so that runtime facts and target state are accurately discovered during dry runs without emitting false change events. Archive download and extraction tasks in [`tasks/antigravity.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/antigravity.yml#L51-L119) are guarded by `when: not (ansible_check_mode | default(false))` to prevent unarchive failures and accidental state mutation during check mode.
+11. **Strict List Typing Pattern**: Conditional package installations and list length checks across [`tasks/main.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/main.yml#L30), [`tasks/gnome.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome.yml#L7-L16), and [`tasks/gnome_extensions.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome_extensions.yml#L8) utilize explicit `| default([]) | length > 0` evaluations rather than bare list truthiness, enforcing strict typing compliance under Ansible-core 2.18+.
 
 ---
 
 ## Core Components & Subsystems
 
-### 1. Display Toolkits & Graphical Server (`tasks/main.yml`, `tasks/gnome.yml`)
+### 1. Display Toolkits & Graphical Server ([`tasks/main.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/main.yml), [`tasks/gnome.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome.yml))
 - Deploys Qt runtime libraries (`qt5`, `qt6`, `qt5ct`, `qt6ct`, `qscintilla-qt5`) and GTK libraries (`gtk4`, `gtk3-devel`, `gtksourceview4`, `gtksourceview5`).
-- On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups (`@gnome-desktop`, `@graphical-server-environment`, `gdm`, `gnome-tweaks`).
-- Inspects systemd default target and promotes to `graphical.target` when not already set.
+- On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups and tools. On Fedora, `@graphical-server-environment` is rejected/filtered out in favor of `@gnome-desktop`, `gdm`, and `gnome-tweaks` via `desktop_packages.gnome | reject('equalto', '@graphical-server-environment') | list`.
+- Inspects systemd default target (`systemctl get-default` executed with `check_mode: false`) and promotes to `graphical.target` when not already set.
 
 ### 2. GNOME Shell Extensions (`tasks/gnome_extensions.yml`)
 - Provisions system GNOME shell extension RPM packages via DNF (`desktop_gnome_extensions`).
 - By default, extensions are left disabled (`desktop_gnome_extensions_enable: false`).
 - When `desktop_gnome_extensions_enable` is set to `true`, enables configured extensions in dconf for the target user.
 
-### 3. Desktop Theming (`tasks/theme.yml`)
+### 3. Desktop Theming ([`tasks/theme.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/theme.yml))
 - Checks `/usr/share/themes/Yaru` directory via `ansible.builtin.stat` to skip redundant installation or source builds when the theme is already present.
 - Supports forcing re-installation/re-build via `desktop_theme_force_install: true`.
-- **Fedora**: Installs the complete Ubuntu Yaru theme family from DNF packages (`yaru-theme`, `gnome-shell-theme-yaru`, `yaru-gtk*-theme`, `yaru-icon-theme`, `yaru-sound-theme`).
+- **Fedora**: Installs the Ubuntu Yaru theme family from DNF packages (`yaru-theme`, `gnome-shell-theme-yaru`, `yaru-gtk3-theme`, `yaru-gtk4-theme`, `yaru-gtksourceview-theme`, `yaru-icon-theme`, `yaru-sound-theme`). Note that `yaru-gtk2-theme` is retired on Fedora 44 and dynamically filtered out via `desktop_packages.theme | reject('equalto', 'yaru-gtk2-theme') | list`.
 - **Enterprise Linux (AlmaLinux & Rocky Linux)**: Installs build dependencies, clones the upstream Yaru theme repository, and compiles/installs system-wide via `meson setup build` and `ninja -C build install`.
 
 ### 4. System Management Flatpaks (`tasks/flatpak.yml`)
@@ -85,9 +87,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`).
 - User-space VS Code extensions have been decoupled from the system Ansible role and are managed idempotently via Layer 2 yadm bootstrap (`~/.config/yadm/bootstrap.d/91-install-vscode-extensions.sh`).
 
-### 6. Google Antigravity Hub & IDE (`tasks/antigravity.yml`)
+### 6. Google Antigravity Hub & IDE ([`tasks/antigravity.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/antigravity.yml))
 - Provisions the Google Antigravity Hub (`/opt/antigravity`) and IDE (`/opt/antigravity-ide`) from official release tarballs.
 - Employs `.installed_url` state markers to track deployed builds and prevent re-downloading identical archives.
+- Includes check-mode safety guards: Download and extraction task blocks are guarded with `when: not (ansible_check_mode | default(false))` to ensure safe dry-run execution without missing archive or unarchive extraction errors.
 - Creates standard Freedesktop desktop entries (`antigravity.desktop` and `antigravity-ide.desktop`) in `/usr/share/applications/`.
 - Supports clean uninstallation when `desktop_antigravity_state: absent`.
 
@@ -102,13 +105,13 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 | Feature / Capability | Fedora (40+) | AlmaLinux (9 & 10) | Rocky Linux (9 & 10) |
 |---|---|---|---|
-| **Distro Variable File** | `vars/Fedora.yml` | `vars/AlmaLinux.yml` | `vars/Rocky.yml` |
+| **Distro Variable File** | [`vars/Fedora.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/vars/Fedora.yml) | [`vars/AlmaLinux.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/vars/AlmaLinux.yml) | [`vars/Rocky.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/vars/Rocky.yml) |
 | **Qt & GTK Runtimes** | DNF packages | DNF packages | DNF packages |
-| **GNOME Desktop** | `@gnome-desktop`, `gdm` | `@gnome-desktop`, `gdm` | `@gnome-desktop`, `gdm` |
-| **Yaru Theme Strategy** | DNF Package install | Meson/Ninja source build | Meson/Ninja source build |
+| **GNOME Desktop** | `@gnome-desktop`, `gdm`, `gnome-tweaks` (`@graphical-server-environment` filtered) | `@gnome-desktop`, `gdm`, `gnome-tweaks` (`@graphical-server-environment` filtered) | `@gnome-desktop`, `gdm`, `gnome-tweaks` (`@graphical-server-environment` filtered) |
+| **Yaru Theme Strategy** | DNF Package install (`yaru-gtk2-theme` filtered on Fedora 44) | Meson/Ninja source build | Meson/Ninja source build |
 | **System Flathub Remote** | Supported (`method: system`) | Supported (`method: system`) | Supported (`method: system`) |
 | **VS Code Delivery** | Microsoft DNF Repo or Flatpak | Microsoft DNF Repo or Flatpak | Microsoft DNF Repo or Flatpak |
-| **Antigravity Hub & IDE** | `/opt` tarball deployment | `/opt` tarball deployment | `/opt` tarball deployment |
+| **Antigravity Hub & IDE** | `/opt` tarball deployment (check-mode safe) | `/opt` tarball deployment (check-mode safe) | `/opt` tarball deployment (check-mode safe) |
 | **Input-Remapper** | Source build & systemd daemon | Source build & systemd daemon | Source build & systemd daemon |
 
 ---

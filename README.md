@@ -4,16 +4,17 @@
 
 A deliberately boring foundation under a fast-moving ecosystem.
 
-Ansible control repository for provisioning Fedora and AlmaLinux machines —
+Ansible control repository for provisioning Fedora 44, AlmaLinux 10, and Rocky Linux 10 machines —
 system configuration, virtualisation, and container runtimes — from a single
-inventory.
+inventory with verified support for Ansible core 2.18–2.20 and Python 3.14.
 
 Kept as a working notebook: the roles, playbooks, and plugins are the current
 entries of a decade's experiments, and the git history keeps the earlier
 entries.
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15-black.svg)](https://docs.ansible.com/ansible-core/devel/)
+[![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
+[![python](https://img.shields.io/badge/python-3.14%20%7C%203.12%2B-blue.svg)](https://www.python.org/)
 [![CI](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml/badge.svg)](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml)
 
 </div>
@@ -73,8 +74,8 @@ is not.
 The name is borrowed from music. Syncopation puts the accent where the meter
 does not expect it — between the beats, against the pulse — and it only works
 because the pulse holds. Nothing in this repository keeps the same time. The
-AlmaLinux base moves on a ten-year clock, Fedora on a thirteen-month one,
-Ansible whenever a playbook runs, the agent tooling on whatever upstream
+AlmaLinux 10 and Rocky Linux 10 base moves on a ten-year clock, Fedora 44 on a thirteen-month one,
+Ansible (core 2.18–2.20 on Python 3.14) whenever a playbook runs, the agent tooling on whatever upstream
 shipped this week. Syncopated is the practice of letting those disparate
 systems land on their own offbeats without losing the downbeat underneath
 them.
@@ -116,21 +117,24 @@ The state of the entries, facet by facet:
   extracted to the standalone [`llmops`](https://gitlab.com/syncopatedX/llmops)
   repository. Decoupled from host provisioning, the LLM runtime and its self-healing
   pipeline evolve alongside model updates without risking the workstation baseline.
-- **Full workstation provisioning runs on Fedora, AlmaLinux, and Rocky Linux.**
-  - `playbooks/workstation.yml` includes four plays — base, system, user, coding agents —
+- **Full workstation provisioning runs on Fedora 44, AlmaLinux 10, and Rocky Linux 10.**
+  - [`playbooks/workstation.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/playbooks/workstation.yml) includes four plays — base, system, user, coding agents —
     against the `workstations` group in inventory for multi-host push provisioning.
-  - `local.yml` provides an autonomous local pull and convergence playbook
+  - [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) provides an autonomous local pull and convergence playbook
     specifically designed for `ansible-pull` and local bootstrap. It implements the
     15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical
     display, containers, CUDA/Vulkan GPU acceleration), Tag-as-Select role filtering,
     check-mode safety, and post-flight reboot verification.
-  - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](docs/layering-architecture.md),
+  - Integrated with Yadm bootstrap via `01-ansible-pull.sh`, which acts as an automated
+    orchestration bridge: on fresh machine onboarding, Yadm triggers `01-ansible-pull.sh` to
+    converge Layer 1 host packages and services via [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) before executing user dotfiles (Layer 2).
+  - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/docs/layering-architecture.md),
     partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
   - All 10 roles frontload pre-flight assertions (`tasks/assert.yml`) to fail fast (< 1s)
-    on unmet preconditions (OS family, DNF package manager, effective root elevation
+    on unmet preconditions (OS family, DNF/DNF5 package manager, effective root elevation
     via `id -u`, and identity variables) before mutations occur.
   - System-level utilities (`bun` and GPU-gated `transcribe.cpp` supporting CUDA and Vulkan backends)
-    live natively in `roles/tools`. Transcribe compilation is skipped automatically on hosts without
+    live natively in [`roles/tools`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tools). Transcribe compilation is skipped automatically on hosts without
     detected GPU devices (`tools_transcribe_require_gpu: true`).
 - **Observability runs in both directions.** The `llm_analyzer` callback
   records what every play and task actually does to an append-only trace
@@ -139,16 +143,17 @@ The state of the entries, facet by facet:
   terminal — DNF5 transaction tables, systemd transitions, phase banners.
   The formatter works; its failure path is the owed polish: a failed task
   currently obscures more than it shows.
-- **Testing exists where the risk lives.** The `base` role carries a Molecule
+- **Testing exists where the risk lives.** The [`base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) role carries a Molecule
   scenario that builds Fedora and AlmaLinux containers, converges twice, and
   fails on any second-run change. Everything lints.
 - **bootc is direction, not state.** The image-transaction path is designed
   for, walked partway; the dnf baseline carries the weight today.
 
-What is owed is polish, not function: idempotency lock-tightness on re-runs,
-the `rich-ci-formatter` failure path, and a recorded end-to-end demonstration.
-The evidence so far is convergence on real hosts and the trace store, not a
-screencast.
+What is owed is polish, not function: check-mode idempotency, fail-fast assertions (< 1s),
+and end-to-end autonomous convergence via [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) and Yadm `01-ansible-pull.sh` are fully verified
+across Fedora 44, AlmaLinux 10, and Rocky Linux 10. The remaining polish is in the `rich-ci-formatter`
+failure path and a recorded end-to-end demonstration. The evidence so far is convergence on real hosts
+and the trace store, not a screencast.
 
 ## Intent
 
@@ -158,7 +163,7 @@ explicitly, layer by layer, because the parts only make sense as a whole.
 
 ### Layers
 
-A strict three-tier taxonomy governs distribution across tooling (see [`docs/layering-architecture.md`](docs/layering-architecture.md)):
+A strict three-tier taxonomy governs distribution across tooling (see [`docs/layering-architecture.md`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/docs/layering-architecture.md)):
 
 - **The image — the floor (Layer 0).** Kernel, drivers, container runtimes, and the base package set. Built,
   never mutated in place; a change is a new artifact with rollback, not a
@@ -166,8 +171,8 @@ A strict three-tier taxonomy governs distribution across tooling (see [`docs/lay
   composing are maintained in the companion
   [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository.
 - **Ansible — the system above the floor (Layer 1).** Host-level packages (`base_packages`),
-  system services, hardware acceleration, system utilities and coding agent CLIs (`roles/tools`), and system-wide Flatpaks
-  (`roles/desktop`). Idempotent by contract —
+  system services, hardware acceleration, system utilities and coding agent CLIs ([`roles/tools`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tools)), and system-wide Flatpaks
+  ([`roles/desktop`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop)). Idempotent by contract —
   re-running a playbook against a converged host should report zero changes.
 
 - **yadm — the user (Layer 2).** Dotfiles, shell environment (`~/.zshrc`), user version managers

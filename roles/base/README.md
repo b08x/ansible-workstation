@@ -10,7 +10,7 @@ In accordance with the [distribution layering taxonomy](../../docs/layering-arch
 
 - **Ansible (`roles/base`)**:
   - Manages host-level RPM foundation packages (`base_packages`) via DNF.
-  - Configures DNF package manager optimizations (`fastestmirror`, `dnf-plugins-core`, metadata caching).
+  - Configures DNF package manager optimizations (`fastestmirror=True` on Fedora, skipping EL 10 where unsupported by DNF 5; `dnf-plugins-core`, metadata caching).
   - Orchestrates distribution and third-party repositories: EPEL, CRB/PowerTools, RPM Fusion (Free & Non-Free), and Fedora COPR.
   - Configures core system services: OpenSSH daemon (`sshd`) and installs `zram-generator` (configured by the `tuning` role).
   - Provisions Intel hardware acceleration (graphics drivers, media runtimes, firmware) and optional Intel oneAPI toolkit.
@@ -56,7 +56,8 @@ The role standardizes block-and-rescue error handling into three distinct shapes
 
 ## Components
 
-### 1. DNF Performance Optimization (`tasks/dnf.yml`)
+### 1. DNF Performance Optimization ([`tasks/dnf.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/tasks/dnf.yml))
+- Optimization tasks configuring `fastestmirror=True` in `/etc/dnf/dnf.conf` are gated to `when: ansible_distribution == 'Fedora'` due to DNF 5 compatibility differences (DNF 5 removes the legacy `fastestmirror` configuration option; skipping Enterprise Linux 10 / AlmaLinux 10 / Rocky Linux 10 prevents configuration errors).
 - Installs `dnf-plugins-core`.
 - Configures `/etc/dnf/dnf.conf` with `fastestmirror=True`.
 - Refreshes metadata cache (`dnf makecache`) only when configuration values change.
@@ -109,8 +110,9 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 
 | Component / Feature | Fedora (40+) | AlmaLinux 10 | Rocky Linux 10 | Rocky Linux 9 |
 |---|---|---|---|---|
-| **Distro Tasks** | `distro/Fedora.yml` | `distro/EL.yml` | `distro/EL.yml` | `distro/EL.yml` |
-| **Package Variables** | `vars/Fedora.yml` | `vars/AlmaLinux.yml` | `vars/Rocky-10.yml` | `vars/Rocky-9.yml` |
+| **Distro Tasks** | [`distro/Fedora.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/tasks/distro/Fedora.yml) | [`distro/EL.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/tasks/distro/EL.yml) | [`distro/EL.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/tasks/distro/EL.yml) | [`distro/EL.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/tasks/distro/EL.yml) |
+| **Package Variables** | [`vars/Fedora.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/vars/Fedora.yml) | [`vars/AlmaLinux.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/vars/AlmaLinux.yml) | [`vars/Rocky-10.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/vars/Rocky-10.yml) | [`vars/Rocky-9.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/vars/Rocky-9.yml) |
+| **DNF Mirror Optimization (`fastestmirror`)** | Supported (`fastestmirror=True`) | Skipped (DNF 5 incompatibility) | Skipped (DNF 5 incompatibility) | Skipped (gated to Fedora) |
 | **Zlib Compatibility** | Distro default | `zlib-ng-compat-devel` | `zlib-ng-compat-devel` | `zlib-devel` |
 | **Firewall / Bridging** | `iptables-nft` | `iptables-nft` | `iptables-nft` | `iptables-nft` |
 | **Modern Utilities (`uv`, `just`)** | Distro package | Native RPM | Native RPM | Skipped (No EL9 build) |
@@ -164,7 +166,7 @@ Use tags with `--tags` or `--skip-tags` for granular task execution:
 | `packages` | DNF package installation and package-specific variables |
 | `distro` | Distribution-specific variable and repository includes |
 | `repos` / `repositories` | DNF and third-party repository configuration tasks |
-| `dnf` / `mirrors` | DNF performance and `fastestmirror` tasks |
+| `dnf` / `mirrors` | DNF performance and `fastestmirror` tasks (evaluates on Fedora hosts; skipped on EL) |
 | `epel` | EPEL repository installation and mirror configuration (EL) |
 | `rpmfusion` | RPM Fusion Free & Non-Free GPG key and repository installation |
 | `copr` | COPR repository enablement (Fedora and EL 10) |

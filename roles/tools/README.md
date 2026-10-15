@@ -1,6 +1,6 @@
 # Ansible Role: tools
 
-Provisions host-level command-line utilities, hardware-accelerated compiled binaries, user-space modern Go toolchains, and AI coding agent command-line interfaces (`agy`, `claude`, `crush`, `opencode`, `vibe`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
+Provisions host-level command-line utilities, hardware-accelerated compiled binaries, Go toolchain environment validation (>= 1.22), and AI coding agent command-line interfaces (`agy`, `claude`, `crush`, `opencode`, `vibe`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
 
 ---
 
@@ -25,11 +25,11 @@ It establishes a strict boundary separating binary installation from user config
 |   - System Binaries (/usr/local/bin):                                    |
 |       * Bun Standalone JS/TS Runtime (bun)                               |
 |       * Hardware-Accelerated Audio Transcription (transcribe.cpp)        |
-|   - User Toolchains & Coding Agent CLIs (~/.local/bin):                  |
-|       * Standalone Go Toolchain (go, gofmt) in ~/.local/go               |
+|   - User Toolchains & Coding Agent CLIs (~/.local/bin & ~/go/bin):       |
+|       * Go Compiler Validation (>= 1.22 in PATH)                         |
 |       * Google Antigravity CLI (agy)                                     |
 |       * Anthropic Claude Code CLI (claude)                               |
-|       * Charm Crush CLI (crush compiled via Go)                          |
+|       * Charm Crush CLI (Go-compiled in ~/go/bin and ~/.local/bin)       |
 |       * OpenCode CLI (opencode)                                          |
 |       * Mistral Vibe CLI (vibe via uv tool)                              |
 +--------------------------------------------------------------------------+
@@ -46,14 +46,14 @@ It establishes a strict boundary separating binary installation from user config
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `vibe.yml`) gated by explicit boolean feature flags (`tools_install_*`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `vibe.yml`) gated by explicit boolean feature flags (`tools_install_*`). Specifically, `go.yml` performs fail-fast Go environment validation.
 2. **Pre-flight Hardware Capability Checks**:
    - `tasks/transcribe-cpp.yml` probes the host for CUDA hardware devices (`nvidia-smi`, `/dev/nvidia*`, PCI vendor `0x10de`) and Vulkan physical GPU devices (`vulkaninfo`, render nodes).
    - If neither CUDA nor Vulkan hardware devices are present and `tools_transcribe_require_gpu: true`, compilation is automatically **skipped** with an informative debug notice rather than failing or wasting resources on CPU builds.
 3. **Failure-Shape Pattern (Shape 2: True Fallback & Auto-Detection)**:
    - Evaluates hardware acceleration tiers for Whisper transcription: CUDA (`GGML_CUDA=ON`) &rarr; Intel SYCL/oneAPI (`GGML_SYCL=ON`) &rarr; Vulkan (`GGML_VULKAN=ON`) &rarr; CPU fallback.
-4. **Idempotency Stat Guards**: Every installer performs a preliminary stat check or version probe (`bun`, `transcribe`, `go version`, `agy`, `claude`, `crush`, `opencode`, `vibe`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts.
-5. **User Context Isolation (`become_user`)**: User-scoped tools and Go toolchains compile and install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership.
+4. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `transcribe`, `agy`, `claude`, `crush`, `opencode`, `vibe`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which npm`, `which uv`, `which go`, `go version`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
+5. **User Context & Runtime Isolation (`become_user`)**: User-scoped tools and Go-compiled utilities install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership. Additionally, npm global installs (`claude`, `opencode`) define `TMPDIR: "/run/user/{{ user.uid }}/tmp"` under unprivileged `become_user` to eliminate tempfile permission collisions.
 6. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `agents`, `system`) and dedicated tool tags (`bun`, `transcribe`, `go`, `antigravity`, `claude`, `crush`, `opencode`, `vibe`).
 7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `user.home`) and Tier 2 namespaced role variables (`tools_*`).
 8. **Pre-flight Assertion Pattern**: Frontloads prerequisite validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, effective root privileges, target user configuration, Go toolchain parameters) are missing or misconfigured.
@@ -76,25 +76,30 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
   - **GPU Requirement Gate**: Controlled by `tools_transcribe_require_gpu: true` (default). When no GPU accelerator is found, cleanly skips compilation.
 - Installs binary to `/usr/local/bin/transcribe`.
 
-### 3. User-Space Go Toolchain (`tasks/go.yml`)
-- Provisions a standalone Go distribution directly into `~/.local/go` and symlinks `go` and `gofmt` to `~/.local/bin/go`.
-- Solves enterprise distribution package lag (e.g. AlmaLinux / Rocky Linux 10 shipping older Go compilers) by providing modern Go (1.27+) for building developer CLIs.
-- Probes `go version` and only downloads/re-extracts when missing or when older than `tools_go_version`.
+### 3. Go Toolchain Environment Validation (`tasks/go.yml`)
+- Verifies that a valid Go compiler (>= 1.22, controlled by `tools_go_min_version`) is available in `PATH`.
+- Prepares user binary and Go workspace directories (`~/.local/bin` and `~/go/bin`) under target user ownership.
+- Probes compiler availability and version using `which go` and `go version` with check-mode safe flags.
+- Asserts environment readiness via `ansible.builtin.assert`, failing fast with guidance to install Go via package manager (e.g. `dnf install golang`) if Go is absent or below the required version.
 
 ### 4. Google Antigravity CLI (`tasks/antigravity.yml`)
 - Installs the official Google Antigravity CLI (`agy`) into `~/.local/bin/agy`.
 - Stat guard ensures installation script only executes when the binary is absent or forced.
 
 ### 5. Anthropic Claude Code CLI (`tasks/claude.yml`)
-- Installs Anthropic's Claude Code CLI (`@anthropic-ai/claude-code`) via user npm global prefix.
+- Installs Anthropic's Claude Code CLI (`@anthropic-ai/claude-code`) via user npm global prefix into `~/.local/bin/claude`.
 - Stat check verifies `~/.local/bin/claude`.
+- Applies `TMPDIR: "/run/user/{{ user.uid }}/tmp"` runtime isolation under unprivileged `become_user` to eliminate tempfile permission collisions during npm global installation.
 
 ### 6. Charm Crush CLI (`tasks/crush.yml`)
-- Compiles Charm's Crush CLI (`github.com/charmbracelet/crush@latest`) using the user Go toolchain.
+- Compiles Charm's Crush CLI (`github.com/charmbracelet/crush@latest`) using Go (`go install`).
 - Installs binary to `~/go/bin/crush` and symlinks into `~/.local/bin/crush`.
+- Sets `GOTOOLCHAIN: "auto"` parameter in the build environment to ensure smooth compilation when dependencies require newer toolchains than host default (overriding Fedora's system-wide `GOTOOLCHAIN=local` setting).
 
 ### 7. OpenCode CLI (`tasks/opencode.yml`)
 - Installs OpenCode (`opencode-ai`) via user npm global prefix into `~/.local/bin/opencode`.
+- Stat check verifies `~/.local/bin/opencode`.
+- Implements `TMPDIR: "/run/user/{{ user.uid }}/tmp"` runtime isolation under unprivileged `become_user` to eliminate tempfile permission collisions.
 
 ### 8. Mistral Vibe CLI (`tasks/vibe.yml`)
 - Installs Mistral's Vibe CLI (`mistral-vibe`) via `uv tool install` into `~/.local/bin/vibe`.
@@ -107,7 +112,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 |---|---|---|---|
 | **Bun Runtime** | `/usr/local/bin/bun` | `/usr/local/bin/bun` | `/usr/local/bin/bun` |
 | **Transcribe.cpp** | CUDA / Vulkan / CPU | CUDA / Vulkan / CPU | CUDA / Vulkan / CPU |
-| **User Go Toolchain** | `~/.local/go` | `~/.local/go` | `~/.local/go` |
+| **Go Toolchain** | System Go (>= 1.22 in PATH) | System Go (>= 1.22 in PATH) | System Go (>= 1.22 in PATH) |
 | **Antigravity CLI** | `~/.local/bin/agy` | `~/.local/bin/agy` | `~/.local/bin/agy` |
 | **Claude Code CLI** | `~/.local/bin/claude` | `~/.local/bin/claude` | `~/.local/bin/claude` |
 | **Crush CLI** | `~/.local/bin/crush` | `~/.local/bin/crush` | `~/.local/bin/crush` |
@@ -139,6 +144,7 @@ These variables are namespaced with `tools_*` and control role-specific behavior
 | `tools_user` | `{{ user.name }}` | Target workstation user for user-scoped tools. |
 | `tools_user_home` | `{{ user.home }}` | Home directory of target user. |
 | `tools_user_local_bin` | `{{ tools_user_home }}/.local/bin` | User binary execution directory. |
+| `tools_user_go_bin` | `{{ tools_user_home }}/go/bin` | User Go binary execution directory. |
 | `tools_install_bun` | `true` | Enable/disable Bun installation. |
 | `tools_bun_dest` | `"/usr/local/bin/bun"` | Destination path for Bun executable. |
 | `tools_bun_force_install` | `false` | Force re-download and re-extraction of Bun. |
@@ -149,9 +155,8 @@ These variables are namespaced with `tools_*` and control role-specific behavior
 | `tools_transcribe_require_gpu`| `true` | Skip compilation if neither CUDA nor Vulkan devices are detected. |
 | `tools_transcribe_dest` | `"/usr/local/bin/transcribe"` | Destination path for transcribe binary. |
 | `tools_transcribe_force_build`| `false` | Force CMake rebuild even if binary exists. |
-| `tools_install_go` | `true` | Enable/disable user Go toolchain installation. |
-| `tools_go_version` | `"1.27.1"` | Go release version to download. |
-| `tools_go_dest_dir` | `{{ tools_user_home }}/.local/go` | Installation path for Go toolchain. |
+| `tools_install_go` | `true` | Enable/disable Go toolchain environment validation. |
+| `tools_go_min_version` | `"1.22"` | Minimum Go compiler version required in PATH. |
 | `tools_install_antigravity` | `true` | Enable/disable Google Antigravity CLI. |
 | `tools_install_claude` | `true` | Enable/disable Claude Code CLI. |
 | `tools_install_crush` | `true` | Enable/disable Charm Crush CLI. |
@@ -172,7 +177,7 @@ Use tags with `--tags` or `--skip-tags` for targeted execution:
 | `system` | Playbook | System configuration group tag shared across system provisioning roles. |
 | `bun` | Feature | Runs only Bun installation tasks. |
 | `transcribe` | Feature | Runs only transcribe.cpp hardware detection and build tasks. |
-| `go` | Feature | Runs only user-space Go toolchain installation. |
+| `go` | Feature | Runs only Go toolchain environment validation tasks. |
 | `antigravity` | Feature | Runs only Antigravity CLI tasks. |
 | `claude` | Feature | Runs only Claude Code CLI tasks. |
 | `crush` | Feature | Runs only Crush CLI tasks. |
@@ -225,7 +230,7 @@ Rebuild transcribe.cpp with force build flag:
 ansible-playbook local.yml --tags "transcribe" -e "tools_transcribe_force_build=true"
 ```
 
-Update only the user Go toolchain:
+Validate Go toolchain environment:
 
 ```bash
 ansible-playbook local.yml --tags "go"
@@ -250,9 +255,11 @@ transcribe --help
 ### 2. User Toolchain & Go Verification
 
 ```bash
-# Verify user Go binary
-~/.local/bin/go version
-~/.local/bin/gofmt --help
+# Verify Go compiler
+go version
+
+# Verify Go-compiled Crush CLI
+~/.local/bin/crush --version
 ```
 
 ### 3. Coding Agent CLIs Verification

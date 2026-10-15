@@ -40,7 +40,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the dispatcher coordinating core provisioning with dedicated subtasks (`network_conflicts.yml`).
 2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, defining `libvirt_packages` (`@virtualization`) and `libvirt_bridge_conf_path` across Fedora, AlmaLinux, and Rocky Linux.
-3. **Pre-flight Capability Checks**: `tasks/network_conflicts.yml` probes for `iptables` and checks the existence of the `DOCKER-USER` chain before attempting rule manipulation, ensuring non-fatal, safe convergence on systems running nftables-only or without Docker.
+3. **Pre-flight Capability Checks & Check-Mode Safety**: `tasks/network_conflicts.yml` executes capability probes (`which iptables` and `iptables -L DOCKER-USER -n`) configured with `check_mode: false` and `failed_when: false`. This ensures read-only probing commands always execute during Ansible dry runs (`--check`) without reporting spurious failures. Subsequent tasks use defensive Jinja2 fallback filters (`(libvirt_iptables_check.rc | default(1)) == 0` and `(libvirt_docker_user_chain.rc | default(1)) == 0`), guaranteeing safe, idempotent convergence on systems running pure nftables/firewalld, environments without Docker, or runs under check mode.
 4. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`libvirt`, `virt`) and granular feature tags (`install`, `config`, `qemu`, `lvm`, `users`, `service`, `kvm`, `docker`, `network`).
 5. **Backup-on-Write Pattern**: All templated or modified configuration files (`/etc/libvirt/libvirtd.conf`, `/etc/qemu/bridge.conf`, `/etc/lvm/lvm.conf`) specify `backup: true` to prevent data loss.
 6. **Handler Notification Pattern**: Changes to `/etc/libvirt/libvirtd.conf` notify `Restart libvirtd`.
@@ -75,10 +75,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Additionally adds the workstation user to both `libvirt` and `qemu` groups to ensure complete access to `/dev/kvm`, disk images, and serial sockets.
 
 ### 6. Docker & Libvirt Network Conflict Resolution (`tasks/network_conflicts.yml`)
-- Docker alters the host's `iptables` FORWARD chain policy to `DROP`, which by default breaks bridge packet routing for Libvirt guest virtual machines on `virbr0`.
-- Probes for `iptables` and the `DOCKER-USER` chain.
-- Injects `ACCEPT` rules into the `DOCKER-USER` chain for both inbound (`in_interface: virbr+`) and outbound (`out_interface: virbr+`) virtualization traffic.
-- Ensures seamless coexistence where both Docker containers and Libvirt virtual machines communicate across host bridges simultaneously.
+- **Docker FORWARD Chain DROP Conflict**: When the Docker daemon initializes on a host with iptables enabled, it sets the default policy of the Linux `FORWARD` filter chain to `DROP`. Unless explicitly exempted, forwarded packets crossing Linux bridges—including Libvirt's default `virbr0` and custom virtual guest networks—are dropped by the host kernel, severing guest networking and outbound connectivity.
+- **Modern Fedora (41/44+) Parity**: Modern Fedora systems (such as Fedora 41 and Fedora 44+) default to `firewalld` backed by an `nftables` packet filtering engine, and legacy `iptables` utilities are frequently omitted. Libvirt natively integrates with `firewalld` by dynamically registering its virtual bridges (`virbr*`) into firewalld's dedicated `libvirt` zone, which permits guest forwarding and NAT out of the box without requiring legacy iptables rules.
+- **Dynamic Detection & Non-Fatal Skipping**: `tasks/network_conflicts.yml` dynamically inspects the host environment by verifying whether the `iptables` binary exists (`which iptables`) and whether the `DOCKER-USER` chain has been established (`iptables -L DOCKER-USER -n`). If either capability is absent—such as on pure nftables/firewalld installations, hosts utilizing Podman exclusively, or hosts where the Docker daemon is not active—the iptables rule insertion tasks cleanly skip without raising failures.
+- **Check-Mode Safety & Dry-Run Idempotency**: The pre-flight discovery probes run with `check_mode: false` and `failed_when: false` so that read-only detection commands always execute during Ansible dry runs (`--check`) without reporting spurious errors. Downstream tasks use defensive Jinja2 fallback filters (`(libvirt_iptables_check.rc | default(1)) == 0` and `(libvirt_docker_user_chain.rc | default(1)) == 0`), ensuring variables evaluate reliably even if previous steps were bypassed. When Docker iptables chains are detected, `ACCEPT` rules for inbound (`in_interface: virbr+`) and outbound (`out_interface: virbr+`) traffic are idempotently inserted into `DOCKER-USER` to guarantee uninterrupted guest network transit.
 
 ---
 
@@ -91,7 +91,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | **Service Name** | `libvirtd.service` | `libvirtd.service` | `libvirtd.service` |
 | **Bridge Config Path** | `/etc/qemu/bridge.conf` | `/etc/qemu/bridge.conf` | `/etc/qemu/bridge.conf` |
 | **LVM Tuning** | Supported (`use_lvmetad = 0`) | Supported (`use_lvmetad = 0`) | Supported (`use_lvmetad = 0`) |
-| **Docker Interop Fix** | `DOCKER-USER` iptables | `DOCKER-USER` iptables | `DOCKER-USER` iptables |
+| **Docker Interop Fix** | Auto-detected (iptables DOCKER-USER if present; cleanly skipped on pure nftables/firewalld) | `DOCKER-USER` iptables | `DOCKER-USER` iptables |
 
 ---
 
@@ -249,9 +249,18 @@ cat /etc/qemu/bridge.conf
 
 ### 3. Docker Interoperability Check
 
+For environments running Docker with legacy iptables packet filtering:
+
 ```bash
-# Check DOCKER-USER chain rules for virbr bridge acceptance
-iptables -L DOCKER-USER -n -v
+# Check DOCKER-USER chain rules for virbr bridge acceptance (if iptables is present)
+which iptables >/dev/null 2>&1 && iptables -L DOCKER-USER -n -v
+```
+
+For environments utilizing native firewalld with nftables (e.g., modern Fedora 41/44+):
+
+```bash
+# Inspect libvirt firewalld zone configuration and interfaces
+firewall-cmd --zone=libvirt --list-all
 ```
 
 ### 4. Group Membership Verification
