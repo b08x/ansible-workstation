@@ -72,7 +72,9 @@ else
 fi
 
 echo "--> Executing yadm bootstrap..."
-yadm bootstrap
+yadm bootstrap || {
+  echo "WARNING: yadm bootstrap completed with non-zero exit code (optional tasks skipped/failed)." >&2
+}
 
 # Create marker to prevent re-runs
 touch "$STATE_FILE"
