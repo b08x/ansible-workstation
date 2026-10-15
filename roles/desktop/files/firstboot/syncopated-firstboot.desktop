@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Syncopated First Boot Setup
+Comment=Initialize user dotfiles and workstation configuration
+Exec=/usr/local/bin/syncopated-firstboot-launcher
+Terminal=false
+Categories=System;Utility;
+X-GNOME-Autostart-enabled=true
+NoDisplay=false

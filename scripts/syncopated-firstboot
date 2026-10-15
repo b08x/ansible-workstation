@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# syncopated-firstboot
+# Stage 3: Interactive user dotfiles onboarding & unprivileged convergence
+# ==============================================================================
+
+set -euo pipefail
+
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/syncopated"
+STATE_FILE="${STATE_DIR}/firstboot.done"
+
+# Exit silently if firstboot was already completed
+if [[ -f "$STATE_FILE" ]]; then
+  exit 0
+fi
+
+mkdir -p "$STATE_DIR"
+
+DEFAULT_DOTS_REPO="https://github.com/b08x/dots.git"
+
+prompt_dots_repo() {
+  local prompt_text="Enter dotfiles repository URL:"
+  local repo=""
+
+  if [[ -n "${DOTS_REPO:-}" || "${SYNCOPATED_FIRSTBOOT_AUTO:-no}" == "yes" ]]; then
+    echo "${DOTS_REPO:-$DEFAULT_DOTS_REPO}"
+    return 0
+  fi
+
+  if command -v gum >/dev/null 2>&1; then
+    repo=$(gum input --value "$DEFAULT_DOTS_REPO" --header "$prompt_text" --placeholder "$DEFAULT_DOTS_REPO")
+  else
+    read -e -i "$DEFAULT_DOTS_REPO" -rp "${prompt_text} " repo
+  fi
+
+  echo "${repo:-$DEFAULT_DOTS_REPO}"
+}
+
+echo "============================================================"
+echo "      Syncopated Workstation Setup: Stage 3 (User Space)     "
+echo "============================================================"
+
+# Prompt with pre-filled repo and validate via git ls-remote before cloning
+TARGET_REPO=""
+while true; do
+  TARGET_REPO=$(prompt_dots_repo)
+
+  echo "--> Validating repository access: ${TARGET_REPO}..."
+  if git ls-remote --exit-code "$TARGET_REPO" HEAD >/dev/null 2>&1; then
+    echo "--> Repository validated successfully."
+    break
+  else
+    echo "ERROR: Unable to reach repository '${TARGET_REPO}'." >&2
+    echo "Please verify the URL and network connectivity." >&2
+    if [[ "${SYNCOPATED_FIRSTBOOT_AUTO:-no}" == "yes" ]]; then
+      exit 1
+    fi
+  fi
+done
+
+# Verify yadm, clone dotfiles repository, and execute yadm bootstrap
+if ! command -v yadm >/dev/null 2>&1; then
+  echo "ERROR: yadm command is not found in PATH." >&2
+  exit 1
+fi
+
+echo "--> Cloning dotfiles via yadm..."
+if ! yadm rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  yadm clone -f --no-bootstrap "$TARGET_REPO" || yadm clone -f "$TARGET_REPO"
+else
+  echo "--> yadm repository already initialized in $HOME."
+fi
+
+echo "--> Executing yadm bootstrap..."
+yadm bootstrap
+
+# Create marker to prevent re-runs
+touch "$STATE_FILE"
+
+echo "============================================================"
+echo "Stage 3 complete! Workstation user space fully converged."
+echo "============================================================"
+
+if [[ -t 0 && -t 1 ]] && command -v gum >/dev/null 2>&1; then
+  gum format -- "🎉 **Setup Complete!** Press Enter to finish."
+  read -rp "" || true
+fi

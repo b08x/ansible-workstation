@@ -2,6 +2,7 @@
 base_packages:
   - aria2
   - golang
+  - gum
   - nodejs
   - npm
   # Required by the role's own tasks: sshd is enabled in main.yml, git and zsh

@@ -1,7 +1,8 @@
 ---
 # Syncopated Workstation Local Provisioning Playbook
 # Intended for execution via ansible-pull or direct local convergence:
-#   ansible-pull -U <repo-url> local.yml
+#   ansible-pull -U <repo-url> --tags system local.yml
+#   ansible-pull -U <repo-url> --tags user local.yml
 #   ansible-playbook local.yml
 #
 # Adheres to the 15 Ansible Design Patterns (ansible-patterns-anti-patterns):
@@ -15,29 +16,33 @@
 # - Pattern 12: Post-task Lifecycle Pattern (reboot verification and summary)
 # - Pattern 13: Debug-as-Progress-Indicator Pattern (clear phase demarcation)
 
-- name: Syncopated Workstation Local Provisioning
+# ==============================================================================
+# Play 1: Syncopated Workstation System Provisioning (Root Privileged)
+# ==============================================================================
+- name: Syncopated Workstation System Provisioning
   hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
+  tags: ["system"]
 
   pre_tasks:
-    - name: Announce local provisioning start
+    - name: Announce local system provisioning start
       ansible.builtin.debug:
-        msg: "Starting Syncopated workstation provisioning on {{ inventory_hostname }}"
-      tags: ["always"]
+        msg: "Starting Syncopated workstation system provisioning on {{ inventory_hostname }}"
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
 
     - name: Probe for global group variables
       ansible.builtin.stat:
         path: "{{ playbook_dir }}/inventory/group_vars/all.yml"
       register: _preflight_group_vars_stat
       check_mode: false
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
 
     - name: Load global group variables if available
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
       when: _preflight_group_vars_stat.stat.exists | default(false)
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
 
     - name: Resolve target workstation user account
       ansible.builtin.set_fact:
@@ -55,13 +60,13 @@
               )
             )
           }}
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
 
     - name: Ensure user dictionary is defined for roles
       ansible.builtin.set_fact:
         user: "{{ (user | default({})) | combine({'name': workstation_user}, recursive=True) }}"
       when: user is not defined or user.name is not defined
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
 
     - name: Disable requiretty in sudoers for unattended execution
       ansible.builtin.lineinfile:
@@ -72,7 +77,7 @@
         backup: true
         validate: "visudo -cf %s"
       when: workstation_user != 'root'
-      tags: ["sudoers", "base"]
+      tags: ["sudoers", "base", "system"]
 
     - name: Ensure /etc/system-release symlink exists
       ansible.builtin.file:
@@ -83,7 +88,7 @@
 
     - name: Pre-flight capability detection
       check_mode: false
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
       block:
         - name: Check for KVM hardware acceleration support
           ansible.builtin.stat:
@@ -183,35 +188,49 @@
               - "Containers: {{ auto_enable_containerd }}"
               - "GPU Acceleration: CUDA={{ has_cuda_device }}, Vulkan={{ has_vulkan_device }} -> Transcribe: {{ auto_enable_transcribe }}"
 
-  roles:
-    - role: base
-      tags: ["base", "system"]
+  tasks:
+    - name: Execute base role
+      ansible.builtin.include_role:
+        name: base
+      tags: ["base", "system", "assert"]
 
-    - role: tuning
-      tags: ["tuning", "system"]
+    - name: Execute tuning role
+      ansible.builtin.include_role:
+        name: tuning
+      tags: ["tuning", "system", "assert"]
 
-    - role: networking
-      tags: ["networking", "system"]
+    - name: Execute networking role
+      ansible.builtin.include_role:
+        name: networking
+      tags: ["networking", "system", "assert"]
 
-    - role: containerd
+    - name: Execute containerd role
+      ansible.builtin.include_role:
+        name: containerd
       when: auto_enable_containerd | default(true) | bool
-      tags: ["containerd", "virt"]
+      tags: ["containerd", "virt", "system", "assert"]
 
-    - role: libvirt
+    - name: Execute libvirt role
+      ansible.builtin.include_role:
+        name: libvirt
       when: auto_enable_libvirt | default(false) | bool
-      tags: ["libvirt", "virt"]
+      tags: ["libvirt", "virt", "system", "assert"]
 
-    - role: desktop
+    - name: Execute desktop role
+      ansible.builtin.include_role:
+        name: desktop
       when: auto_enable_desktop | default(false) | bool
-      tags: ["desktop", "system"]
+      tags: ["desktop", "system", "assert"]
 
-    - role: tools
-      tags: ["tools", "system"]
+    - name: Execute tools role
+      ansible.builtin.include_role:
+        name: tools
+      tags: ["tools", "system", "assert"]
 
   post_tasks:
     - name: Post-flight execution assessment and reboot verification
       check_mode: false
-      tags: ["always"]
+      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools"]
       block:
         - name: Check for pending reboot on RedHat/Fedora family
           ansible.builtin.command: needs-restarting -r
@@ -243,7 +262,7 @@
           ansible.builtin.debug:
             msg:
               - "============================================================"
-              - "Syncopated Workstation Provisioning Complete (ansible-pull)"
+              - "Syncopated Workstation System Provisioning Complete (ansible-pull)"
               - "Host: {{ inventory_hostname }}"
               - "Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}"
               - "Target User: {{ workstation_user }}"
@@ -252,3 +271,73 @@
               - "Containerd Enabled: {{ auto_enable_containerd }}"
               - "Reboot Recommended: {{ system_reboot_required | default(false) }}"
               - "============================================================"
+
+# ==============================================================================
+# Play 2: Syncopated Workstation User Provisioning (Unprivileged User Space)
+# ==============================================================================
+- name: Syncopated Workstation User Provisioning
+  hosts: "{{ target_hosts | default('all') }}"
+  become: false
+  gather_facts: true
+  environment:
+    PATH: "{{ ansible_env.HOME | default('/home/' ~ ansible_user_id) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  tags: ["user"]
+
+  pre_tasks:
+    - name: Announce local user provisioning start
+      ansible.builtin.debug:
+        msg: "Starting Syncopated workstation user provisioning for {{ ansible_user_id }} on {{ inventory_hostname }}"
+      tags: ["user", "assert"]
+
+    - name: Probe for global group variables
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/inventory/group_vars/all.yml"
+      register: _preflight_user_group_vars_stat
+      check_mode: false
+      tags: ["user", "assert"]
+
+    - name: Load global group variables if available
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
+      when: _preflight_user_group_vars_stat.stat.exists | default(false)
+      tags: ["user", "assert"]
+
+    - name: Resolve unprivileged user account facts
+      ansible.builtin.set_fact:
+        workstation_user: >-
+          {{
+            user.name
+            if (user is defined and user.name is defined and user.name | length > 0)
+            else ansible_user_id
+          }}
+      tags: ["user", "assert"]
+
+    - name: Ensure user dictionary is defined for user role
+      ansible.builtin.set_fact:
+        user: >-
+          {{
+            (user | default({}))
+            | combine({
+                'name': workstation_user,
+                'home': ansible_env.HOME | default('/home/' ~ workstation_user)
+              }, recursive=True)
+          }}
+      tags: ["user", "assert"]
+
+  tasks:
+    - name: Execute user role
+      ansible.builtin.include_role:
+        name: user
+      tags: ["user", "assert"]
+
+  post_tasks:
+    - name: Display user provisioning completion summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "Syncopated Workstation User Provisioning Complete (ansible-pull)"
+          - "Host: {{ inventory_hostname }}"
+          - "User: {{ workstation_user }}"
+          - "Home: {{ user.home | default(ansible_env.HOME) }}"
+          - "============================================================"
+      tags: ["user"]

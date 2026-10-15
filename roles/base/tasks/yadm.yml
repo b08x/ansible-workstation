@@ -1,22 +1,22 @@
 ---
 # tasks file for yadm in b08x.devworkstation.base
 
-- name: Check if yadm binary is present
-  ansible.builtin.command: which yadm
-  environment:
-    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
-  register: base_yadm_check
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["yadm", "base"]
-
-- name: Install yadm standalone binary
-  when: >
-    (base_yadm_check.rc != 0) or
-    (base_yadm_force_install | default(false) | bool)
+- name: Install yadm package or fallback to standalone binary
   tags: ["yadm", "base"]
   block:
+    - name: Install yadm RPM package via DNF
+      ansible.builtin.dnf:
+        name: yadm
+        state: present
+      register: base_yadm_rpm_install
+
+  rescue:
+    - name: Warn on yadm RPM package installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Native yadm RPM package installation failed.
+          Falling back to downloading the standalone binary from GitHub.
+
     - name: Ensure user local bin directory exists
       ansible.builtin.file:
         path: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin"
@@ -25,10 +25,29 @@
         group: "{{ user.group | default(user.name) }}"
         mode: "0755"
 
-    - name: Download yadm binary
+    - name: Download yadm binary from upstream GitHub
       ansible.builtin.get_url:
         url: "{{ base_yadm_url | default('https://github.com/TheLocehiliosan/yadm/raw/master/yadm') }}"
         dest: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin/yadm"
         owner: "{{ user.name }}"
         group: "{{ user.group | default(user.name) }}"
         mode: "0755"
+
+- name: Check for yadm executable availability
+  ansible.builtin.command: which yadm
+  environment:
+    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: base_yadm_verify
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["yadm", "base"]
+
+- name: Assert yadm executable is present
+  ansible.builtin.assert:
+    that:
+      - (base_yadm_verify.rc | default(1)) == 0
+    fail_msg: "yadm is not available after package installation and fallback attempt."
+    success_msg: "yadm successfully verified at {{ base_yadm_verify.stdout | default('unknown') }}"
+    quiet: false
+  tags: ["yadm", "base"]

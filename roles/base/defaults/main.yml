@@ -20,7 +20,7 @@ base_copr_repos: []
 base_gitflow_copr_fedora: elegos/gitflow
 base_gitflow_copr_el: b08x/syncopated
 
-# Syncopated COPR repository on EL 10 (see tasks/distro/EL.yml).
+# Syncopated COPR repository on Fedora and EL (see tasks/distro/Fedora.yml and EL.yml).
 base_enable_syncopated_copr: true
 base_syncopated_copr: b08x/syncopated
 

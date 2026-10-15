@@ -44,6 +44,14 @@
       when: base_copr_repos | length > 0
       tags: ["copr"]
 
+    - name: Enable Syncopated COPR repository
+      community.general.copr:
+        name: "{{ base_syncopated_copr }}"
+        state: enabled
+      register: base_copr_syncopated
+      when: base_enable_syncopated_copr | default(true) | bool
+      tags: ["copr"]
+
     - name: Set repository priorities
       ansible.builtin.command:
         cmd: >-
@@ -74,5 +82,6 @@
   when: >
     (base_rpmfusion_free is changed) or
     (base_rpmfusion_nonfree is changed) or
-    (base_copr_enabled is changed)
+    (base_copr_enabled is changed) or
+    (base_copr_syncopated is changed)
   tags: ["repositories"]
