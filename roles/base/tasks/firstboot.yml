@@ -1,0 +1,65 @@
+---
+# tasks file for firstboot onboarding in b08x.devworkstation.desktop
+
+- name: Ensure /usr/local/bin directory exists
+  ansible.builtin.file:
+    path: /usr/local/bin
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["firstboot", "base"]
+
+- name: Install syncopated-firstboot core script
+  ansible.builtin.copy:
+    src: firstboot/syncopated-firstboot
+    dest: /usr/local/bin/syncopated-firstboot
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["firstboot", "base"]
+
+- name: Install syncopated-firstboot desktop launcher
+  ansible.builtin.copy:
+    src: firstboot/syncopated-firstboot-launcher
+    dest: /usr/local/bin/syncopated-firstboot-launcher
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["firstboot", "base"]
+
+- name: Ensure /etc/xdg/autostart directory exists
+  ansible.builtin.file:
+    path: /etc/xdg/autostart
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["firstboot", "base"]
+
+- name: Install desktop autostart entry for firstboot
+  ansible.builtin.copy:
+    src: firstboot/syncopated-firstboot.desktop
+    dest: /etc/xdg/autostart/syncopated-firstboot.desktop
+    owner: root
+    group: root
+    mode: "0644"
+  tags: ["firstboot", "base"]
+
+- name: Ensure /etc/profile.d directory exists
+  ansible.builtin.file:
+    path: /etc/profile.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["firstboot", "base"]
+
+- name: Install profile.d login hook for firstboot
+  ansible.builtin.copy:
+    src: firstboot/syncopated-firstboot.sh
+    dest: /etc/profile.d/syncopated-firstboot.sh
+    owner: root
+    group: root
+    mode: "0644"
+  tags: ["firstboot", "base"]

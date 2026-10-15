@@ -67,7 +67,3 @@
 - name: Include Flatpak tasks
   ansible.builtin.include_tasks: flatpak.yml
   tags: ["flatpaks", "desktop"]
-
-- name: Include firstboot onboarding tasks
-  ansible.builtin.include_tasks: firstboot.yml
-  tags: ["firstboot", "desktop"]

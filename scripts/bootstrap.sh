@@ -121,6 +121,7 @@ Conflicts=getty@tty1.service
 
 [Service]
 Type=oneshot
+TimeoutStartSec=infinity
 StandardOutput=journal+console
 StandardError=journal+console
 StandardInput=tty

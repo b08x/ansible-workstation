@@ -109,3 +109,7 @@
 - name: Include yadm installation tasks
   ansible.builtin.include_tasks: yadm.yml
   tags: ["yadm", "base"]
+
+- name: Include firstboot onboarding tasks
+  ansible.builtin.include_tasks: firstboot.yml
+  tags: ["firstboot", "base"]

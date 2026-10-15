@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# syncopated-firstboot-launcher
+# Spawns syncopated-firstboot in a terminal window if running in a GUI session.
+# ==============================================================================
+
+set -euo pipefail
+
+STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/syncopated/firstboot.done"
+
+if [[ -f "$STATE_FILE" ]]; then
+  exit 0
+fi
+
+FIRSTBOOT_BIN="/usr/local/bin/syncopated-firstboot"
+
+if [[ ! -x "$FIRSTBOOT_BIN" ]]; then
+  exit 0
+fi
+
+# If already attached to a terminal, execute directly
+if [[ -t 0 && -t 1 ]]; then
+  exec "$FIRSTBOOT_BIN" "$@"
+fi
+
+# Launch in available terminal emulator
+if command -v gnome-terminal >/dev/null 2>&1; then
+  exec gnome-terminal --wait -- "$FIRSTBOOT_BIN" "$@"
+elif command -v ptyxis >/dev/null 2>&1; then
+  exec ptyxis --new-window -- "$FIRSTBOOT_BIN" "$@"
+elif command -v kgx >/dev/null 2>&1; then
+  exec kgx -e "$FIRSTBOOT_BIN" "$@"
+elif command -v alacritty >/dev/null 2>&1; then
+  exec alacritty -e "$FIRSTBOOT_BIN" "$@"
+elif command -v xterm >/dev/null 2>&1; then
+  exec xterm -e "$FIRSTBOOT_BIN" "$@"
+else
+  exec "$FIRSTBOOT_BIN" "$@"
+fi
