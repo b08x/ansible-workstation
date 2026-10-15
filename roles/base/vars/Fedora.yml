@@ -14,5 +14,6 @@ base_packages:
   - tesseract-devel
   - wl-clipboard
   - yad
+  - uv
   - zram-generator
   - zsh

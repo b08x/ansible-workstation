@@ -1,5 +1,9 @@
 ---
-- name: Install Python 3.1x
-  community.general.uv_python:
-    version: "{{ user_uv_python_version }}"
+- name: Install Python via uv
+  ansible.builtin.command:
+    cmd: "uv python install {{ user_uv_python_version }}"
+  environment:
+    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: _user_uv_python_install
+  changed_when: "'Installed Python' in _user_uv_python_install.stderr or 'Installed Python' in _user_uv_python_install.stdout"
   become: false
