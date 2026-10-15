@@ -23,19 +23,24 @@
         group: root
         mode: "0755"
 
-    - name: Check which optional sysctl keys this host supports
-      ansible.builtin.stat:
-        path: "/proc/sys/{{ item | replace('.', '/') }}"
-      loop: "{{ tuning_sysctl_optional }}"
-      register: tuning_sysctl_optional_stat
+    - name: Test settability of optional sysctl keys
+      ansible.builtin.command:
+        cmd: "sysctl -w {{ item.key }}={{ item.value }}"
+      check_mode: false
       changed_when: false
+      failed_when: false
+      loop: >-
+        {{ tuning_sysctl | dict2items
+           | selectattr('key', 'in', tuning_sysctl_optional)
+           | list }}
+      register: tuning_sysctl_optional_test
 
     - name: Collect optional sysctl keys this host does not support
       ansible.builtin.set_fact:
         tuning_sysctl_unsupported: >-
-          {{ tuning_sysctl_optional_stat.results
-             | rejectattr('stat.exists')
-             | map(attribute='item')
+          {{ tuning_sysctl_optional_test.results
+             | selectattr('rc', 'ne', 0)
+             | map(attribute='item.key')
              | list }}
 
     - name: Report optional sysctl keys skipped on this host

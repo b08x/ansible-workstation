@@ -42,6 +42,7 @@ tuning_sysctl_file: /etc/sysctl.d/70-cachyos-settings.conf
 tuning_sysctl_optional:
   - dev.hpet.max-user-freq
   - kernel.unprivileged_userns_clone
+  - kernel.nmi_watchdog
 
 tuning_sysctl:
   vm.swappiness: 100
