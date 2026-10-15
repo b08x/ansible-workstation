@@ -7,6 +7,7 @@
   register: tools_uv_check
   changed_when: false
   failed_when: false
+  check_mode: false
   tags: ["vibe", "agents", "tools"]
 
 - name: Check if Vibe CLI binary exists
@@ -17,7 +18,7 @@
 
 - name: Install Mistral Vibe CLI
   when:
-    - tools_uv_check.rc == 0
+    - (tools_uv_check.rc | default(1)) == 0
     - >
       (not (tools_vibe_stat.stat.exists | default(false))) or
       (tools_vibe_force_install | default(false) | bool)
@@ -35,6 +36,6 @@
   ansible.builtin.debug:
     msg: "WARNING: uv not found in PATH — cannot install Vibe CLI. Install uv via the base/user role."
   when:
-    - tools_uv_check.rc != 0
+    - (tools_uv_check.rc | default(1)) != 0
     - not (tools_vibe_stat.stat.exists | default(false))
   tags: ["vibe", "agents", "tools"]

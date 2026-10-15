@@ -27,7 +27,7 @@
   ansible.builtin.dnf:
     name: "{{ (desktop_packages.qt | default([])) + (desktop_packages.gtk | default([])) }}"
     state: present
-  when: (desktop_packages.qt | default([])) or (desktop_packages.gtk | default([]))
+  when: (desktop_packages.qt | default([]) | length > 0) or (desktop_packages.gtk | default([]) | length > 0)
   tags: ["packages", "desktop"]
 
 - name: Include GNOME desktop installation tasks

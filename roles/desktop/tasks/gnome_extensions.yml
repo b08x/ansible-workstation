@@ -5,7 +5,7 @@
   ansible.builtin.dnf:
     name: "{{ desktop_gnome_extensions | default([]) }}"
     state: present
-  when: desktop_gnome_extensions | default([])
+  when: desktop_gnome_extensions | default([]) | length > 0
   tags: ["gnome", "extensions", "packages"]
 
 - name: Convert system extension package names to extension IDs
@@ -43,10 +43,12 @@
       ansible.builtin.command: gsettings get org.gnome.shell enabled-extensions
       register: desktop_gsettings_enabled_exts
       changed_when: false
+      failed_when: false
+      check_mode: false
 
     - name: Parse enabled extensions
       ansible.builtin.set_fact:
-        desktop_enabled_extensions_list: "{{ desktop_gsettings_enabled_exts.stdout |
+        desktop_enabled_extensions_list: "{{ (desktop_gsettings_enabled_exts.stdout | default('')) |
           regex_replace('^\\[(.*)\\]$', '\\1') | replace(\"'\", '') | split(', ') | select() | list }}"
 
     - name: Enable installed GNOME extensions via dconf
@@ -68,7 +70,7 @@
           }}.
           These will be installed via dnf in the next run.
       when:
-        - desktop_system_extension_ids | default([])
+        - desktop_system_extension_ids | default([]) | length > 0
         - (desktop_system_extension_ids | difference(desktop_installed_extensions_list | default([]))) | length > 0
       tags: ["warning"]
 
@@ -82,6 +84,6 @@
           }}.
           These need to be installed manually from https://extensions.gnome.org or via browser.
       when:
-        - desktop_gnome_user_extensions | default([])
+        - desktop_gnome_user_extensions | default([]) | length > 0
         - (desktop_gnome_user_extensions | difference(desktop_installed_extensions_list | default([]))) | length > 0
       tags: ["warning"]

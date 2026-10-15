@@ -4,25 +4,28 @@
     msg: >-
       desktop_packages has no gnome key for {{ ansible_distribution }};
       skipping the GNOME package install.
-  when: not (desktop_packages.gnome | default([]))
+  when: (desktop_packages.gnome | default([]) | length) == 0
   tags: ["packages", "desktop", "gnome"]
 
 - name: Install GNOME packages
   ansible.builtin.dnf:
-    name: "{{ desktop_packages.gnome }}"
+    name: "{{ desktop_packages.gnome | reject('equalto', '@graphical-server-environment') | list }}"
     state: present
     allowerasing: true
-  when: desktop_packages.gnome | default([])
+  when: (desktop_packages.gnome | default([]) | reject('equalto', '@graphical-server-environment') | list | length) > 0
   tags: ["packages", "desktop", "gnome"]
 
 - name: Get the current default systemd target
   ansible.builtin.command: systemctl get-default
   changed_when: false
+  check_mode: false
   register: desktop_current_target
+  tags: ["desktop", "gnome", "systemd"]
 
 - name: Set default target to graphical
   ansible.builtin.command: systemctl set-default graphical.target
   when:
-    - desktop_current_target.stdout | trim != 'graphical.target'
+    - desktop_current_target.stdout | default('') | trim != 'graphical.target'
   register: desktop_set_default_target
   changed_when: desktop_set_default_target.rc == 0
+  tags: ["desktop", "gnome", "systemd"]

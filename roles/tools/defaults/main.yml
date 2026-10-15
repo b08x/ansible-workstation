@@ -35,8 +35,9 @@ tools_bun_force_install: false
 
 # -- User Tools & Toolchains (User-space in ~/.local/bin and ~/.local/go) --
 
-# Go toolchain (User-space modern Go for Crush and Go tooling, e.g. on EL10 hosts)
+# Go toolchain environment validation
 tools_install_go: true
+tools_go_min_version: "1.22"
 tools_go_version: "1.27.1"
 tools_go_url: "https://go.dev/dl/go{{ tools_go_version }}.linux-amd64.tar.gz"
 tools_go_dest_dir: "{{ tools_user_home }}/.local/go"

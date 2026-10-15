@@ -2,7 +2,7 @@
 workstation_path_dirs:
   - "{{ ansible_user_dir }}/.local/bin"
   - "{{ ansible_user_dir }}/.cargo/bin"
-  - "/usr/local/go/bin"
+  - "{{ ansible_user_dir }}/go/bin"
   - "$(go env GOPATH)/bin"
 
 user:

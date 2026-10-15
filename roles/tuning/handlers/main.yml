@@ -23,7 +23,9 @@
   ansible.builtin.systemd:
     name: cpupower
     state: restarted
-  when: tuning_cpupower_enabled | default(true) | bool
+  when:
+    - tuning_cpupower_enabled | default(true) | bool
+    - ansible_virtualization_role != 'guest'
   ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Restart rtirq

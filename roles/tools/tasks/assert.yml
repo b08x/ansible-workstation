@@ -59,12 +59,10 @@
 - name: Assert Go toolchain configuration when enabled
   ansible.builtin.assert:
     that:
-      - tools_go_version is defined
-      - tools_go_version | length > 0
-      - tools_go_dest_dir is defined
-      - tools_go_dest_dir.startswith('/')
+      - tools_go_min_version is defined
+      - tools_go_min_version | length > 0
     fail_msg: >-
-      Invalid Go toolchain settings. Ensure 'tools_go_version' and 'tools_go_dest_dir' are properly configured.
+      Invalid Go toolchain settings. Ensure 'tools_go_min_version' is properly configured.
     quiet: true
   when: tools_install_go | default(true) | bool
   tags: ["tools", "assert", "go"]

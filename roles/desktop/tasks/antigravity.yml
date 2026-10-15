@@ -49,9 +49,11 @@
       become: true
 
     - name: Update Antigravity Hub
-      when: >
-        desktop_antigravity_hub_installed.content is not defined or
-        (desktop_antigravity_hub_installed.content | b64decode | trim != desktop_antigravity_hub_url)
+      when:
+        - not (ansible_check_mode | default(false))
+        - >
+          desktop_antigravity_hub_installed.content is not defined or
+          (desktop_antigravity_hub_installed.content | b64decode | trim != desktop_antigravity_hub_url)
       block:
         - name: Download Antigravity Hub package
           ansible.builtin.get_url:
@@ -84,9 +86,11 @@
       become: true
 
     - name: Update Antigravity IDE
-      when: >
-        desktop_antigravity_ide_installed.content is not defined or
-        (desktop_antigravity_ide_installed.content | b64decode | trim != desktop_antigravity_ide_url)
+      when:
+        - not (ansible_check_mode | default(false))
+        - >
+          desktop_antigravity_ide_installed.content is not defined or
+          (desktop_antigravity_ide_installed.content | b64decode | trim != desktop_antigravity_ide_url)
       block:
         - name: Download Antigravity IDE package
           ansible.builtin.get_url:

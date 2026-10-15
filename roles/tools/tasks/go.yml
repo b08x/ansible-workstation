@@ -1,88 +1,47 @@
 ---
-# tasks file for user-space Go toolchain in roles/tools
-# Provides a modern Go toolchain for user CLI compilation (e.g. Crush) on EL10 and older-Go distros.
+# tasks file for Go toolchain validation in roles/tools
+# Verifies that a valid Go compiler is available for user CLI tools (e.g. Crush).
 
-- name: Ensure user local bin directory exists
+- name: Ensure user local bin and go directories exist
   ansible.builtin.file:
-    path: "{{ tools_user_local_bin }}"
+    path: "{{ item }}"
     state: directory
     owner: "{{ tools_user }}"
     mode: "0755"
+  loop:
+    - "{{ tools_user_local_bin }}"
+    - "{{ tools_user_go_bin }}"
   become: true
   become_user: "{{ tools_user }}"
   tags: ["go", "tools"]
 
-- name: Check user-space Go binary stat
-  ansible.builtin.stat:
-    path: "{{ tools_user_local_bin }}/go"
-  register: tools_go_binary_stat
-  tags: ["go", "tools"]
-
-- name: Probe user-space Go version
-  ansible.builtin.command: "{{ tools_user_local_bin }}/go version"
-  register: tools_go_version_check
+- name: Probe Go compiler executable
+  ansible.builtin.command: which go
+  register: tools_go_check
   changed_when: false
   failed_when: false
-  when: tools_go_binary_stat.stat.exists | default(false)
+  check_mode: false
   tags: ["go", "tools"]
 
-- name: Install or update user-space Go toolchain
-  when: >
-    (not (tools_go_binary_stat.stat.exists | default(false))) or
-    (('go' ~ tools_go_version ~ ' ') not in (tools_go_version_check.stdout | default(''))) or
-    (tools_go_force_install | default(false) | bool)
+- name: Probe Go compiler version
+  ansible.builtin.command: go version
+  register: tools_go_version_raw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: (tools_go_check.rc | default(1)) == 0
   tags: ["go", "tools"]
-  become: true
-  become_user: "{{ tools_user }}"
-  block:
-    - name: Create temporary directory for Go download
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: -go-archive
-      register: tools_go_tempdir
 
-    - name: Download Go release tarball
-      ansible.builtin.get_url:
-        url: "{{ tools_go_url }}"
-        dest: "{{ tools_go_tempdir.path }}/go.tar.gz"
-        mode: "0644"
-
-    - name: Remove prior user-space Go toolchain directory
-      ansible.builtin.file:
-        path: "{{ tools_go_dest_dir }}"
-        state: absent
-
-    - name: Ensure user-space Go parent directory exists
-      ansible.builtin.file:
-        path: "{{ tools_go_dest_dir | dirname }}"
-        state: directory
-        mode: "0755"
-
-    - name: Extract Go archive to user directory
-      ansible.builtin.unarchive:
-        src: "{{ tools_go_tempdir.path }}/go.tar.gz"
-        dest: "{{ tools_go_dest_dir | dirname }}"
-        remote_src: true
-
-    - name: Symlink user Go binary into local bin
-      ansible.builtin.file:
-        src: "{{ tools_go_dest_dir }}/bin/go"
-        dest: "{{ tools_user_local_bin }}/go"
-        state: link
-        force: true
-
-    - name: Symlink user gofmt binary into local bin
-      ansible.builtin.file:
-        src: "{{ tools_go_dest_dir }}/bin/gofmt"
-        dest: "{{ tools_user_local_bin }}/gofmt"
-        state: link
-        force: true
-
-  always:
-    - name: Clean up temporary Go archive directory
-      ansible.builtin.file:
-        path: "{{ tools_go_tempdir.path }}"
-        state: absent
-      when:
-        - tools_go_tempdir is defined
-        - tools_go_tempdir.path is defined
+- name: Assert proper Go environment is in place
+  ansible.builtin.assert:
+    that:
+      - (tools_go_check.rc | default(1)) == 0
+      - tools_go_version_raw.stdout is defined
+      - (tools_go_version_raw.stdout | regex_search('[0-9]+\.[0-9]+') | default('0', true)) is version(tools_go_min_version | default('1.22'), '>=')
+    fail_msg: >-
+      A valid Go compiler (version >= {{ tools_go_min_version | default('1.22') }}) was not found in PATH.
+      Found: {{ tools_go_version_raw.stdout | default('none') }}.
+      Ensure Go is installed (e.g. via system package manager: dnf install golang).
+    success_msg: "Found valid Go environment: {{ tools_go_version_raw.stdout | default('') | trim }}"
+    quiet: false
+  tags: ["go", "tools"]

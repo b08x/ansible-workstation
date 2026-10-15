@@ -21,7 +21,7 @@
   block:
     - name: Install Yaru theme from dnf (Fedora)
       ansible.builtin.dnf:
-        name: "{{ desktop_packages.theme }}"
+        name: "{{ desktop_packages.theme | reject('equalto', 'yaru-gtk2-theme') | list }}"
         state: present
         allowerasing: true
   rescue:

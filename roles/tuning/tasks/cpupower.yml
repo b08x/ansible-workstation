@@ -55,6 +55,7 @@
         dest: /usr/lib/systemd/system/cpupower.service
         mode: "0644"
         backup: true
+      when: ansible_distribution != 'Fedora'
       notify:
         - Reload systemd
         - Restart cpupower
@@ -63,6 +64,7 @@
       ansible.builtin.service:
         name: cpupower
         enabled: true
+      when: ansible_virtualization_role != 'guest'
       ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Manage irqbalance service
