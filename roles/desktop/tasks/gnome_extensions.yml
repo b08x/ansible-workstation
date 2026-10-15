@@ -48,7 +48,8 @@
 
     - name: Parse enabled extensions
       ansible.builtin.set_fact:
-        desktop_enabled_extensions_list: "{{ (desktop_gsettings_enabled_exts.stdout | default('')) |
+        desktop_enabled_extensions_list:
+          "{{ (desktop_gsettings_enabled_exts.stdout | default('')) |
           regex_replace('^\\[(.*)\\]$', '\\1') | replace(\"'\", '') | split(', ') | select() | list }}"
 
     - name: Enable installed GNOME extensions via dconf

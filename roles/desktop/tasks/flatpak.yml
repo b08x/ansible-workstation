@@ -7,6 +7,7 @@
     flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
     method: system
     state: present
+  ignore_errors: "{{ ansible_check_mode }}"
   tags: ["flatpaks", "desktop"]
 
 - name: Install system Flatpak applications
@@ -16,4 +17,5 @@
     method: system
     remote: flathub
   loop: "{{ system_flatpaks | default(desktop_system_flatpaks) }}"
+  ignore_errors: "{{ ansible_check_mode }}"
   tags: ["flatpaks", "desktop"]

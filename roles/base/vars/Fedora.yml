@@ -15,5 +15,6 @@ base_packages:
   - wl-clipboard
   - yad
   - uv
+  - flatpak
   - zram-generator
   - zsh

@@ -8,6 +8,8 @@ desktop_packages:
     - "@gnome-desktop"
     - "@graphical-server-environment"
     - gdm
+    - gnome-shell
+    - gnome-session-wayland-session
     - gnome-tweaks
   theme:
     - gnome-shell-theme-yaru

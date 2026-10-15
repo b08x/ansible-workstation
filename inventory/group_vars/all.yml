@@ -16,4 +16,5 @@ user:
   realname: Robert Pannick
   sudoers: true
   email: rwpannick@gmail.com
+enable_desktop: true
 # common_packages:

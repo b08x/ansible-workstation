@@ -5,3 +5,12 @@
   ansible.builtin.systemd:
     daemon_reload: true
   listen: "Daemon reload"
+
+- name: Restart GDM
+  ansible.builtin.service:
+    name: gdm
+    state: restarted
+  listen: "Restart GDM"
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']

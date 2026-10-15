@@ -9,8 +9,18 @@
   tags: ["input-remapper", "desktop"]
   ignore_errors: "{{ ansible_check_mode }}"
   block:
-    - name: Build and install input-remapper
-      when: not desktop_input_remapper_service.stat.exists | default(false)
+    - name: Install input-remapper package (Fedora)
+      ansible.builtin.dnf:
+        name: input-remapper
+        state: present
+      when:
+        - ansible_distribution == "Fedora"
+        - not desktop_input_remapper_service.stat.exists | default(false)
+
+    - name: Build and install input-remapper from source (EL family)
+      when:
+        - ansible_distribution != "Fedora"
+        - not desktop_input_remapper_service.stat.exists | default(false)
       block:
         - name: Install dependencies
           ansible.builtin.pip:

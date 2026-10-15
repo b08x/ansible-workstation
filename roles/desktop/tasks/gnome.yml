@@ -15,6 +15,27 @@
   when: (desktop_packages.gnome | default([]) | reject('equalto', '@graphical-server-environment') | list | length) > 0
   tags: ["packages", "desktop", "gnome"]
 
+- name: Ensure GDM configuration directory exists
+  ansible.builtin.file:
+    path: /etc/gdm
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["desktop", "gnome", "gdm"]
+
+- name: Configure GDM to use Wayland in /etc/gdm/custom.conf
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: WaylandEnable
+    value: "true"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart GDM
+  tags: ["desktop", "gnome", "gdm"]
+
 - name: Get the current default systemd target
   ansible.builtin.command: systemctl get-default
   changed_when: false
@@ -29,3 +50,13 @@
   register: desktop_set_default_target
   changed_when: desktop_set_default_target.rc == 0
   tags: ["desktop", "gnome", "systemd"]
+
+- name: Ensure GDM service is enabled and started
+  ansible.builtin.service:
+    name: gdm
+    enabled: true
+    state: started
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+  tags: ["desktop", "gnome", "gdm", "systemd"]

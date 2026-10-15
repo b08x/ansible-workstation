@@ -57,4 +57,5 @@
           ansible.builtin.dnf:
             name: code
             state: present
+          ignore_errors: "{{ ansible_check_mode }}"
           tags: ["vscode", "desktop"]

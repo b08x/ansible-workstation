@@ -44,12 +44,19 @@
   ansible.builtin.include_tasks: theme.yml
   tags: ["theme"]
 
+- name: Ensure flatpak package is installed
+  ansible.builtin.dnf:
+    name: flatpak
+    state: present
+  tags: ["flathub", "flatpaks", "packages", "desktop"]
+
 - name: Ensure Flathub remote repository is present
   community.general.flatpak_remote:
     name: flathub
     flatpakrepo_url: https://dl.flathub.org/repo/flathub.flatpakrepo
     method: system
     state: present
+  ignore_errors: "{{ ansible_check_mode }}"
   tags: ["flathub"]
 
 - name: Include VS Code installation tasks

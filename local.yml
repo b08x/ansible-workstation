@@ -23,7 +23,18 @@
   hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
-  tags: ["system"]
+  tags:
+    [
+      "system",
+      "base",
+      "tuning",
+      "networking",
+      "containerd",
+      "libvirt",
+      "desktop",
+      "tools",
+      "assert",
+    ]
 
   pre_tasks:
     - name: Ensure facts are gathered
@@ -34,20 +45,53 @@
     - name: Announce local system provisioning start
       ansible.builtin.debug:
         msg: "Starting Syncopated workstation system provisioning on {{ inventory_hostname }}"
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
 
     - name: Probe for global group variables
       ansible.builtin.stat:
         path: "{{ playbook_dir }}/inventory/group_vars/all.yml"
       register: _preflight_group_vars_stat
       check_mode: false
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
 
     - name: Load global group variables if available
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
       when: _preflight_group_vars_stat.stat.exists | default(false)
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
 
     - name: Resolve target workstation user account
       ansible.builtin.set_fact:
@@ -65,13 +109,35 @@
               )
             )
           }}
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
 
     - name: Ensure user dictionary is defined for roles
       ansible.builtin.set_fact:
         user: "{{ (user | default({})) | combine({'name': workstation_user}, recursive=True) }}"
       when: user is not defined or user.name is not defined
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
 
     - name: Disable requiretty in sudoers for unattended execution
       ansible.builtin.lineinfile:
@@ -93,7 +159,18 @@
 
     - name: Pre-flight capability detection
       check_mode: false
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools", "assert"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+          "assert",
+        ]
       block:
         - name: Check for KVM hardware acceleration support
           ansible.builtin.stat:
@@ -171,7 +248,7 @@
             auto_enable_desktop: >-
               {{
                 pull_enable_desktop
-                | default(_preflight_default_target.stdout is defined and 'graphical' in _preflight_default_target.stdout)
+                | default(enable_desktop | default(true))
                 | bool
               }}
             auto_enable_containerd: "{{ pull_enable_containerd | default(true) | bool }}"
@@ -235,7 +312,17 @@
   post_tasks:
     - name: Post-flight execution assessment and reboot verification
       check_mode: false
-      tags: ["system", "base", "tuning", "networking", "containerd", "libvirt", "desktop", "tools"]
+      tags:
+        [
+          "system",
+          "base",
+          "tuning",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop",
+          "tools",
+        ]
       block:
         - name: Check for pending reboot on RedHat/Fedora family
           ansible.builtin.command: needs-restarting -r

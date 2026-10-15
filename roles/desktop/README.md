@@ -58,8 +58,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 ### 1. Display Toolkits & Graphical Server ([`tasks/main.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/main.yml), [`tasks/gnome.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/gnome.yml))
 - Deploys Qt runtime libraries (`qt5`, `qt6`, `qt5ct`, `qt6ct`, `qscintilla-qt5`) and GTK libraries (`gtk4`, `gtk3-devel`, `gtksourceview4`, `gtksourceview5`).
-- On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups and tools. On Fedora, `@graphical-server-environment` is rejected/filtered out in favor of `@gnome-desktop`, `gdm`, and `gnome-tweaks` via `desktop_packages.gnome | reject('equalto', '@graphical-server-environment') | list`.
+- On GNOME hosts (`desktop_environment == 'gnome'`), installs the GNOME desktop environment package groups and tools (`@gnome-desktop`, `gdm`, `gnome-shell`, `gnome-session-wayland-session`, and `gnome-tweaks`).
+- Configures GDM for native Wayland display server operation (`WaylandEnable=true` under `[daemon]` in `/etc/gdm/custom.conf`).
 - Inspects systemd default target (`systemctl get-default` executed with `check_mode: false`) and promotes to `graphical.target` when not already set.
+- Ensures `gdm.service` is enabled and started on systemd targets.
 
 ### 2. GNOME Shell Extensions (`tasks/gnome_extensions.yml`)
 - Provisions system GNOME shell extension RPM packages via DNF (`desktop_gnome_extensions`).
