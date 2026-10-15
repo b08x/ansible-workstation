@@ -25,8 +25,6 @@
   tags: ["claude", "agents", "tools"]
   become: true
   become_user: "{{ tools_user }}"
-  environment:
-    TMPDIR: "/run/user/{{ user.uid }}/tmp"
   block:
     - name: Configure npm user prefix
       ansible.builtin.command: "npm config set prefix {{ tools_user_home }}/.local"
@@ -34,8 +32,6 @@
 
     - name: Install Claude Code npm package
       ansible.builtin.command: "npm install -g --prefix {{ tools_user_home }}/.local {{ tools_claude_npm_package }}"
-      environment:
-        TMPDIR: "/run/user/{{ user.uid }}/tmp"
       changed_when: true
 
 - name: Warn when npm is missing for Claude Code
