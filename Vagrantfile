@@ -5,7 +5,8 @@ ENV["VAGRANT_DEFAULT_PROVIDER"] = "libvirt"
 
 # Configuration variables
 ALMALINUX_HOSTNAME = "almalinux-test.syncopated.dev"
-ARCH_HOSTNAME = "arch-test.syncopated.dev"
+FEDORA_HOSTNAME = "fedora-workstation.syncopated.dev"
+FEDORA_BOX = ENV.fetch("FEDORA_BOX", "fedora/41-cloud-base")
 
 DEV_USER = ENV.fetch("USER", nil)
 
@@ -96,69 +97,94 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  # Optional Arch Linux VM for comparison testing
-  # config.vm.define 'arch', autostart: false do |arch|
-  #   arch.vm.box = 'archlinux/archlinux'
-  #   arch.vm.hostname = ARCH_HOSTNAME
+  # Fedora Workstation VM for testing
+  config.vm.define "fedora", autostart: false do |fedora|
+    fedora.vm.box = FEDORA_BOX
+    fedora.vm.hostname = FEDORA_HOSTNAME
 
-  #   arch.vm.network :private_network,
-  #                   ip: '192.168.122.11',
-  #                   libvirt__network_name: 'default'
+    fedora.vm.network :private_network,
+      ip: "192.168.122.20",
+      libvirt__network_name: "default"
 
-  #   arch.vm.provider :libvirt do |libvirt|
-  #     libvirt.uri = 'qemu:///system'
-  #     libvirt.memory = 2048
-  #     libvirt.cpus = 2
-  #     libvirt.nested = true
-  #     libvirt.disk_bus = 'virtio'
-  #     libvirt.cpu_mode = 'host-passthrough'
-  #     libvirt.nic_model_type = 'virtio'
-  #     libvirt.disk_driver cache: 'writeback'
-  #     libvirt.machine_virtual_size = 50
-  #   end
+    fedora.vm.provider :libvirt do |libvirt|
+      libvirt.uri = "qemu:///system"
+      libvirt.memory = 8192
+      libvirt.cpus = 8
+      libvirt.nested = true
+      libvirt.disk_bus = "virtio"
+      libvirt.cpu_mode = "host-passthrough"
+      libvirt.nic_model_type = "virtio"
+      libvirt.disk_driver cache: "writeback"
+      libvirt.machine_virtual_size = 50
+      libvirt.graphics_type = "spice"
+      libvirt.video_type = "qxl"
+    end
 
-  #   arch.vm.synced_folder '.', '/vagrant',
-  #                         type: 'rsync',
-  #                         rsync__exclude: ['.git/', '*.swp', '.venv/', '.vagrant/']
+    # Sync the entire project for testing
+    fedora.vm.synced_folder ".", "/vagrant",
+      type: "rsync",
+      rsync__exclude: [".git/", "*.swp", ".venv/", ".vagrant/"]
 
-  #   arch.vm.provision 'file',
-  #                     source: '~/.ssh/id_ed25519.pub',
-  #                     destination: '/tmp/id_ed25519.pub'
+    # Copy SSH key for testing
+    if File.exist?(File.expand_path("~/.ssh/id_ed25519.pub"))
+      fedora.vm.provision "file",
+        source: "~/.ssh/id_ed25519.pub",
+        destination: "/tmp/id_ed25519.pub"
+    end
 
-  #   arch.vm.provision 'shell', inline: <<-SHELL
-  #     # Update system
-  #     pacman -Syu --noconfirm
+    # Bootstrap system for testing
+    fedora.vm.provision "shell", inline: <<-SHELL
+      # Update dnf and install minimal prerequisites
+      dnf install -y --setopt=timeout=10 --setopt=retries=3 \
+        git \
+        ansible-core \
+        ansible-collection-ansible-posix \
+        ansible-collection-ansible-utils \
+        ansible-collection-community-general \
+        python3-rich \
+        python3-dnf \
+        python3-pip \
+        zsh \
+        curl
 
-  #     # Install required packages
-  #     pacman -Sy --noconfirm python python-pip ansible git
+      # Create test user matching inventory
+      id -u b08x &>/dev/null || useradd -m -s /usr/bin/zsh b08x
+      usermod -aG wheel b08x
+      echo "b08x ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-user
+      chmod 0440 /etc/sudoers.d/99-user
 
-  #     # Setup SSH key
-  #     mkdir -p /home/vagrant/.ssh
-  #     cat /tmp/id_ed25519.pub >> /home/vagrant/.ssh/authorized_keys
-  #     chmod 600 /home/vagrant/.ssh/authorized_keys
-  #     chown vagrant:vagrant /home/vagrant/.ssh/authorized_keys
-  #   SHELL
+      # Setup SSH key for both vagrant and b08x
+      if [ -f /tmp/id_ed25519.pub ]; then
+        mkdir -p /home/vagrant/.ssh
+        cat /tmp/id_ed25519.pub >> /home/vagrant/.ssh/authorized_keys
+        chmod 700 /home/vagrant/.ssh
+        chmod 600 /home/vagrant/.ssh/authorized_keys
+        chown -R vagrant:vagrant /home/vagrant/.ssh
 
-  #   # Run Ansible playbook
-  #   arch.vm.provision 'ansible' do |ansible|
-  #     ansible.playbook = 'workstation.yml'
-  #     ansible.groups = {
-  #       'workstations' => ['arch']
-  #     }
-  #     ansible.extra_vars = {
-  #       ansible_python_interpreter: '/usr/bin/python3',
-  #       ansible_user: 'vagrant',
-  #       user: { name: 'vagrant', group: 'vagrant', home: '/home/vagrant', shell: '/bin/bash' },
-  #       use_docker: 'false',
-  #       use_libvirt: 'false',
-  #       window_manager: 'i3',
-  #       rvm_install: false
-  #     }
-  #     ansible.tags = ENV['ANSIBLE_TAGS'] || 'base,ssh,shell'
-  #     ansible.verbose = ENV['ANSIBLE_VERBOSE'] || false
-  #     ansible.raw_arguments = ['--check'] if ENV['ANSIBLE_CHECK']
-  #   end
-  # end
+        mkdir -p /home/b08x/.ssh
+        cat /tmp/id_ed25519.pub >> /home/b08x/.ssh/authorized_keys
+        chmod 700 /home/b08x/.ssh
+        chmod 600 /home/b08x/.ssh/authorized_keys
+        chown -R b08x:b08x /home/b08x/.ssh
+      fi
+    SHELL
+
+    # Run Ansible playbook for testing
+    fedora.vm.provision "ansible" do |ansible|
+      ansible.playbook = ENV.fetch("ANSIBLE_PLAYBOOK", "local.yml")
+      ansible.groups = {
+        "workstations" => ["fedora"],
+      }
+      ansible.extra_vars = {
+        ansible_python_interpreter: "/usr/bin/python3",
+        ansible_user: "b08x",
+        user: { name: "b08x", group: "b08x", home: "/home/b08x", shell: "/usr/bin/zsh" },
+      }
+      ansible.tags = ENV["ANSIBLE_TAGS"] || "system"
+      ansible.verbose = ENV["ANSIBLE_VERBOSE"] || false
+      ansible.raw_arguments = ["--check"] if ENV["ANSIBLE_CHECK"]
+    end
+  end
 end
 
 # rubocop:enable Metrics/BlockLength
@@ -167,18 +193,28 @@ end
 #
 # Basic testing:
 #   vagrant up almalinux
+#   vagrant up fedora
 #
 # Test with specific tags:
+#   ANSIBLE_TAGS="system" vagrant up fedora
+#   ANSIBLE_TAGS="base,networking" vagrant up fedora
 #   ANSIBLE_TAGS="base,network" vagrant up almalinux
 #
+# Test with specific playbook:
+#   ANSIBLE_PLAYBOOK="playbooks/workstation.yml" vagrant up fedora
+#
+# Test with specific Fedora box (e.g. Rawhide, F43, or custom):
+#   FEDORA_BOX="fedora/41-cloud-base" vagrant up fedora
+#
 # Run in check mode (dry-run):
-#   ANSIBLE_CHECK=true vagrant up almalinux
+#   ANSIBLE_CHECK=true vagrant up fedora
 #
 # Enable verbose output:
-#   ANSIBLE_VERBOSE=true vagrant up almalinux
+#   ANSIBLE_VERBOSE=true vagrant up fedora
 #
 # Test both distributions:
-#   vagrant up almalinux arch
+#   vagrant up almalinux fedora
 #
 # Re-run provisioning after changes:
+#   vagrant provision fedora
 #   vagrant provision almalinux
