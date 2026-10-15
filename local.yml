@@ -26,6 +26,11 @@
   tags: ["system"]
 
   pre_tasks:
+    - name: Ensure facts are gathered
+      ansible.builtin.setup:
+      when: ansible_distribution is not defined
+      tags: ["always"]
+
     - name: Announce local system provisioning start
       ansible.builtin.debug:
         msg: "Starting Syncopated workstation system provisioning on {{ inventory_hostname }}"

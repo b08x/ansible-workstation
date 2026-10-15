@@ -17,8 +17,14 @@ echo "Branch:     ${WORKSTATION_BRANCH}"
 echo "Playbook:   ${PLAYBOOK}"
 echo "============================================================"
 
+LOCAL_HOSTNAME="${HOSTNAME:-$(hostname 2>/dev/null || uname -n)}"
+INVENTORY="${LOCAL_HOSTNAME},"
+export ANSIBLE_STDOUT_CALLBACK=default
+export ANSIBLE_INVENTORY_ENABLED="host_list,script,auto,yaml,toml,ini"
+
 pull_rc=0
 ansible-pull \
+  -i "${INVENTORY}" \
   -U "${WORKSTATION_REPO}" \
   -C "${WORKSTATION_BRANCH}" \
   --tags system \

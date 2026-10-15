@@ -17,7 +17,7 @@ base_enable_rpmfusion: true
 base_copr_repos: []
 
 # COPR that provides the gitflow package on Fedora (see tasks/gitflow.yml).
-base_gitflow_copr_fedora: elegos/gitflow
+base_gitflow_copr_fedora: b08x/syncopated
 base_gitflow_copr_el: b08x/syncopated
 
 # Syncopated COPR repository on Fedora and EL (see tasks/distro/Fedora.yml and EL.yml).

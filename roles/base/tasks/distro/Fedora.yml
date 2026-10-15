@@ -9,6 +9,7 @@
   ansible.builtin.dnf:
     name:
       - python3-libdnf5
+      - python3-dnf
       - fedora-workstation-repositories
       - dnf-plugins-core
     state: present
