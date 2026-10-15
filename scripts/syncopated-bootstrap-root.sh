@@ -37,14 +37,13 @@ if [[ "$pull_rc" -eq 0 ]]; then
   echo "Disabling syncopated-bootstrap-root.service..."
   echo "============================================================"
 
+  touch /var/log/syncopated-stage2.done
   systemctl disable syncopated-bootstrap-root.service 2>/dev/null || true
-  rm -f /etc/systemd/system/syncopated-bootstrap-root.service
-  systemctl daemon-reload 2>/dev/null || true
 
-  if [[ -e /dev/tty1 ]]; then
-    read -t 15 -rp "Press Enter to reboot, or wait 15 seconds... " </dev/tty1 || true
+  if [[ -e /dev/tty1 && -t 0 ]]; then
+    read -t 10 -rp "Press Enter to reboot, or wait 10 seconds... " </dev/tty1 || true
   else
-    sleep 5
+    sleep 3
   fi
   systemctl reboot
 else
