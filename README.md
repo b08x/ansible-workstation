@@ -124,12 +124,35 @@ The state of the entries, facet by facet:
     specifically designed for `ansible-pull` and local bootstrap. It implements the
     15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical
     display, containers, CUDA/Vulkan GPU acceleration), Tag-as-Select role filtering,
-    check-mode safety, and post-flight reboot verification.
+    check-mode safety, and post-flight reboot verification. Execution is decoupled into
+    two discrete plays: Play 1 (system, `become: true`) handles privileged hardware and OS
+    foundation, while Play 2 (user, `become: false`) provisions unprivileged user environment
+    and `uv` Python toolchains without prompting for sudo.
+  - **Staged bootstrap lifecycle** orchestrates automated convergence from fresh minimal installations:
+    - **Stage 1 (`scripts/bootstrap.sh`)**: Standalone shell script installing minimal prerequisites
+      (`git`, `ansible-core`, `python3-dnf`, `python3-rich`), running a full `dnf upgrade -y --refresh`,
+      staging `syncopated-bootstrap-root.service`, and triggering an initial reboot.
+    - **Stage 2 (`scripts/syncopated-bootstrap-root.sh`)**: Automated post-reboot systemd runner configured
+      with `TimeoutSec=0` executing `ansible-pull --tags system local.yml`, writing completion sentinel
+      `/var/log/syncopated-stage2.done`, self-disabling, and rebooting into the graphical environment.
+    - **Stage 3 (`syncopated-firstboot`)**: Deployed system-wide by [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) with autostart
+      desktop entries and profile hooks; triggers upon first user login to clone dotfiles via native `yadm`,
+      run unprivileged user bootstrap, and mark `~/.local/state/syncopated/firstboot.done`.
+  - **Graphical target & native Wayland GDM default on workstations**: [`roles/desktop`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop) enables
+    desktop provisioning by default (`enable_desktop: true`), configures GDM with native Wayland
+    (`WaylandEnable=true` in `/etc/gdm/custom.conf`), promotes the systemd default target to `graphical.target`,
+    and installs native RPMs (such as `input-remapper` on Fedora).
+  - **Native RPM packaging in the Syncopated COPR (`b08x/syncopated`)**: delivers clean, native RPMs for
+    `yadm`, `gitflow`, `gum`, and `uv` across Fedora and Enterprise Linux 10, eliminating reliance on
+    unverified GitHub downloads or user-space curl pipelines.
   - Integrated with Yadm bootstrap via `01-ansible-pull.sh`, which acts as an automated
     orchestration bridge: on fresh machine onboarding, Yadm triggers `01-ansible-pull.sh` to
     converge Layer 1 host packages and services via [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) before executing user dotfiles (Layer 2).
   - A strict distribution taxonomy is codified in [`docs/layering-architecture.md`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/docs/layering-architecture.md),
-    partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2).
+    partitioning duties across OSBuild (Layer 0), Ansible (Layer 1), and Yadm (Layer 2). Detailed bootstrap
+    mechanisms are documented in [`docs/bootstrap.md`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/docs/bootstrap.md).
+  - **Local virtualization testing via [`Vagrantfile`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/Vagrantfile)**: provides a dedicated libvirt Fedora workstation
+    VM definition (`vagrant up fedora`) supporting customizable box releases (`FEDORA_BOX`) for rapid, isolated testing.
   - All 10 roles frontload pre-flight assertions (`tasks/assert.yml`) to fail fast (< 1s)
     on unmet preconditions (OS family, DNF/DNF5 package manager, effective root elevation
     via `id -u`, and identity variables) before mutations occur.

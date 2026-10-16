@@ -14,11 +14,40 @@ This project enforces a strict boundary between immutable base images, host-leve
 
 ## Fresh Machine Quickstart
 
-For a brand-new installation, choose between two primary convergence paths:
+For a brand-new installation, choose between three primary convergence paths:
 
-### Path 1: Autonomous Yadm Bootstrap (Full Stack Convergence)
+### Path 1: Staged Bootstrap Lifecycle (Recommended for Fresh / Minimal Installs)
 
-This is the recommended path for end-to-end workstation onboarding. Initiating bootstrap from Yadm orchestrates both Layer 1 (system) and Layer 2 (user space) in a single sequence:
+This is the fully automated, multi-stage lifecycle designed for bootstrapping bare-metal machines, cloud images, or minimal VM installations from scratch:
+
+```bash
+# 1. Download and run the standalone Stage 1 bootstrapper as root
+curl -fsSL https://gitlab.com/syncopatedX/workstation/-/raw/development/scripts/bootstrap.sh | sudo bash
+```
+
+**Lifecycle Stages:**
+1. **Stage 1 (Initial Setup & Upgrade — `scripts/bootstrap.sh`)**:
+   - Validates root elevation and environment.
+   - Installs minimal bootstrapping dependencies (`git`, `ansible-core`, `ansible-collection-ansible-posix`, `ansible-collection-community-general`, `python3-dnf`, `python3-rich`).
+   - Performs a full system upgrade via `dnf upgrade -y --refresh`.
+   - Writes the Stage 2 runner (`/usr/local/sbin/syncopated-bootstrap-root.sh`) and stages a one-shot systemd service unit (`/etc/systemd/system/syncopated-bootstrap-root.service`) configured with `TimeoutSec=0` / `TimeoutStartSec=0` to prevent timeouts during extensive package transactions.
+   - Enables `syncopated-bootstrap-root.service` and triggers system reboot.
+2. **Stage 2 (Root System Provisioning — `scripts/syncopated-bootstrap-root.sh`)**:
+   - Executes automatically on reboot before display manager or login prompts.
+   - Runs `ansible-pull` targeting [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) with `--tags system`.
+   - Discovers hardware capabilities, installs base packages, tunes system parameters, configures networking, container runtimes, tools, and the GNOME desktop with native Wayland GDM, setting the default target to `graphical.target`.
+   - On success, writes completion marker `/var/log/syncopated-stage2.done`, self-disables `syncopated-bootstrap-root.service`, and reboots into the graphical greeter.
+3. **Stage 3 (User Onboarding & Dotfiles — `syncopated-firstboot`)**:
+   - Deployed at the system level by [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) (`/usr/local/bin/syncopated-firstboot`).
+   - Hooks into first user login via `/etc/xdg/autostart/syncopated-firstboot.desktop` (graphical session) or `/etc/profile.d/syncopated-firstboot.sh` (terminal session).
+   - Clones dotfiles using the native `yadm` package from the Syncopated COPR and executes unprivileged bootstrap hooks (`local.yml --tags user`) without prompting for `sudo`.
+   - Writes the sentinel `~/.local/state/syncopated/firstboot.done` when complete.
+
+---
+
+### Path 2: Autonomous Yadm Bootstrap (Full Stack Convergence)
+
+For systems with an interactive user terminal already configured, initiating bootstrap from Yadm orchestrates both Layer 1 (system) and Layer 2 (user space):
 
 ```bash
 # 1. Clone your personal dotfiles repository via Yadm
@@ -34,15 +63,17 @@ yadm bootstrap
 3. **Layer 1 Convergence**: Ansible discovers local hardware capabilities (KVM, GPU CUDA/Vulkan, desktop target), executes fail-fast assertions, installs host RPMs (via DNF/DNF5), configures system services, Flatpaks, and host binaries.
 4. **Layer 2 Convergence**: Control returns to Yadm to unpack dotfiles templates, install user Rust tools via `cargo`, user gems via `rbenv`, and user-space Flatpaks.
 
-### Path 2: Standalone Local Convergence (Host Layer 1 Only)
+---
 
-When you need to converge the host without touching user dotfiles, run [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) directly:
+### Path 3: Standalone Local Convergence (Host Layer 1 Only)
+
+When you need to converge the host system without touching user dotfiles, run [`local.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/local.yml) directly:
 
 ```bash
-# Autonomous pull from git repository
-sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git local.yml
+# Autonomous pull from git repository (system play only)
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --tags system local.yml
 
-# Or converge directly from an existing cloned repository
+# Or converge both system and user plays from an existing cloned repository
 sudo ansible-playbook -i localhost, -c local local.yml
 ```
 
@@ -90,19 +121,29 @@ Depending on whether you are provisioning locally on a fresh machine or orchestr
 
 ### Workflow A: Autonomous Pull Bootstrap (`local.yml`)
 
-The root [`local.yml`](../local.yml) playbook is designed for local workstation convergence via `ansible-pull`. It implements the 15 Ansible Design Patterns:
-- **Pre-flight Hardware Auto-Detection**: Dynamically probes for KVM virtualization (`/dev/kvm`), graphical display target (`systemctl get-default`), container runtime support, and GPU hardware accelerators (CUDA via `/dev/nvidia*` / PCI `0x10de`, and Vulkan physical GPUs via `vulkaninfo` / DRM render nodes). Hardware facts (`has_cuda_device`, `has_vulkan_device`, `auto_enable_transcribe`) dynamically gate GPU-dependent tools like `transcribe.cpp`.
-- **Fail-Fast Precondition Assertions**: Every role executes frontloaded pre-flight assertions (`tasks/assert.yml`) validating platform compatibility, package managers, effective root permissions (`id -u == 0`), and identity prerequisites before attempting host mutations. Can be targeted or skipped via `--tags assert` / `--skip-tags assert`, or gated individually via `<role>_assert_enabled: true/false`.
-- **Tag-as-Select Filtering**: Every role is tagged (`base`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop`, `tools`, `system`, `virt`).
-- **Check-Mode Safety**: All pre-flight probes and post-flight assessments run with `check_mode: false`.
-- **Reboot Assessment**: Checks `needs-restarting -r` (EL/Fedora) and `/var/run/reboot-required` (Debian) and outputs a formatted status summary.
+The root [`local.yml`](../local.yml) playbook is designed for local workstation convergence via `ansible-pull`. It implements the 15 Ansible Design Patterns and is structured into two decoupled plays:
+
+1. **Play 1: System Provisioning (Root Privileged — `become: true`, `--tags system`)**:
+   - **Pre-flight Hardware Auto-Detection**: Dynamically probes for KVM virtualization (`/dev/kvm`), graphical display target (`systemctl get-default`), container runtime support, and GPU hardware accelerators (CUDA via `/dev/nvidia*` / PCI `0x10de`, and Vulkan physical GPUs via `vulkaninfo` / DRM render nodes). Hardware facts (`has_cuda_device`, `has_vulkan_device`, `auto_enable_transcribe`) dynamically gate GPU-dependent tools like `transcribe.cpp`.
+   - **Fail-Fast Precondition Assertions**: Every role executes frontloaded pre-flight assertions (`tasks/assert.yml`) validating platform compatibility, package managers, effective root permissions (`id -u == 0`), and identity prerequisites before attempting host mutations. Can be targeted or skipped via `--tags assert` / `--skip-tags assert`, or gated individually via `<role>_assert_enabled: true/false`.
+   - **Desktop & Display Manager**: Enables the desktop role by default on workstations (`auto_enable_desktop: true`), configures GDM for native Wayland (`WaylandEnable=true` in `/etc/gdm/custom.conf`), promotes the default target to `graphical.target`, and manages `gdm.service`.
+   - **Tag-as-Select Filtering**: Every role is tagged (`base`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop`, `tools`, `system`, `virt`).
+   - **Check-Mode Safety**: All pre-flight probes and post-flight assessments run with `check_mode: false`.
+   - **Reboot Assessment**: Checks `needs-restarting -r` (EL/Fedora) and `/var/run/reboot-required` (Debian) and outputs a formatted status summary.
+
+2. **Play 2: User Provisioning (Unprivileged User Space — `become: false`, `--tags user`)**:
+   - Executes strictly as the unprivileged user without requesting `sudo` credentials.
+   - Sets up user directories, resolves paths, and installs Python toolchains via `uv python install {{ user_uv_python_version }}`.
 
 #### Standalone Execution
 ```bash
-# Pull and apply from the GitLab workstation repository
-sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git local.yml
+# Pull and apply system configuration (root privileged)
+sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --tags system local.yml
 
-# Dry-run check mode
+# Pull and apply user space configuration (unprivileged)
+ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --tags user local.yml
+
+# Dry-run check mode across all plays
 sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --check local.yml
 
 # Validate prerequisites across all roles (dry-run pre-flight check)
@@ -150,6 +191,29 @@ ansible-playbook -i inventory/hosts playbooks/workstation.yml -K --check
 # Push pre-flight assertion check only
 ansible-playbook -i inventory/hosts playbooks/workstation.yml -K --tags assert --check
 ```
+
+---
+
+### Workflow C: Local Virtualization Testing (`Vagrantfile`)
+
+A dedicated Fedora workstation definition is integrated into [`Vagrantfile`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/Vagrantfile) using libvirt/KVM for isolated local test cycles:
+
+```bash
+# Start and bootstrap the Fedora workstation test VM
+vagrant up fedora
+
+# Re-run Ansible convergence inside the VM
+vagrant provision fedora
+
+# Target specific tags or check mode during provisioning
+ANSIBLE_TAGS="system" vagrant provision fedora
+ANSIBLE_CHECK=1 vagrant provision fedora
+
+# Connect to the running test VM
+vagrant ssh fedora
+```
+
+The Fedora VM defaults to `fedora/41-cloud-base` and can be pointed at custom or newer images by exporting `FEDORA_BOX` (e.g. `FEDORA_BOX="fedora/rawhide-cloud-base"` or custom build). Pre-installed prerequisites, sudo permissions, SSH authorized keys, and SPICE graphics are automatically configured for graphical and headless testing.
 
 ---
 

@@ -5,7 +5,7 @@ Sets up the unprivileged workstation user environment, user directory layout, se
 ## Scope & Taxonomy
 
 Under the [distribution taxonomy](../../docs/layering-architecture.md):
-- **Ansible (`roles/user`)**: Manages the host user account, group memberships (`audio`, `video`, `render`, `input`), standard directory scaffolding (`~/.local/bin`, `~/Workspace`), and the system drop for `uv`.
+- **Ansible (`roles/user`)**: Manages the host user account, group memberships (`audio`, `video`, `render`, `input`), standard directory scaffolding (`~/.local/bin`, `~/Workspace`), and user Python runtime versions via `uv`.
 - **Yadm**: Single owner of unprivileged dotfiles, shell rc configuration (`~/.zshrc`), language version managers (`rbenv`, `rustup`), default gems, and user Cargo crates (`bootstrap.d/20-cargo.sh`).
 - **Decoupled**: Redundant Rustup installers, Cargo crate compilation loops, and `.zshrc` `lineinfile` modifications were eliminated from this role.
 
@@ -16,7 +16,8 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
    - Configures secondary group access for hardware acceleration, audio, and device input.
    - Creates directory structure (`~/.local/bin`, `~/Workspace`, `~/.config`).
 2. **UV Python Tooling (`tasks/uv.yml`)**:
-   - Installs official Astral `uv` binary to `$HOME/.local/bin/uv`.
+   - Manages user-space Python runtime versions via `uv python install {{ user_uv_python_version }}` (default: `3.12`).
+   - `uv` binary itself is deployed system-wide via native RPM packaging in [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/README.md).
    - Shell environment variables (such as `export UV_PYTHON_PREFERENCE="only-managed"`) are maintained in Yadm dotfile templates rather than Ansible inline mutations.
 
 ## Key Variables
@@ -29,8 +30,7 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
 | `user.home` | `/home/b08x` | Home directory path |
 | `user.shell` | `/usr/bin/zsh` | Login shell path |
 | `user.secondary_groups` | `"input,video,audio,render"` | Comma-separated secondary groups |
-| `user_install_uv` | `true` | When true, installs the `uv` Python manager |
-| `user_uv_version` | `"latest"` | Target version tag for `uv` |
+| `user_uv_python_version` | `3.12` | Python version to install in user space via `uv python install` |
 
 ## Tags
 

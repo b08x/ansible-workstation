@@ -45,7 +45,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
    - [`tasks/theme.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/theme.yml): Catches failures in both Fedora DNF installation and Enterprise Linux source builds (meson/ninja), outputs diagnostic repository/compilation context, and cleanly halts execution via `ansible.builtin.fail`.
 4. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `desktop` tag and fine-grained feature tags (`gnome`, `theme`, `flathub`, `flatpaks`, `vscode`, `antigravity`, `input-remapper`, `packages`).
 5. **Backup-on-Write Pattern**: Managed configuration files (`/etc/yum.repos.d/vscode.repo`, `/opt/antigravity/.installed_url`) specify `backup: true` to prevent accidental overwrites.
-6. **Handler Notification Pattern**: Changes to service unit files (such as input-remapper) notify `Daemon reload` (`systemd daemon-reload`).
+6. **Handler Notification Pattern**: Changes to service unit files (such as input-remapper) notify `Daemon reload` (`systemd daemon-reload`), while display manager configuration changes (`/etc/gdm/custom.conf`) notify `Restart GDM`.
 7. **User Context Isolation (`become_user`)**: User-scoped configurations (GNOME extension dconf state) execute directly under `become_user: "{{ user.name }}"` to ensure appropriate permissions in user schemas.
 8. **Pre-flight Idempotency Tracking**: Antigravity Hub and IDE verify previously extracted archive URLs via `.installed_url` stat and slurp checks, skipping redundant network downloads and extraction.
 9. **Pre-flight Assertion Pattern**: Frontloads system requirement verification ([`tasks/assert.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop/tasks/assert.yml)) to fail fast when prerequisites (OS family, DNF package manager, effective root privileges, desktop environment) are not met.
@@ -97,9 +97,10 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Supports clean uninstallation when `desktop_antigravity_state: absent`.
 
 ### 7. Input Remapper (`tasks/input-remapper.yml`)
-- Checks `/etc/systemd/system/input-remapper.service`.
-- When missing, provisions required Python libraries (`evdev`, `pydantic`, `dasbus`, `PyGObject`, `psutil`), clones the upstream repository, and installs the service using Python installer hooks.
-- Enables and starts the `input-remapper` systemd daemon.
+- Checks `/usr/bin/input-remapper-gtk` via `ansible.builtin.stat` to ensure idempotency.
+- **Fedora**: Installs the native `input-remapper` RPM package via DNF (avoiding PEP 668 restrictions and python-build overhead).
+- **Enterprise Linux (AlmaLinux & Rocky Linux)**: Installs required Python dependencies (`evdev`, `pydantic`, `dasbus`, `PyGObject`, `psutil`), clones the upstream repository, and installs the service using Python installer hooks.
+- Enables and starts the `input-remapper` systemd service.
 
 ---
 
@@ -114,7 +115,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | **System Flathub Remote** | Supported (`method: system`) | Supported (`method: system`) | Supported (`method: system`) |
 | **VS Code Delivery** | Microsoft DNF Repo or Flatpak | Microsoft DNF Repo or Flatpak | Microsoft DNF Repo or Flatpak |
 | **Antigravity Hub & IDE** | `/opt` tarball deployment (check-mode safe) | `/opt` tarball deployment (check-mode safe) | `/opt` tarball deployment (check-mode safe) |
-| **Input-Remapper** | Source build & systemd daemon | Source build & systemd daemon | Source build & systemd daemon |
+| **Input-Remapper** | Native DNF package & systemd daemon | Source build & systemd daemon | Source build & systemd daemon |
 
 ---
 
@@ -127,7 +128,8 @@ These variables represent machine hardware, system capabilities, or user identit
 | Variable | Default | Description |
 |---|---|---|
 | `user.name` | `ansible_user_id` | Primary workstation user account name (SSOT) used for dconf and user-level tools. |
-| `auto_enable_desktop` | `true` | Capability flag evaluated during `local.yml` preflight checks to determine whether to include the desktop role on graphical systems. |
+| `enable_desktop` | `true` | System-wide flag in `group_vars/` enabling graphical workstation provisioning. |
+| `auto_enable_desktop` | `true` | Capability flag evaluated during `local.yml` preflight checks to determine whether to include the desktop role on graphical systems (`pull_enable_desktop \| default(enable_desktop \| default(true))`). |
 
 ### Tier 2: Role Defaults (`defaults/main.yml`)
 

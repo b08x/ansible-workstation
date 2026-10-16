@@ -11,10 +11,11 @@ In accordance with the [distribution layering taxonomy](../../docs/layering-arch
 - **Ansible (`roles/base`)**:
   - Manages host-level RPM foundation packages (`base_packages`) via DNF.
   - Configures DNF package manager optimizations (`fastestmirror=True` on Fedora, skipping EL 10 where unsupported by DNF 5; `dnf-plugins-core`, metadata caching).
-  - Orchestrates distribution and third-party repositories: EPEL, CRB/PowerTools, RPM Fusion (Free & Non-Free), and Fedora COPR.
+  - Orchestrates distribution and third-party repositories: EPEL, CRB/PowerTools, RPM Fusion (Free & Non-Free), and the Syncopated COPR (`b08x/syncopated`).
   - Configures core system services: OpenSSH daemon (`sshd`) and installs `zram-generator` (configured by the `tuning` role).
   - Provisions Intel hardware acceleration (graphics drivers, media runtimes, firmware) and optional Intel oneAPI toolkit.
-  - Installs base developer CLI utilities: `git-flow` (COPR on Fedora, source build on EL), `inxi` (package with upstream fallback), `yadm` binary bootstrap to `/usr/local/bin/yadm`, and `zsh` verification.
+  - Installs base developer CLI utilities: `git-flow` (native RPM from Syncopated COPR on Fedora, source build on EL), `inxi` (package with upstream fallback), `yadm` (native RPM with upstream fallback), and `zsh` verification.
+  - Deploys Stage 3 first-boot onboarding infrastructure (`syncopated-firstboot`, desktop autostart, profile.d hook) for headless and desktop hosts.
   - Provisions optional Homebrew (Linuxbrew) prefix at `/home/linuxbrew/.linuxbrew` (Fedora opt-in).
 - **Decoupled from Base Role**:
   - **Go Toolchain & Coding Agent CLIs**: Modern Go toolchains and agent binaries (`bun`, `transcribe.cpp`, `go`, `agy`, `claude`, `crush`, `opencode`, `vibe`) are decoupled and managed by [`roles/tools`](../tools/README.md).
@@ -28,11 +29,11 @@ In accordance with the [distribution layering taxonomy](../../docs/layering-arch
 
 The `base` role implements the **15 Ansible Design Patterns** to guarantee cross-distro consistency, idempotency, and clean failure behavior:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as a central dispatcher coordinating modular, single-responsibility subtask files (`dnf.yml`, `distro/`, `intel.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `zsh.yml`, `yadm.yml`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as a central dispatcher coordinating modular, single-responsibility subtask files (`dnf.yml`, `distro/`, `intel.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `zsh.yml`, `yadm.yml`, `firstboot.yml`).
 2. **Distro-Switching Pattern**:
    - Package variable sets dynamically resolve per-major files before falling back to distro-wide files via `first_found` (e.g., `vars/Rocky-9.yml` vs `vars/Rocky-10.yml` vs `vars/AlmaLinux.yml` vs `vars/Fedora.yml`).
    - Repository setup tasks route to `tasks/distro/EL.yml` for RHEL-derivative distributions (AlmaLinux, Rocky) and `tasks/distro/Fedora.yml` for Fedora.
-3. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `base` tag and specific functional tags (`packages`, `repos`, `dnf`, `epel`, `rpmfusion`, `copr`, `intel`, `gitflow`, `inxi`, `homebrew`, `zsh`, `yadm`), allowing fine-grained partial convergence.
+3. **Tag-as-Select Pattern**: Every task include and block is tagged with the primary `base` tag and specific functional tags (`packages`, `repos`, `dnf`, `epel`, `rpmfusion`, `copr`, `intel`, `gitflow`, `inxi`, `homebrew`, `zsh`, `yadm`, `firstboot`), allowing fine-grained partial convergence.
 4. **Backup-on-Write Pattern**: All templated or written configuration files (`epel.repo`, `/etc/profile.d/intel-oneapi.sh`, user shell configuration files) set `backup: true` to prevent data loss.
 5. **Block-as-Unit Pattern**: Tasks are organized into logical blocks paired with rescue handlers that implement standardized failure shape patterns.
 6. **Conditional Feature Flags**: Subsystems are gated with explicit boolean checks (`enable_third_party_repos | default(true) | bool`, `base_enable_rpmfusion | bool`, `base_install_homebrew | bool`, `intel_oneapi_install | default(false) | bool`).
@@ -93,9 +94,9 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 - **Intel oneAPI Toolkit**: Gated on `intel_oneapi_install: true`. Adds the official Intel repository, installs MKL and compiler runtimes (`dpcpp-cpp`, `mkl-devel`, `openmp`), and creates `/etc/profile.d/intel-oneapi.sh`.
 
 ### 7. Developer CLI Utilities
-- **Git Flow (`tasks/gitflow.yml`)**: On Fedora, installs `gitflow` from COPR (`elegos/gitflow`). On Enterprise Linux, clones and installs `gitflow-avh` from source to `/usr/local/bin/git-flow`.
+- **Git Flow (`tasks/gitflow.yml`)**: On Fedora, installs `gitflow` from the Syncopated COPR (`b08x/syncopated`). On Enterprise Linux, clones and installs `gitflow-avh` from source to `/usr/local/bin/git-flow`.
 - **Inxi (`tasks/inxi.yml`)**: Installs the `inxi` system information tool via package manager with automatic fallback to upstream script download.
-- **Yadm (`tasks/yadm.yml`)**: Checks for an existing `yadm` binary in `$PATH` (including `~/.local/bin`), skipping installation if present. Otherwise, downloads the standalone script to `{{ user.home }}/.local/bin/yadm`. Supports forcing reinstallation via `base_yadm_force_install: true`.
+- **Yadm (`tasks/yadm.yml`)**: Installs the native `yadm` RPM package via DNF from the Syncopated COPR, with automatic fallback to downloading the standalone script to `{{ user.home }}/.local/bin/yadm`.
 - **Zsh (`tasks/zsh.yml`)**: Validates that `zsh` is installed as the foundation shell for user space.
 
 ### 8. Homebrew / Linuxbrew (`tasks/homebrew.yml`)
@@ -103,6 +104,14 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 - Prepares dedicated `/home/linuxbrew/.linuxbrew` prefix owned by `{{ user.name }}` and `linuxbrew` group.
 - Executes official unattended Homebrew installer.
 - Configures `curl_wrapper.sh` and shell resource throttling alias to avoid build hangs and CPU starvation.
+
+### 9. First-Boot Onboarding Infrastructure (`tasks/firstboot.yml`)
+- Deploys Stage 3 first-boot onboarding utilities at the system level:
+  - `/usr/local/bin/syncopated-firstboot`: Master onboarding script that clones user dotfiles via native `yadm` and runs unprivileged bootstrap hooks without requiring sudo.
+  - `/usr/local/bin/syncopated-firstboot-launcher`: Terminal launcher script supporting both graphical and terminal invocation.
+  - `/etc/xdg/autostart/syncopated-firstboot.desktop`: Autostart desktop entry for graphical desktop login.
+  - `/etc/profile.d/syncopated-firstboot.sh`: Profile login hook for interactive terminal or console login.
+- Writes completion sentinel `~/.local/state/syncopated/firstboot.done` upon successful initialization.
 
 ---
 
@@ -115,8 +124,9 @@ Executes a single consolidated DNF transaction for the platform's `base_packages
 | **DNF Mirror Optimization (`fastestmirror`)** | Supported (`fastestmirror=True`) | Skipped (DNF 5 incompatibility) | Skipped (DNF 5 incompatibility) | Skipped (gated to Fedora) |
 | **Zlib Compatibility** | Distro default | `zlib-ng-compat-devel` | `zlib-ng-compat-devel` | `zlib-devel` |
 | **Firewall / Bridging** | `iptables-nft` | `iptables-nft` | `iptables-nft` | `iptables-nft` |
-| **Modern Utilities (`uv`, `just`)** | Distro package | Native RPM | Native RPM | Skipped (No EL9 build) |
-| **Git Flow Delivery** | COPR (`elegos/gitflow`) | Source (`gitflow-avh`) | Source (`gitflow-avh`) | Source (`gitflow-avh`) |
+| **Modern Utilities (`uv`, `flatpak`, `gum`, `just`)** | Distro package / Native RPM | Native RPM | Native RPM | Skipped (No EL9 build) |
+| **Git Flow Delivery** | COPR (`b08x/syncopated`) | Source (`gitflow-avh`) | Source (`gitflow-avh`) | Source (`gitflow-avh`) |
+| **Yadm Delivery** | Native RPM (COPR) with fallback | Native RPM (COPR) with fallback | Native RPM (COPR) with fallback | Standalone script download |
 | **Homebrew Support** | Supported (opt-in) | Not supported | Not supported | Not supported |
 
 ---
@@ -142,12 +152,13 @@ These variables are namespaced with `base_*` and control role-specific behavior:
 |---|---|---|
 | `base_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
 | `base_enable_rpmfusion` | `true` | Enable RPM Fusion Free and Non-Free repositories on Fedora hosts. |
-| `base_enable_syncopated_copr` | `true` | Enable the Syncopated COPR repository on EL 10 hosts. |
-| `base_syncopated_copr` | `b08x/syncopated` | COPR repository providing syncopated packages on EL 10. |
-| `base_copr_repos` | `[]` | List of Fedora COPR repositories (`owner/project`) to enable (e.g. `["atim/starship"]`). |
-| `base_gitflow_copr` | `elegos/gitflow` | COPR repository providing the `gitflow` package on Fedora. |
+| `base_enable_syncopated_copr` | `true` | Enable the Syncopated COPR repository on Fedora and EL 10 hosts. |
+| `base_syncopated_copr` | `b08x/syncopated` | COPR repository providing syncopated packages (yadm, gitflow, gum, uv). |
+| `base_copr_repos` | `[]` | List of additional Fedora COPR repositories (`owner/project`) to enable. |
+| `base_gitflow_copr_fedora` | `b08x/syncopated` | COPR repository providing the `gitflow` package on Fedora. |
+| `base_gitflow_copr_el` | `b08x/syncopated` | COPR repository providing the `gitflow` package on EL. |
 | `base_install_homebrew` | `false` | Opt-in flag to install Linuxbrew into `/home/linuxbrew/.linuxbrew` (Fedora only). |
-| `base_yadm_url` | `https://github.com/TheLocehiliosan/yadm/raw/master/yadm` | Upstream download URL for standalone `yadm` executable. |
+| `base_yadm_url` | `https://github.com/TheLocehiliosan/yadm/raw/master/yadm` | Upstream download URL for standalone `yadm` fallback script. |
 | `base_yadm_force_install` | `false` | When true, forces installation even if `yadm` binary is already present. |
 | `base_intel_graphics_required` | `false` | Strictness flag: when `true`, failure to install Intel graphics drivers fails the play. |
 | `base_zoxide_required` | `false` | Strictness flag: when `true`, turns zoxide installation failure into a play failure. |
@@ -176,7 +187,8 @@ Use tags with `--tags` or `--skip-tags` for granular task execution:
 | `inxi` | Inxi system information tool installation and fallback download |
 | `homebrew` | Linuxbrew prefix, installation, and shell throttling configuration |
 | `zsh` | Zsh package verification |
-| `yadm` | Yadm standalone binary download |
+| `yadm` | Yadm native RPM package and standalone fallback installation |
+| `firstboot` | Stage 3 first-boot onboarding scripts, desktop autostart, and profile hooks |
 
 ---
 
