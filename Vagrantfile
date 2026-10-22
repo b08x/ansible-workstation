@@ -134,6 +134,10 @@ Vagrant.configure("2") do |config|
 
     # Bootstrap system for testing
     fedora.vm.provision "shell", inline: <<-SHELL
+      # Automatically expand root partition to fill allocated virtual disk
+      growpart /dev/vda 4 2>/dev/null || true
+      resize2fs /dev/vda4 2>/dev/null || true
+
       # Update dnf and install minimal prerequisites
       dnf install -y --setopt=timeout=10 --setopt=retries=3 \
         git \
