@@ -1,0 +1,99 @@
+---
+# argument spec file for tools
+
+argument_specs:
+  main:
+    short_description: Tools role managing developer runtimes, utilities, vendor toolchains, and AI agent CLIs.
+    options:
+      tools_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      tools_user:
+        type: str
+        description: Target workstation user for user-space tool installations.
+      tools_user_home:
+        type: str
+        description: Home directory of target user.
+      tools_user_local_bin:
+        type: str
+        description: User-local bin path (~/.local/bin).
+      tools_user_go_bin:
+        type: str
+        description: User go bin path (~/go/bin).
+      tools_install_runtimes:
+        type: bool
+        description: Install developer toolchains and language runtimes (golang, nodejs, npm).
+        default: true
+      tools_runtime_packages:
+        type: list
+        elements: str
+        description: List of runtime packages to install.
+      tools_install_transcribe:
+        type: bool
+        description: Install whisper transcription CLI (transcribe.cpp).
+        default: true
+      tools_install_bun:
+        type: bool
+        description: Install bun JavaScript/TypeScript runtime.
+        default: true
+      tools_install_intel:
+        type: bool
+        description: Install Intel oneAPI toolkit.
+        default: false
+      tools_install_intel_graphics:
+        type: bool
+        description: Install Intel graphics drivers.
+        default: false
+      tools_intel_graphics_required:
+        type: bool
+        description: Whether Intel graphics driver failure causes a fatal error.
+        default: false
+      tools_install_gitflow:
+        type: bool
+        description: Install gitflow tool.
+        default: true
+      tools_gitflow_copr_fedora:
+        type: str
+        description: COPR repository for gitflow on Fedora.
+        default: "b08x/syncopated"
+      tools_gitflow_copr_el:
+        type: str
+        description: COPR repository for gitflow on Enterprise Linux.
+        default: "b08x/syncopated"
+      tools_gitflow_force_install:
+        type: bool
+        description: Force installation of gitflow from source even if present.
+        default: false
+      tools_install_inxi:
+        type: bool
+        description: Install inxi system information tool.
+        default: true
+      tools_install_homebrew:
+        type: bool
+        description: Install Homebrew on Fedora systems.
+        default: false
+      tools_install_go:
+        type: bool
+        description: Validate or configure Go toolchain.
+        default: true
+      tools_install_antigravity:
+        type: bool
+        description: Install Google Antigravity CLI.
+        default: true
+      tools_install_claude:
+        type: bool
+        description: Install Anthropic Claude Code CLI.
+        default: true
+      tools_install_crush:
+        type: bool
+        description: Install Charm Crush CLI.
+        default: true
+      tools_install_opencode:
+        type: bool
+        description: Install OpenCode CLI.
+        default: true
+      tools_install_vibe:
+        type: bool
+        description: Install Mistral Vibe CLI.
+        default: true

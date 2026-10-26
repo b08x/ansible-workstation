@@ -1,0 +1,18 @@
+---
+# tasks file for crypto policy enforcement in roles/common (CIS-L2 Workstation)
+
+- name: Query active system crypto policy
+  ansible.builtin.command: update-crypto-policies --show
+  register: common_crypto_policy_current
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["hardening", "crypto", "common"]
+
+- name: Enforce declarative system crypto policy
+  ansible.builtin.command: "update-crypto-policies --set {{ common_crypto_policy | default('DEFAULT') }}"
+  when:
+    - common_crypto_policy_current.rc == 0
+    - (common_crypto_policy | default('DEFAULT')) not in common_crypto_policy_current.stdout
+  changed_when: true
+  tags: ["hardening", "crypto", "common"]

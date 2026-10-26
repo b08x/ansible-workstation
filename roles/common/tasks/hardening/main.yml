@@ -1,0 +1,22 @@
+---
+# tasks file for CIS Level 2 Workstation Hardening in roles/common
+
+- name: Include auditd hardening tasks
+  ansible.builtin.include_tasks: auditd.yml
+  when: common_hardening_auditd_enabled | default(true) | bool
+  tags: ["hardening", "auditd", "common"]
+
+- name: Include SSH daemon hardening tasks
+  ansible.builtin.include_tasks: sshd.yml
+  when: common_hardening_sshd_enabled | default(true) | bool
+  tags: ["hardening", "sshd", "common"]
+
+- name: Include system crypto policy tasks
+  ansible.builtin.include_tasks: crypto.yml
+  when: common_hardening_crypto_enabled | default(true) | bool
+  tags: ["hardening", "crypto", "common"]
+
+- name: Include limits and umask hardening tasks
+  ansible.builtin.include_tasks: limits.yml
+  when: common_hardening_limits_enabled | default(true) | bool
+  tags: ["hardening", "limits", "common"]

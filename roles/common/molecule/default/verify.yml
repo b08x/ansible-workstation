@@ -1,0 +1,22 @@
+---
+- name: Verify
+  hosts: molecule
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check that sshd is enabled and running
+      ansible.builtin.systemd:
+        name: sshd
+      register: common_verify_sshd
+      failed_when: >-
+        common_verify_sshd.status.ActiveState != 'active' or
+        common_verify_sshd.status.UnitFileState != 'enabled'
+
+    - name: Check that command-line tools are installed
+      ansible.builtin.command: "{{ item }}"
+      become: false
+      loop:
+        - fzf --version
+        - yadm version
+        - zsh --version
+      changed_when: false

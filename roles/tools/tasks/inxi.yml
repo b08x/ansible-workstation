@@ -1,0 +1,31 @@
+---
+# tasks file for inxi installation in roles/tools
+
+- name: Install inxi system information tool
+  tags: ["inxi", "tools"]
+  block:
+    - name: Check if inxi binary is present
+      ansible.builtin.command: which inxi
+      environment:
+        PATH: "{{ tools_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+      register: tools_inxi_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Install inxi using package manager
+      ansible.builtin.package:
+        name: inxi
+        state: present
+      when: (tools_inxi_check.rc | default(1)) != 0
+
+  rescue:
+    - name: Download inxi standalone script from upstream
+      ansible.builtin.get_url:
+        url: https://codeberg.org/smxi/inxi/raw/branch/master/inxi
+        dest: /usr/local/bin/inxi
+        mode: "0755"
+        owner: root
+        group: root
+        timeout: 60
+      tags: ["inxi", "tools"]

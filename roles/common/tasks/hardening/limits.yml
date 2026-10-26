@@ -1,0 +1,28 @@
+---
+# tasks file for umask and system limits in roles/common (CIS-L2 Workstation)
+
+- name: Deploy workstation default umask profile script
+  ansible.builtin.copy:
+    dest: /etc/profile.d/50-workstation-umask.sh
+    content: |
+      # Managed by Ansible roles/common (CIS Level 2 Workstation Tailoring)
+      umask {{ common_default_umask | default('027') }}
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: common_enforce_umask | default(true) | bool
+  tags: ["hardening", "limits", "common"]
+
+- name: Deploy core dump prevention limits
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/50-coredump-cis.conf
+    content: |
+      # Managed by Ansible roles/common (CIS Level 2 Workstation Tailoring)
+      * hard core 0
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  when: common_disable_coredumps | default(true) | bool
+  tags: ["hardening", "limits", "common"]

@@ -1,0 +1,9 @@
+---
+# tasks file for developer compilers and language runtimes in roles/tools
+
+- name: Install developer toolchains and language runtimes
+  ansible.builtin.dnf:
+    name: "{{ tools_runtime_packages }}"
+    state: present
+  when: tools_install_runtimes | default(true) | bool
+  tags: ["runtimes", "compilers", "packages", "tools"]

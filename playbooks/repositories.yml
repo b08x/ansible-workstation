@@ -1,0 +1,62 @@
+---
+# ==============================================================================
+# Distribution Repositories and System Update Playbook
+# Autonomous dispatcher configuring DNF, core/third-party repos, and system updates
+# ==============================================================================
+- name: Distribution Repositories and System Update
+  hosts: "{{ target_hosts | default('workstations') }}"
+  become: true
+  gather_facts: true
+  tags: ["repos", "repositories", "system"]
+  vars:
+    dnf_max_parallel_downloads: 10
+    dnf_fastestmirror: true
+    enable_third_party_repos: true
+    enable_rpmfusion: true
+    enable_syncopated_copr: true
+    syncopated_copr: "b08x/syncopated"
+    copr_repos: []
+
+  pre_tasks:
+    - name: Ensure facts are gathered
+      ansible.builtin.setup:
+      when: ansible_distribution is not defined
+      tags: ["always"]
+
+  tasks:
+    - name: Announce repository configuration start
+      ansible.builtin.debug:
+        msg: >-
+          Configuring repositories and updating packages for {{ inventory_hostname }}
+          ({{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('') }})
+      tags: ["repos", "repositories"]
+
+    - name: Configure DNF performance settings
+      ansible.builtin.include_tasks: tasks/repositories/dnf.yml
+      tags: ["dnf", "mirrors", "repos"]
+
+    - name: Include distribution-specific repository tasks
+      ansible.builtin.include_tasks: "{{ repo_distro_tasks }}"
+      vars:
+        repo_distro_tasks: >-
+          {{
+            lookup('ansible.builtin.first_found',
+                   files=[
+                     'tasks/repositories/' ~ ansible_distribution ~ '.yml',
+                     'tasks/repositories/EL.yml'
+                   ],
+                   paths=[playbook_dir])
+          }}
+      when:
+        - ansible_distribution is defined
+        - enable_third_party_repos | default(true) | bool
+      tags: ["repos", "repositories"]
+
+    - name: Execute system package upgrade
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest # noqa: package-latest
+        update_cache: true
+        nobest: true
+      when: ansible_distribution is defined
+      tags: ["upgrade", "repos", "system"]

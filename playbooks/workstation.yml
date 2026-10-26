@@ -1,5 +1,8 @@
 ---
-- name: System Provisioning and Base Configuration
+- name: Distribution Repositories and System Update
+  ansible.builtin.import_playbook: repositories.yml
+
+- name: System Provisioning and Common Configuration
   hosts: workstations
   become: true
   # Facts are gathered as root so that virtualization and other privileged
@@ -34,8 +37,8 @@
         dest: /etc/system-release
         state: link
   roles:
-    - role: base
-      tags: ["base", "system"]
+    - role: common
+      tags: ["common", "system"]
 
 - name: System Configuration
   hosts: workstations

@@ -1,0 +1,17 @@
+---
+common_packages:
+  - aria2
+  - audit
+  - curl
+  - flatpak
+  - fzf
+  - git
+  - gum
+  - openssh-server
+  - policycoreutils-python-utils
+  - tar
+  - tuned
+  - unzip
+  - wl-clipboard
+  - zram-generator
+  - zsh

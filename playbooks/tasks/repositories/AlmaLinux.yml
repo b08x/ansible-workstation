@@ -1,0 +1,8 @@
+---
+# ============================================================================
+# AlmaLinux Repository Configuration
+# ============================================================================
+
+- name: Include shared Enterprise Linux repository tasks
+  ansible.builtin.include_tasks: EL.yml
+  tags: ["repos", "repositories", "almalinux", "el"]

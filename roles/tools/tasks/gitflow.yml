@@ -1,0 +1,59 @@
+---
+# tasks file for gitflow in roles/tools
+# Fedora ships gitflow through a COPR. AlmaLinux has no package in its base
+# repositories or EPEL, so it builds from source if needed.
+
+- name: Install gitflow from COPR
+  tags: ["gitflow", "tools"]
+  block:
+    - name: Enable gitflow COPR repository
+      community.general.copr:
+        name: "{{ tools_gitflow_copr_fedora | default('b08x/syncopated') }}"
+        state: enabled
+      when: ansible_distribution == 'Fedora'
+
+    - name: Install gitflow package
+      ansible.builtin.dnf:
+        name: gitflow
+        state: present
+
+- name: Check if git-flow is installed
+  ansible.builtin.command: which git-flow
+  environment:
+    PATH: "{{ tools_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: tools_gitflow_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gitflow", "tools"]
+
+- name: Deploy gitflow-avh from source
+  when:
+    - ansible_distribution != 'Fedora'
+    - (tools_gitflow_check.rc != 0) or (tools_gitflow_force_install | default(false) | bool)
+  tags: ["gitflow", "tools"]
+  block:
+    - name: Ensure clean state for clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent
+
+    - name: Clone gitflow-avh repository
+      ansible.builtin.git:
+        repo: https://github.com/b08x/gitflow-avh.git
+        dest: /tmp/gitflow-avh
+        clone: true
+        update: true
+        version: develop
+      become: false
+
+    - name: Install git flow-avh
+      ansible.builtin.command:
+        cmd: make install
+        chdir: /tmp/gitflow-avh
+        creates: /usr/local/bin/git-flow
+
+    - name: Clean up gitflow-avh clone
+      ansible.builtin.file:
+        path: /tmp/gitflow-avh
+        state: absent

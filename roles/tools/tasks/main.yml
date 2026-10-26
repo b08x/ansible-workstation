@@ -1,6 +1,6 @@
 ---
 # tasks file for tools
-# Dispatches system utilities and user-space coding agent CLI installers.
+# Dispatches system utilities, developer compilers, vendor toolchains, and user-space coding agent CLI installers.
 
 - name: Starting tools tasks
   ansible.builtin.debug:
@@ -11,6 +11,11 @@
   ansible.builtin.include_tasks: assert.yml
   when: tools_assert_enabled | default(true) | bool
   tags: ["tools", "assert", "always"]
+
+- name: Include developer toolchain and runtime tasks
+  ansible.builtin.include_tasks: runtimes.yml
+  when: tools_install_runtimes | default(true) | bool
+  tags: ["runtimes", "compilers", "tools"]
 
 - name: Include transcribe.cpp compilation tasks
   ansible.builtin.include_tasks: transcribe-cpp.yml
@@ -51,3 +56,28 @@
   ansible.builtin.include_tasks: vibe.yml
   when: tools_install_vibe | default(true) | bool
   tags: ["vibe", "agents", "tools"]
+
+- name: Include Intel drivers and oneAPI toolkit tasks
+  ansible.builtin.include_tasks: intel.yml
+  when: >-
+    (tools_install_intel | default(false) | bool) or
+    (intel_oneapi_install | default(false) | bool) or
+    (tools_install_intel_graphics | default(false) | bool)
+  tags: ["intel", "intel_oneapi", "tools"]
+
+- name: Include gitflow installation tasks
+  ansible.builtin.include_tasks: gitflow.yml
+  when: tools_install_gitflow | default(true) | bool
+  tags: ["gitflow", "tools"]
+
+- name: Include inxi system information tasks
+  ansible.builtin.include_tasks: inxi.yml
+  when: tools_install_inxi | default(true) | bool
+  tags: ["inxi", "tools"]
+
+- name: Include Homebrew configuration tasks
+  ansible.builtin.include_tasks: homebrew.yml
+  when:
+    - tools_install_homebrew | default(false) | bool
+    - ansible_distribution == 'Fedora'
+  tags: ["homebrew", "tools"]

@@ -1,0 +1,33 @@
+# Managed by Ansible roles/common (CIS Level 2 Workstation Tailoring)
+# Desktop syscall noise filtering: excludes high-frequency dac_modification,
+# file_deletion_events, and unsuccessful_file_modification to keep workstation responsiveness.
+
+# Self-auditing & Audit configuration changes
+-w /etc/audit/ -p wa -k auditconfig
+-w /etc/libaudit.conf -p wa -k auditconfig
+-w /etc/audisp/ -p wa -k audispconfig
+
+# Identity & Authentication changes
+-w /etc/group -p wa -k identity
+-w /etc/passwd -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/security/opasswd -p wa -k identity
+
+# Sudoers & Privilege escalation changes
+-w /etc/sudoers -p wa -k actions
+-w /etc/sudoers.d/ -p wa -k actions
+
+# Kernel module loading and unloading
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -k modules
+-a always,exit -F arch=b32 -S init_module,finit_module,delete_module -k modules
+
+# System time adjustments
+-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -k time-change
+-a always,exit -F arch=b32 -S adjtimex,settimeofday,clock_settime,stime -k time-change
+-w /etc/localtime -p wa -k time-change
+
+# Make the audit configuration immutable (must be last rule if enabled)
+{% if common_auditd_rules_immutable | default(false) | bool %}
+-e 2
+{% endif %}

@@ -1,0 +1,84 @@
+---
+# ============================================================================
+# Fedora Repository Configuration
+# Sets up RPM Fusion and COPR repositories, then configures repo priorities.
+# ============================================================================
+
+- name: Install repository management prerequisites
+  ansible.builtin.dnf:
+    name:
+      - python3-libdnf5
+      - python3-dnf
+      - fedora-workstation-repositories
+      - dnf-plugins-core
+    state: present
+  tags: ["packages", "repositories", "repos"]
+
+- name: Configure third-party repositories
+  tags: ["repositories", "repos"]
+  block:
+    - name: Install RPM Fusion Free repository
+      ansible.builtin.dnf:
+        name: "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: repo_rpmfusion_free
+      when: enable_rpmfusion | default(true) | bool
+      tags: ["rpmfusion"]
+
+    - name: Install RPM Fusion Non-Free repository
+      ansible.builtin.dnf:
+        name: "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+      register: repo_rpmfusion_nonfree
+      when: enable_rpmfusion | default(true) | bool
+      tags: ["rpmfusion"]
+
+    - name: Enable COPR repositories
+      community.general.copr:
+        name: "{{ item }}"
+        state: enabled
+      loop: "{{ copr_repos | default([]) }}"
+      register: repo_copr_enabled
+      when: (copr_repos | default([])) | length > 0
+      tags: ["copr"]
+
+    - name: Enable Syncopated COPR repository
+      community.general.copr:
+        name: "{{ syncopated_copr | default('b08x/syncopated') }}"
+        state: enabled
+      register: repo_copr_syncopated
+      when: enable_syncopated_copr | default(true) | bool
+      tags: ["copr"]
+
+    - name: Set repository priorities
+      ansible.builtin.command:
+        cmd: >-
+          dnf config-manager setopt
+          fedora.priority=0 updates.priority=0 rpmfusion-*.priority=90
+      changed_when: false
+      tags: ["dnf_priorities"]
+
+  rescue:
+    - name: Report repository setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to configure third-party repositories.
+          Usually network connectivity or an unavailable RPM Fusion mirror.
+          Set enable_rpmfusion=false to skip RPM Fusion entirely.
+
+    - name: Fail the play on repository setup failure
+      ansible.builtin.fail:
+        msg: "Third-party repository configuration failed - see the preceding task output."
+
+- name: Force refresh DNF metadata cache
+  ansible.builtin.command:
+    cmd: dnf makecache
+  changed_when: true
+  when: >
+    (repo_rpmfusion_free is changed) or
+    (repo_rpmfusion_nonfree is changed) or
+    (repo_copr_enabled is changed) or
+    (repo_copr_syncopated is changed)
+  tags: ["repositories", "repos"]

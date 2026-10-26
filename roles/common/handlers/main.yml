@@ -1,0 +1,28 @@
+---
+# handlers file for common role
+
+- name: Restart sshd
+  ansible.builtin.systemd:
+    name: sshd
+    state: restarted
+  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  listen: "restart sshd"
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  listen: "restart auditd"
+
+- name: Restart tuned
+  ansible.builtin.systemd:
+    name: tuned
+    state: restarted
+  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  listen: "restart tuned"
+
+- name: Daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+  listen: "daemon reload"

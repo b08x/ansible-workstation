@@ -1,6 +1,0 @@
----
-- name: Verify zsh package is installed
-  ansible.builtin.package:
-    name: zsh
-    state: present
-  tags: ["zsh", "base"]

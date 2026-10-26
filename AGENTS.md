@@ -13,10 +13,10 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
 
 - `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers, CUDA/Vulkan GPUs), Tag-as-Select role filtering, and reboot assessment.
 - `playbooks/workstation.yml` — full workstation provisioning. Targets the `workstations` group
-  (tinybot, gir, soundbot) across modular plays: base (base), system (tuning, networking, containerd, desktop, libvirt),
+  (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, networking, containerd, desktop, libvirt),
   user (user), and tools (tools).
 
-Roles live directly in `roles/`: `base`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
+Roles live directly in `roles/`: `common`, `containerd`, `desktop`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`.
 
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative

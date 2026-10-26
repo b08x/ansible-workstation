@@ -41,10 +41,6 @@ argument_specs:
         type: bool
         description: Enable systemd manager timeout and limit drop-ins.
         default: true
-      tuning_tuned_enabled:
-        type: bool
-        description: Enable tuned service and profile application.
-        default: true
       tuning_rtirq_enabled:
         type: bool
         description: Enable rtirq real-time IRQ thread prioritization.
@@ -159,10 +155,6 @@ argument_specs:
         type: str
         description: Default file descriptor limits for user manager.
         default: "1024:1048576"
-      tuning_tuned_profile:
-        type: str
-        description: Active tuned profile name.
-        default: throughput-performance
       tuning_cpupower_config_file:
         type: str
         description: Configuration file path for cpupower service.

@@ -26,14 +26,14 @@
   tags:
     [
       "system",
-      "base",
+      "repos",
+      "common",
       "tuning",
       "networking",
       "containerd",
       "libvirt",
       "desktop",
       "tools",
-      "assert",
     ]
 
   pre_tasks:
@@ -48,7 +48,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -66,7 +67,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -83,7 +85,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -112,7 +115,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -129,7 +133,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -148,21 +153,22 @@
         backup: true
         validate: "visudo -cf %s"
       when: workstation_user != 'root'
-      tags: ["sudoers", "base", "system"]
+      tags: ["sudoers", "common", "system"]
 
     - name: Ensure /etc/system-release symlink exists
       ansible.builtin.file:
         src: /etc/os-release
         dest: /etc/system-release
         state: link
-      tags: ["base", "system"]
+      tags: ["common", "system"]
 
     - name: Pre-flight capability detection
       check_mode: false
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",
@@ -271,10 +277,37 @@
               - "GPU Acceleration: CUDA={{ has_cuda_device }}, Vulkan={{ has_vulkan_device }} -> Transcribe: {{ auto_enable_transcribe }}"
 
   tasks:
-    - name: Execute base role
+    - name: Configure DNF performance settings
+      ansible.builtin.include_tasks: playbooks/tasks/repositories/dnf.yml
+      tags: ["dnf", "mirrors", "repos", "system"]
+
+    - name: Include distribution-specific repository tasks
+      ansible.builtin.include_tasks: "{{ repo_distro_tasks }}"
+      vars:
+        repo_distro_tasks: >-
+          {{
+            lookup('ansible.builtin.first_found',
+                   files=[
+                     'playbooks/tasks/repositories/' ~ ansible_distribution ~ '.yml',
+                     'playbooks/tasks/repositories/EL.yml'
+                   ],
+                   paths=[playbook_dir])
+          }}
+      when: enable_third_party_repos | default(true) | bool
+      tags: ["repos", "repositories", "system"]
+
+    - name: Execute system package upgrade
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest # noqa: package-latest
+        update_cache: true
+        nobest: true
+      tags: ["upgrade", "repos", "system"]
+
+    - name: Execute common role
       ansible.builtin.include_role:
-        name: base
-      tags: ["base", "system", "assert"]
+        name: common
+      tags: ["common", "system", "assert"]
 
     - name: Execute tuning role
       ansible.builtin.include_role:
@@ -315,7 +348,8 @@
       tags:
         [
           "system",
-          "base",
+          "repos",
+          "common",
           "tuning",
           "networking",
           "containerd",

@@ -1,0 +1,57 @@
+---
+# ==============================================================================
+# Tuned Daemon Management and Profile Activation
+# Uses recommended_tuned_profile from hardware auto-detection by default.
+# ==============================================================================
+
+- name: Resolve effective tuned profile
+  ansible.builtin.set_fact:
+    common_effective_tuned_profile: >-
+      {{
+        common_tuned_profile
+        if (common_tuned_profile is defined and common_tuned_profile | length > 0)
+        else (recommended_tuned_profile | default('throughput-performance'))
+      }}
+  tags: ["common", "tuned", "always"]
+
+- name: Assert tuned profile validity
+  ansible.builtin.assert:
+    that:
+      - common_effective_tuned_profile is defined
+      - common_effective_tuned_profile | length > 0
+    fail_msg: "common_effective_tuned_profile must be defined when common_tuned_enabled is true"
+    quiet: true
+  when: common_tuned_enabled | default(true) | bool
+  tags: ["common", "tuned", "always"]
+
+- name: Enable and start tuned service
+  ansible.builtin.systemd:
+    name: tuned
+    state: started
+    enabled: "{{ common_tuned_enabled | default(true) | bool }}"
+  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["common", "tuned"]
+
+- name: Wait for tuned daemon to become ready on DBus
+  ansible.builtin.command: tuned-adm active
+  register: common_tuned_active
+  retries: 6
+  delay: 2
+  until: common_tuned_active.rc == 0
+  changed_when: false
+  failed_when: false
+  when:
+    - common_tuned_enabled | default(true) | bool
+    - ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  tags: ["common", "tuned"]
+
+- name: Set active tuned profile
+  ansible.builtin.command: "tuned-adm profile {{ common_effective_tuned_profile }}"
+  register: common_tuned_set_profile
+  changed_when: true
+  when:
+    - common_tuned_enabled | default(true) | bool
+    - ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+    - common_effective_tuned_profile not in (common_tuned_active.stdout | default(''))
+  tags: ["common", "tuned"]

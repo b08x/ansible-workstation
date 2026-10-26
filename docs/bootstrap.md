@@ -38,7 +38,7 @@ curl -fsSL https://gitlab.com/syncopatedX/workstation/-/raw/development/scripts/
    - Discovers hardware capabilities, installs base packages, tunes system parameters, configures networking, container runtimes, tools, and the GNOME desktop with native Wayland GDM, setting the default target to `graphical.target`.
    - On success, writes completion marker `/var/log/syncopated-stage2.done`, self-disables `syncopated-bootstrap-root.service`, and reboots into the graphical greeter.
 3. **Stage 3 (User Onboarding & Dotfiles — `syncopated-firstboot`)**:
-   - Deployed at the system level by [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) (`/usr/local/bin/syncopated-firstboot`).
+   - Deployed at the system level by [`roles/common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common) (`/usr/local/bin/syncopated-firstboot`).
    - Hooks into first user login via `/etc/xdg/autostart/syncopated-firstboot.desktop` (graphical session) or `/etc/profile.d/syncopated-firstboot.sh` (terminal session).
    - Clones dotfiles using the native `yadm` package from the Syncopated COPR and executes unprivileged bootstrap hooks (`local.yml --tags user`) without prompting for `sudo`.
    - Writes the sentinel `~/.local/state/syncopated/firstboot.done` when complete.
@@ -176,7 +176,7 @@ Choosing which yadm bootstrap steps run:
 For remote orchestration across an inventory fleet or centralized workstation management, use [`playbooks/workstation.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/playbooks/workstation.yml).
 
 The playbook executes across four structured plays targeting the `workstations` group:
-1. **System Provisioning and Base Configuration**: Runs [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) with elevated privileges (`become: true`), performs fact gathering, handles sudoers `requiretty` adjustments, and ensures system release symlinks.
+1. **System Provisioning and Common Configuration**: Runs [`roles/common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common) with elevated privileges (`become: true`), performs fact gathering, handles sudoers `requiretty` adjustments, and ensures system release symlinks.
 2. **System Configuration**: Applies system roles (`tuning`, `networking`, `containerd`, `desktop`, `libvirt`) with facts gathered as unprivileged connection user.
 3. **User Workstation Setup**: Executes [`roles/user`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/user) as the unprivileged connection user (`become: false`) with user path environments.
 4. **Host Tools and Coding Agent Utilities**: Runs [`roles/tools`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tools) to configure system CLI binaries (`bun`, `transcribe.cpp`) and coding agent harnesses.

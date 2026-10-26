@@ -13,7 +13,6 @@ tuning_udev_enabled: true
 tuning_sysctl_enabled: true
 tuning_zram_enabled: true
 tuning_systemd_enabled: true
-tuning_tuned_enabled: true
 tuning_rtirq_enabled: true
 tuning_rtkit_enabled: true
 tuning_cpupower_enabled: true
@@ -110,11 +109,6 @@ tuning_zram_packages:
 tuning_systemd_timeout_start_sec: 15s
 tuning_systemd_timeout_stop_sec: 10s
 tuning_systemd_user_limit_nofile: "1024:1048576"
-
-# ----------------------------------------------------------------------------
-# Tuned Configuration
-# ----------------------------------------------------------------------------
-tuning_tuned_profile: throughput-performance
 
 # ----------------------------------------------------------------------------
 # CPU Power Configuration (/etc/default/cpupower)

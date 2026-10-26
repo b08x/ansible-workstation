@@ -1,0 +1,8 @@
+---
+# ============================================================================
+# Red Hat Enterprise Linux (RHEL) Repository Configuration
+# ============================================================================
+
+- name: Include shared Enterprise Linux repository tasks
+  ansible.builtin.include_tasks: EL.yml
+  tags: ["repos", "repositories", "rhel", "el"]

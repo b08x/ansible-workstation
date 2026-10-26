@@ -1,0 +1,10 @@
+---
+# Mirrors playbooks/workstation.yml: facts are gathered as root.
+- name: Converge
+  hosts: molecule
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Apply the common role
+      ansible.builtin.include_role:
+        name: common

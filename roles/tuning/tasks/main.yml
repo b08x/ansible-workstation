@@ -58,11 +58,6 @@
   when: tuning_systemd_enabled | default(true) | bool
   tags: ["tuning", "systemd"]
 
-- name: Configure tuned
-  ansible.builtin.include_tasks: tuned.yml
-  when: tuning_tuned_enabled | default(true) | bool
-  tags: ["tuning", "tuned"]
-
 # There is no native rtirq package for el10, so we skip this task
 # - name: Configure rtirq
 #   ansible.builtin.include_tasks: rtirq.yml

@@ -75,7 +75,7 @@ For workflows requiring the native Moby/Docker daemon:
 
 **Installed by default**:
 - Distrobox enables running arbitrary Linux distribution container images (Arch, Ubuntu, Debian, Alpine) directly integrated into the workstation host's terminal, user home directory, Wayland/X11 sockets, and audio servers.
-- Automatically installed via DNF. On Enterprise Linux distributions (AlmaLinux and Rocky Linux), Distrobox packages are sourced from EPEL (managed by `roles/base`).
+- Automatically installed via DNF. On Enterprise Linux distributions (AlmaLinux and Rocky Linux), Distrobox packages are sourced from EPEL (managed by `playbooks/repositories.yml`).
 
 ---
 
@@ -89,7 +89,7 @@ For workflows requiring the native Moby/Docker daemon:
 | **Docker CE Repo OS Slug** | `fedora` | `alma` | `rocky` |
 | **Docker CE Distro Packages** | `docker-ce`, `docker-ce-cli`, `docker-ce-rootless-extras` | *None* (Plugins only upstream) | *None* (Plugins only upstream) |
 | **Docker Daemon Management** | Enabled (`docker.service`) | Disabled (Podman preferred) | Disabled (Podman preferred) |
-| **Distrobox Source** | Fedora Core Repositories | EPEL (via `roles/base`) | EPEL (via `roles/base`) |
+| **Distrobox Source** | Fedora Core Repositories | EPEL (via `playbooks/repositories.yml`) | EPEL (via `playbooks/repositories.yml`) |
 
 ---
 

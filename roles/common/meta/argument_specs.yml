@@ -1,0 +1,111 @@
+---
+# argument spec file for common role
+
+argument_specs:
+  main:
+    short_description: Common role providing hardware auto-detection, tuned profiling, CIS-L2 hardening, and baseline utilities.
+    options:
+      common_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      common_packages_enabled:
+        type: bool
+        description: Enable baseline system and interactive package installation.
+        default: true
+      common_hardware_detection_enabled:
+        type: bool
+        description: Enable hardware capability auto-detection (chassis, CPU, GPU, CUDA, Vulkan).
+        default: true
+      common_tuned_enabled:
+        type: bool
+        description: Enable tuned daemon service and active profile enforcement.
+        default: true
+      common_tuned_profile:
+        type: str
+        description: Active tuned profile name; defaults to hardware recommended profile if empty.
+        default: ""
+      common_hardening_enabled:
+        type: bool
+        description: Enable CIS Level 2 Workstation security hardening tasks.
+        default: true
+      common_hardening_auditd_enabled:
+        type: bool
+        description: Enable auditd bounded rotation and syscall filtering.
+        default: true
+      common_hardening_sshd_enabled:
+        type: bool
+        description: Enable SSH daemon security hardening.
+        default: true
+      common_hardening_crypto_enabled:
+        type: bool
+        description: Enable system crypto policy enforcement.
+        default: true
+      common_hardening_limits_enabled:
+        type: bool
+        description: Enable umask and core dump limits.
+        default: true
+      common_auditd_max_log_file:
+        type: int
+        description: Maximum audit log size in megabytes before rotation.
+        default: 32
+      common_auditd_num_logs:
+        type: int
+        description: Number of rotated audit log files to retain.
+        default: 16
+      common_auditd_space_left:
+        type: int
+        description: Space left warning threshold in megabytes.
+        default: 75
+      common_auditd_admin_space_left:
+        type: int
+        description: Admin space left threshold in megabytes.
+        default: 50
+      common_auditd_rules_immutable:
+        type: bool
+        description: Append immutable flag (-e 2) to audit rules.
+        default: false
+      common_sshd_permit_root_login:
+        type: str
+        description: SSH PermitRootLogin directive value.
+        default: "no"
+      common_sshd_client_alive_interval:
+        type: int
+        description: SSH ClientAliveInterval in seconds.
+        default: 300
+      common_sshd_client_alive_count_max:
+        type: int
+        description: SSH ClientAliveCountMax timeout count.
+        default: 3
+      common_sshd_max_auth_tries:
+        type: int
+        description: Maximum authentication attempts before disconnection.
+        default: 4
+      common_crypto_policy:
+        type: str
+        description: System crypto policy name (e.g. DEFAULT, FUTURE).
+        default: "DEFAULT"
+      common_enforce_umask:
+        type: bool
+        description: Deploy default restrictive umask in profile.d.
+        default: true
+      common_default_umask:
+        type: str
+        description: Restrictive umask value.
+        default: "027"
+      common_disable_coredumps:
+        type: bool
+        description: Prevent unauthorized core dumps in security limits.
+        default: true
+      common_yadm_url:
+        type: str
+        description: Download URL for the yadm standalone binary fallback.
+        default: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
+      common_yadm_force_install:
+        type: bool
+        description: Force standalone yadm binary installation even if already present.
+        default: false
+      common_firstboot_enabled:
+        type: bool
+        description: Enable firstboot onboarding desktop scripts and hooks.
+        default: true

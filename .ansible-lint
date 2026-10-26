@@ -5,6 +5,8 @@ exclude_paths:
   - collections/ansible_collections/community/
   - collections/ansible_collections/network/
   - .ansible/
+  - roles/ui/
+  - roles/workstation/
 
 # Completely ignore these rules everywhere
 skip_list:

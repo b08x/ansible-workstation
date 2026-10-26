@@ -1,0 +1,30 @@
+---
+common_packages:
+  - aria2
+  - audit
+  - bat
+  - bind-utils
+  - bridge-utils
+  - bsdtar
+  - coreutils
+  - curl
+  - dnsmasq
+  - fd-find
+  - flatpak
+  - fzf
+  - gettext
+  - git
+  - gum
+  - htop
+  - iptables-nft
+  - jq
+  - kernel-tools
+  - openssh-server
+  - policycoreutils-python-utils
+  - tar
+  - tuned
+  - unzip
+  - wl-clipboard
+  - zram-generator
+  - zram-generator-defaults
+  - zsh

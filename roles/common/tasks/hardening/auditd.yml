@@ -1,0 +1,51 @@
+---
+# tasks file for auditd CIS-L2 workstation hardening in roles/common
+
+- name: Ensure audit package is installed
+  ansible.builtin.package:
+    name: audit
+    state: present
+  tags: ["hardening", "auditd", "common"]
+
+- name: Ensure /etc/audit and /etc/audit/rules.d directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - /etc/audit
+    - /etc/audit/rules.d
+  tags: ["hardening", "auditd", "common"]
+
+- name: Deploy bounded auditd.conf configuration
+  ansible.builtin.template:
+    src: etc/audit/auditd.conf.j2
+    dest: /etc/audit/auditd.conf
+    owner: root
+    group: root
+    mode: "0640"
+    backup: true
+  notify: restart auditd
+  tags: ["hardening", "auditd", "common"]
+
+- name: Deploy workstation CIS audit rules
+  ansible.builtin.template:
+    src: etc/audit/rules.d/30-workstation-cis.rules.j2
+    dest: /etc/audit/rules.d/30-workstation-cis.rules
+    owner: root
+    group: root
+    mode: "0640"
+    backup: true
+  notify: restart auditd
+  tags: ["hardening", "auditd", "common"]
+
+- name: Enable and start auditd service
+  ansible.builtin.service:
+    name: auditd
+    state: started
+    enabled: true
+  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["hardening", "auditd", "common"]

@@ -1,0 +1,143 @@
+---
+# ============================================================================
+# Enterprise Linux (Rocky, AlmaLinux, RHEL) Repository Configuration
+# Sets up EPEL, CRB, RPM Fusion, and Syncopated COPR on EL systems.
+# ============================================================================
+
+- name: Configure RHEL family repositories
+  tags: ["repos", "repositories", "el"]
+  block:
+    - name: Install EPEL repository
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+      register: repo_epel_install
+      tags: ["epel"]
+
+    - name: Install repository prerequisites
+      ansible.builtin.dnf:
+        name:
+          - distribution-gpg-keys
+          - dnf-plugins-core
+          - gnupg2
+        state: present
+      tags: ["epel"]
+
+    - name: Replace stock EPEL repo with managed repo configuration
+      ansible.builtin.copy:
+        src: "{{ epel_repo_src }}"
+        dest: /etc/yum.repos.d/epel.repo
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+      vars:
+        epel_repo_src: >-
+          {{
+            lookup('ansible.builtin.first_found',
+                   files=['files/epel.repo', 'epel.repo'],
+                   paths=[
+                     playbook_dir ~ '/tasks/repositories',
+                     playbook_dir ~ '/playbooks/tasks/repositories',
+                     playbook_dir
+                   ])
+          }}
+      tags: ["epel", "repositories"]
+
+    - name: Enable PowerTools/CRB and additional repositories
+      ansible.builtin.shell: |
+        dnf config-manager --set-enabled crb
+
+        # Enable additional repositories
+        dnf config-manager --set-enabled highavailability
+        dnf config-manager --set-enabled rt
+      changed_when: false
+      tags: ["highavailability", "crb", "rt"]
+
+  rescue:
+    - name: Report repository setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to enable EPEL, CRB or the RT/HA repositories.
+          Usually network connectivity or an unavailable mirror.
+
+    - name: Fail the play on repository setup failure
+      ansible.builtin.fail:
+        msg: "RHEL-family repository configuration failed - see the preceding task output."
+
+- name: Install RPM Fusion keys and repositories
+  tags: ["rpmfusion", "repos", "repositories"]
+  when: enable_rpmfusion | default(true) | bool
+  block:
+    - name: Install RPM Fusion Free and Non-Free keys
+      ansible.builtin.rpm_key:
+        key: "{{ item }}"
+        state: present
+      loop:
+        - "/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-free-el-{{ ansible_distribution_major_version }}"
+        - "/usr/share/distribution-gpg-keys/rpmfusion/RPM-GPG-KEY-rpmfusion-nonfree-el-{{ ansible_distribution_major_version }}"
+      register: repo_rpmfusion_keys
+      tags: ["rpmfusion"]
+
+    - name: Install RPM Fusion Free and Non-Free repositories via shell
+      ansible.builtin.shell: |
+        dnf --setopt=localpkg_gpgcheck=1 install -y \
+            https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm \
+            https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-$(rpm -E %rhel).noarch.rpm
+      register: repo_rpmfusion_repos
+      changed_when: "'Nothing to do' not in repo_rpmfusion_repos.stdout and 'already installed' not in repo_rpmfusion_repos.stdout"
+      tags: ["rpmfusion"]
+
+  rescue:
+    - name: Report RPM Fusion setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install the RPM Fusion keys or release packages.
+          Check connectivity and that mirrors.rpmfusion.org is reachable.
+
+    - name: Fail the play on RPM Fusion setup failure
+      ansible.builtin.fail:
+        msg: "RPM Fusion configuration failed - see the preceding task output."
+
+- name: Enable Syncopated COPR repository
+  tags: ["copr", "repositories", "repos"]
+  when:
+    - ansible_distribution_major_version == '10'
+    - enable_syncopated_copr | default(true) | bool
+  block:
+    - name: Check if syncopated COPR is already enabled
+      ansible.builtin.command: "dnf repolist 2>&1 | grep -q syncopated"
+      register: repo_copr_syncopated_check
+      changed_when: false
+      failed_when: false
+      tags: ["copr"]
+
+    - name: Enable Syncopated COPR repository
+      ansible.builtin.command:
+        cmd: "dnf copr enable -y {{ syncopated_copr | default('b08x/syncopated') }}"
+        creates: "/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:{{ (syncopated_copr | default('b08x/syncopated')) | replace('/', ':') }}.repo"
+      register: repo_copr_syncopated
+      when: (repo_copr_syncopated_check.rc | default(1)) != 0
+      tags: ["copr"]
+
+  rescue:
+    - name: Report Syncopated COPR setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to enable the {{ syncopated_copr | default('b08x/syncopated') }} COPR repository.
+          Check connectivity and that copr.fedorainfracloud.org is reachable.
+
+    - name: Fail the play on Syncopated COPR setup failure
+      ansible.builtin.fail:
+        msg: "Syncopated COPR repository configuration failed - see the preceding task output."
+
+- name: Force refresh DNF metadata cache
+  ansible.builtin.command:
+    cmd: dnf makecache
+  changed_when: true
+  when: >
+    (repo_epel_install is changed) or
+    (repo_rpmfusion_keys is changed) or
+    (repo_rpmfusion_repos is changed) or
+    (repo_copr_syncopated is changed)
+  tags: ["repositories", "repos"]

@@ -115,13 +115,23 @@ pull-based convergence and hardware auto-detection, so a fresh machine can
 introduce itself to the network and be rendered correct without a human typing
 at it. This is production-grade paranoia, and the fleet it defends is five
 physical machines, one of which is the desk the paranoia is written on. The
-patterns were learned on infrastructure that could afford them — Nashville,
-2014, twenty-one roles across three environments, hosts nobody was ever
-supposed to log into — and the clusters that would normally keep such
-patterns in shape belong to employers and vendors, none of whom,
-historically, have offered to lend me one; so the workstations stand in as
-servers, on the reasonable grounds that a pattern does not care how many
-machines are watching it be performed.
+patterns were learned the only way such patterns are ever learned — on the
+job, on infrastructure that needed to scale laterally: Nashville, 2014,
+twenty-one roles across three environments, growth that arrived as more
+machines rather than bigger ones, hosts nobody was ever supposed to log into.
+There is no academy for this material; the machines multiply, the blame needs
+an address, and Ansible is what you reach for once both are true. What keeps
+the patterns in shape afterward is a fleet, any fleet; so the workstations
+stand in as servers, on the reasonable grounds that a pattern does not care
+how many machines are watching it be performed.
+
+The sense of scale was calibrated earlier, and higher, on someone else's
+vSphere: a global travel website running, at the time, on five to ten thousand
+virtual machines — regional clusters, load balancing, caching, every moving
+part wanting its particular care, the whole of it managed in Chef and
+versioned in SVN, one of which I still discuss in the past tense with real
+feeling. Re-running that estate under Ansible is a thought experiment I was
+never assigned, and I have completed it anyway, several times, for nobody.
 
 Absence of a fleet does have one recurring cost, and it is not skill decay.
 Reorientation to a cloud console after time away takes about a day — a number
@@ -217,7 +227,7 @@ The state of the entries, facet by facet:
     - **Stage 2 (`scripts/syncopated-bootstrap-root.sh`)**: Automated post-reboot systemd runner configured
       with `TimeoutSec=0` executing `ansible-pull --tags system local.yml`, writing completion sentinel
       `/var/log/syncopated-stage2.done`, self-disabling, and rebooting into the graphical environment.
-    - **Stage 3 (`syncopated-firstboot`)**: Deployed system-wide by [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) with autostart
+    - **Stage 3 (`syncopated-firstboot`)**: Deployed system-wide by [`roles/common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common) with autostart
       desktop entries and profile hooks; triggers upon first user login to clone dotfiles via native `yadm`,
       run unprivileged user bootstrap, and mark `~/.local/state/syncopated/firstboot.done`.
   - **Graphical target & native Wayland GDM default on workstations**: [`roles/desktop`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/desktop) enables
@@ -248,7 +258,7 @@ The state of the entries, facet by facet:
   terminal — DNF5 transaction tables, systemd transitions, phase banners.
   The formatter works; its failure path is the owed polish: a failed task
   currently obscures more than it shows.
-- **Testing exists where the risk lives.** The [`base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base) role carries a Molecule
+- **Testing exists where the risk lives.** The [`common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common) role carries a Molecule
   scenario that builds Fedora and AlmaLinux containers, converges twice, and
   fails on any second-run change. Everything lints.
 - **bootc is direction, not state.** The image-transaction path is designed
@@ -340,11 +350,39 @@ This repository is not the first body this exercise has worn. The archive
 began on the pragmatic ground, wandered upstream, and returned — the workload
 changing underneath it as it went:
 
-- **Nashville (2014–2015)** — a startup's CI/CD pipeline on CentOS 7:
+- **Before the archive — the disks in the closet.** Linux was not an early
+  influence; it was not even an awareness — nothing in the house, the school,
+  or the years after suggested it existed. Somebody once handed me a set of
+  Red Hat 5 install disks; I said thanks, put them in a closet, and felt
+  nothing, which was the correct amount of interest for a burden arriving
+  without a reason to carry it. The actual entry was a pivot in the early
+  thirties, on Fedora 10 — a chore to learn, though one spared the
+  pre-installer horror stories — and five more years passed before Arch
+  looked like a reasonable idea, which is the sentence that tells you the
+  pivot took.
+- **Orbitz — the vSphere years (before Nashville).** Configuration
+  management in a different dialect: regional clusters inside a vSphere
+  ecosystem behind a global travel website — five to ten thousand virtual
+  machines, load balancing, caching, every moving part requiring its
+  particular care — all of it managed with Chef and versioned in SVN. Chef
+  made the concepts relatable, even comfortable in a metaphorical way; its
+  syntax was still stereo instructions, which is a style preference and is
+  admitted as such. SVN was SVN. The standing thought experiment — that
+  estate re-run under Ansible — dates from here. The same years paid a second, quieter discipline:
+  hand-trimmed kickstarts — images made as bare as they could be without
+  sacrificing what the application on top needed — so that load moved not by
+  updating a running estate but by re-imaging machines in seconds; the habit
+  that the companion
+  [`osbuild`](https://gitlab.com/syncopatedX/osbuild) repository would
+  eventually make its whole subject.
+- **Nashville (2014–2015)** — a client's Azure-hosted CI/CD pipeline on
+  CentOS 7:
   Jenkins, GitLab, MariaDB with GTID, Nginx, Redis, HAProxy, CIS hardening,
-  three environments, twenty-one roles. The thesis was already whole in the
-  notes from back then: no one should ever have to log into these hosts —
-  every change flows through Ansible.
+  three environments, twenty-one roles. The infrastructure belonged to the
+  client — their Azure instance, engineered and managed from this side while
+  their team developed on it. The thesis was already whole in the notes from
+  back then: no one should ever have to log into these hosts — every change
+  flows through Ansible.
 - **Columbus (2016)** — the break. Several years of high-stress DevOps work,
   then a deliberate exit and a turn to the Linux audio ecosystem — JACK,
   realtime privileges, low-latency tuning. The experimental role collection
@@ -373,3 +411,36 @@ The layer split is the settled compromise: make immutable what can be
 immutable, manage what belongs to the system, and let the rest drift — under
 version control, where a change is recoverable and attributable. Drift with
 a changelog beats drift without one, and it beats enforced stasis too.
+
+## The Next Entries
+
+The practice changed stakes in the past three or four years, and the change
+arrived with the generative tooling: the old inclination toward design
+patterns — infrastructure as code, as a philosophy, a methodology — was
+redirected and reinvigorated, though not in the same direction. The exercise
+was a painting class; it has become a sporting event. Both require skill and
+experience. One comes with less pressure. The other comes with considerably
+more interest and more fun. Which is which on a given week is a set of
+barometer readings not to be ignored.
+
+So the repository sits in an in-between state, and the in-between state is
+the honest description of a practice rather than a product. The next entries
+on the list:
+
+- **Ansible modules in Ruby.** No specific use case is in my head at the
+  moment — a sentence recorded with historic dignity — but the use case, when
+  it arrives, will most likely be something that applies pragmatically to an
+  enterprise. The word here includes small businesses; an enterprise, not a —
+  well, anyhow.
+- **A blueprint corpus.** The cleanest modules and tasks I can write or
+  collect, compiled into a dataset — the purpose the `Ansible_RAG` material
+  was always pointing at, with its 1,400+ parsed task files waiting to be
+  decided upon.
+- **A generation interface.** The corpus as a backend of templates, reached
+  through an API or an MCP call, so that specifying a playbook in plain text
+  — a request, a prompt, a statement, an instruction — produces the playbook
+  assembled from the blueprints.
+
+Which is a retrieval-augmented generation pipeline refined for exactly this
+material — which, I assume, is what IBM and Red Hat spend most of their time
+doing.

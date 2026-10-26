@@ -17,7 +17,7 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
    - Creates directory structure (`~/.local/bin`, `~/Workspace`, `~/.config`).
 2. **UV Python Tooling (`tasks/uv.yml`)**:
    - Manages user-space Python runtime versions via `uv python install {{ user_uv_python_version }}` (default: `3.12`).
-   - `uv` binary itself is deployed system-wide via native RPM packaging in [`roles/base`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/base/README.md).
+   - `uv` binary itself is deployed system-wide via native RPM packaging in [`roles/common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common/README.md).
    - Shell environment variables (such as `export UV_PYTHON_PREFERENCE="only-managed"`) are maintained in Yadm dotfile templates rather than Ansible inline mutations.
 
 ## Key Variables

@@ -1,0 +1,51 @@
+---
+# defaults file for common role
+
+# Pre-flight assertions
+common_assert_enabled: true
+
+# Package installation
+common_packages_enabled: true
+
+# Hardware auto-detection
+common_hardware_detection_enabled: true
+
+# Tuned profile management
+# Empty string or unset resolves to recommended_tuned_profile from hardware auto-detection
+common_tuned_enabled: true
+common_tuned_profile: "{{ recommended_tuned_profile | default('throughput-performance') }}"
+
+# Security & CIS Level 2 Workstation Hardening
+common_hardening_enabled: true
+common_hardening_auditd_enabled: true
+common_hardening_sshd_enabled: true
+common_hardening_crypto_enabled: true
+common_hardening_limits_enabled: true
+
+# Auditd parameters (32 MB x 16 = 512 MB cap)
+common_auditd_max_log_file: 32
+common_auditd_num_logs: 16
+common_auditd_space_left: 75
+common_auditd_admin_space_left: 50
+common_auditd_rules_immutable: false
+
+# SSH daemon hardening
+common_sshd_permit_root_login: "no"
+common_sshd_client_alive_interval: 300
+common_sshd_client_alive_count_max: 3
+common_sshd_max_auth_tries: 4
+
+# Crypto policy
+common_crypto_policy: "DEFAULT"
+
+# Umask and limits
+common_enforce_umask: true
+common_default_umask: "027"
+common_disable_coredumps: true
+
+# Yadm standalone binary configuration
+common_yadm_url: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
+common_yadm_force_install: false
+
+# Firstboot onboarding
+common_firstboot_enabled: true

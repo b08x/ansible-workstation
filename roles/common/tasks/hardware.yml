@@ -1,0 +1,126 @@
+---
+# ==============================================================================
+# Hardware Capability Auto-Detection
+# Detects virtualization, chassis type, CPU, and GPU vendor (NVIDIA/Intel/AMD)
+# Exports reusable Ansible facts for tuned profiles and downstream roles.
+# ==============================================================================
+
+- name: Perform hardware capability auto-detection
+  check_mode: false
+  tags: ["common", "hardware", "always"]
+  block:
+    - name: Probe GPU vendor via PCI sysfs
+      ansible.builtin.command:
+        argv:
+          - sh
+          - -c
+          - |
+            gpu="none"
+            for d in /sys/bus/pci/devices/*; do
+              if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                v=$(cat "$d/vendor" 2>/dev/null)
+                c=$(cat "$d/class" 2>/dev/null)
+                if [ "${c#0x03}" != "$c" ]; then
+                  case "$v" in
+                    0x10de) gpu="nvidia"; break ;;
+                    0x1002) gpu="amd" ;;
+                    0x8086) [ "$gpu" != "nvidia" ] && gpu="intel" ;;
+                  esac
+                fi
+              fi
+            done
+            echo "$gpu"
+      register: _common_gpu_vendor_stat
+      changed_when: false
+      failed_when: false
+
+    - name: Probe CUDA hardware acceleration support
+      ansible.builtin.command:
+        argv:
+          - sh
+          - -c
+          - |
+            if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q "^GPU "; then
+              exit 0
+            fi
+            if [ -e /dev/nvidia0 ] || [ -e /dev/nvidiactl ]; then
+              exit 0
+            fi
+            for d in /sys/bus/pci/devices/*; do
+              if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                v=$(cat "$d/vendor" 2>/dev/null)
+                c=$(cat "$d/class" 2>/dev/null)
+                if [ "$v" = "0x10de" ] && [ "${c#0x03}" != "$c" ]; then
+                  exit 0
+                fi
+              fi
+            done
+            exit 1
+      register: _common_cuda_stat
+      changed_when: false
+      failed_when: false
+
+    - name: Probe Vulkan hardware acceleration support
+      ansible.builtin.command:
+        argv:
+          - sh
+          - -c
+          - |
+            if command -v vulkaninfo >/dev/null 2>&1; then
+              pattern="deviceType\s*=\s*PHYSICAL_DEVICE_TYPE_(DISCRETE_GPU|INTEGRATED_GPU|VIRTUAL_GPU)"
+              if vulkaninfo --summary 2>/dev/null | grep -E "$pattern" >/dev/null 2>&1; then
+                exit 0
+              fi
+            fi
+            if ls /dev/dri/renderD* >/dev/null 2>&1; then
+              for d in /sys/bus/pci/devices/*; do
+                if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                  v=$(cat "$d/vendor" 2>/dev/null)
+                  c=$(cat "$d/class" 2>/dev/null)
+                  case "$v" in
+                    0x8086|0x1002|0x10de)
+                      if [ "${c#0x03}" != "$c" ]; then
+                        exit 0
+                      fi
+                      ;;
+                  esac
+                fi
+              done
+            fi
+            exit 1
+      register: _common_vulkan_stat
+      changed_when: false
+      failed_when: false
+
+    - name: Resolve hardware auto-detection facts
+      ansible.builtin.set_fact:
+        detected_gpu_vendor: "{{ _common_gpu_vendor_stat.stdout | default('none') | trim }}"
+        has_cuda: "{{ (_common_cuda_stat.rc | default(1)) == 0 }}"
+        has_vulkan: "{{ (_common_vulkan_stat.rc | default(1)) == 0 }}"
+        is_virtual_guest: "{{ (ansible_virtualization_role | default('')) == 'guest' }}"
+        detected_chassis_type: "{{ ansible_chassis_type | default('desktop') | lower }}"
+
+    - name: Calculate recommended tuned profile
+      ansible.builtin.set_fact:
+        recommended_tuned_profile: >-
+          {{
+            'virtual-guest'
+            if is_virtual_guest | bool
+            else (
+              'balanced'
+              if (detected_chassis_type in ['laptop', 'notebook', 'portable', 'subnotebook', 'convertible'])
+              else (
+                'accelerator-performance'
+                if ((detected_gpu_vendor == 'nvidia') or (has_cuda | bool))
+                else 'throughput-performance'
+              )
+            )
+          }}
+
+    - name: Display detected hardware capabilities
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }} ({{ ansible_architecture }})"
+          - "Chassis: {{ detected_chassis_type }} | Virtual Guest: {{ is_virtual_guest }}"
+          - "GPU Vendor: {{ detected_gpu_vendor }} | CUDA: {{ has_cuda }} | Vulkan: {{ has_vulkan }}"
+          - "Recommended Tuned Profile: {{ recommended_tuned_profile }}"

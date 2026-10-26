@@ -11,6 +11,13 @@ tools_user_home: "{{ user.home | default('/home/' ~ tools_user) }}"
 tools_user_local_bin: "{{ tools_user_home }}/.local/bin"
 tools_user_go_bin: "{{ tools_user_home }}/go/bin"
 
+# -- Developer Toolchains and Language Runtimes --
+tools_install_runtimes: true
+tools_runtime_packages:
+  - golang
+  - nodejs
+  - npm
+
 # -- System Tools (Root/System-wide in /usr/local/bin) --
 
 # transcribe.cpp (Whisper transcription CLI)
@@ -32,6 +39,25 @@ tools_install_bun: true
 tools_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
 tools_bun_dest: "/usr/local/bin/bun"
 tools_bun_force_install: false
+
+# -- Auxiliary Developer CLIs and Toolchains --
+
+# Intel Graphics and oneAPI Toolkit
+tools_install_intel: "{{ intel_oneapi_install | default(false) | bool }}"
+tools_install_intel_graphics: false
+tools_intel_graphics_required: false
+
+# gitflow-avh
+tools_install_gitflow: true
+tools_gitflow_copr_fedora: "b08x/syncopated"
+tools_gitflow_copr_el: "b08x/syncopated"
+tools_gitflow_force_install: false
+
+# inxi system information tool
+tools_install_inxi: true
+
+# Homebrew (Fedora only)
+tools_install_homebrew: false
 
 # -- User Tools & Toolchains (User-space in ~/.local/bin and ~/.local/go) --
 
