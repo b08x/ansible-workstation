@@ -5,6 +5,7 @@ desktop_packages:
     - "@graphical-server-environment"
     - gdm
     - gnome-tweaks
+    - zenity
   theme:
     - gtk3-devel
     - gnome-tweaks

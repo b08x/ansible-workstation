@@ -11,6 +11,7 @@ desktop_packages:
     - gnome-shell
     - gnome-session-wayland-session
     - gnome-tweaks
+    - zenity
   theme:
     - gnome-shell-theme-yaru
     - yaru-gtk2-theme
