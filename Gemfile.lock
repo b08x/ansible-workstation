@@ -1,0 +1,14 @@
+GEM
+  specs:
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+
+CHECKSUMS
+  bundler (4.0.21) sha256=7cbf5499b426076aa16c8d28a59e4c2c3aad5a438402abcd961f0119f29f1dd0
+
+BUNDLED WITH
+  4.0.21
