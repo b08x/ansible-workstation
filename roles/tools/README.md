@@ -71,7 +71,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Clones and builds [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) (Whisper audio transcription CLI) with automatic hardware acceleration detection:
   - **Hardware Qualification Gate**: Controlled by `tools_transcribe_require_min_specs: true` (default). Verifies host meets minimum hardware requirements of 16 CPU cores/vCPUs and 32 GB RAM before attempting compilation.
   - **CUDA (NVIDIA)**: Probes hardware device and `command -v nvcc` &rarr; compiles with `-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON`.
-  - **Intel oneAPI / SYCL**: Probes `icx` or `dpcpp` &rarr; compiles with `-DGGML_SYCL=ON`.
+  - **Intel oneAPI / SYCL**: Probes `icpx`/`dpcpp`/`icx` (sourcing `setvars.sh`) &rarr; compiles with `-DGGML_SYCL=ON -DCMAKE_CXX_COMPILER=<probed compiler>` inside the oneAPI environment.
   - **Vulkan**: Probes Vulkan physical GPUs (Intel Iris/Arc, AMD Radeon, NVIDIA) &rarr; compiles with `-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON`.
   - **GPU Requirement Gate**: Controlled by `tools_transcribe_require_gpu: true` (default). When no GPU accelerator is found, cleanly skips compilation.
 - Installs binary to `/usr/local/bin/transcribe`.

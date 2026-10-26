@@ -187,13 +187,19 @@
       when: tools_transcribe_has_cuda | default(false) | bool
 
     - name: Check for Intel oneAPI compiler
-      ansible.builtin.command:
-        argv:
-          [
-            sh,
-            -c,
-            "command -v icx || command -v dpcpp || test -f /opt/intel/oneapi/compiler/latest/bin/icx",
-          ]
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+            source /opt/intel/oneapi/setvars.sh >/dev/null 2>&1 || true
+          fi
+          for cxx in icpx dpcpp icx; do
+            if command -v "$cxx" >/dev/null 2>&1 && "$cxx" --version >/dev/null 2>&1; then
+              echo "$cxx"
+              exit 0
+            fi
+          done
+          exit 1
+        executable: /bin/bash
       register: tools_oneapi_check
       changed_when: false
       failed_when: false
@@ -220,7 +226,7 @@
           {{
             '-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON' if tools_transcribe_backend == 'cuda'
             else (
-              '-DGGML_SYCL=ON' if tools_transcribe_backend == 'sycl'
+              '-DGGML_SYCL=ON -DCMAKE_CXX_COMPILER=' ~ (tools_oneapi_check.stdout | default('') | trim) if tools_transcribe_backend == 'sycl'
               else (
                 '-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON' if tools_transcribe_backend == 'vulkan'
                 else '-DGGML_CUDA=OFF -DTRANSCRIBE_CUDA=OFF -DGGML_VULKAN=OFF -DTRANSCRIBE_VULKAN=OFF'
@@ -241,14 +247,20 @@
         force: true
 
     - name: Configure transcribe.cpp build with CMake
-      ansible.builtin.command:
-        cmd: "cmake -B build -DCMAKE_BUILD_TYPE=Release {{ tools_transcribe_cmake_args }}"
+      ansible.builtin.shell:
+        cmd: >-
+          {{ 'source /opt/intel/oneapi/setvars.sh >/dev/null 2>&1;' if tools_transcribe_backend == 'sycl' else '' }}
+          cmake -B build -DCMAKE_BUILD_TYPE=Release {{ tools_transcribe_cmake_args }}
+        executable: /bin/bash
         chdir: "{{ tools_transcribe_build_dir }}"
       changed_when: true
 
     - name: Compile transcribe.cpp
-      ansible.builtin.command:
-        cmd: "cmake --build build --config Release -j{{ tools_transcribe_host_cores | default(ansible_processor_vcpus | default(4)) }}"
+      ansible.builtin.shell:
+        cmd: >-
+          {{ 'source /opt/intel/oneapi/setvars.sh >/dev/null 2>&1;' if tools_transcribe_backend == 'sycl' else '' }}
+          cmake --build build --config Release -j{{ tools_transcribe_host_cores | default(ansible_processor_vcpus | default(4)) }}
+        executable: /bin/bash
         chdir: "{{ tools_transcribe_build_dir }}"
       changed_when: true
 
