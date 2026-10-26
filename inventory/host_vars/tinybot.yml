@@ -1,4 +1,11 @@
 ---
+# Layer 3: Host-specific capabilities (Rocky 10 Builder / Workstation)
+osbuild_host_components:
+  - intel-oneapi
+  - intel-graphics
+  - cockpit
+  - syncopated
+
 intel_oneapi_install: true
 
 tuning_cpupower_governor: powersave

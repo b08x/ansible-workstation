@@ -2,3 +2,9 @@
 use_containers: true
 use_kvm: true
 enable_desktop: true
+
+# Layer 2: Workstation group baseline components
+osbuild_group_components:
+  - development
+  - containers-virt
+  - fonts

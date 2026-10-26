@@ -5,6 +5,7 @@ exclude_paths:
   - collections/ansible_collections/community/
   - collections/ansible_collections/network/
   - .ansible/
+  - vendor/
   - roles/ui/
   - roles/workstation/
 

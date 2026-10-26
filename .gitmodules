@@ -1,0 +1,4 @@
+[submodule "vendor/osbuild"]
+	path = vendor/osbuild
+	url = git@gitlab.com:syncopatedX/osbuild.git
+	branch = development

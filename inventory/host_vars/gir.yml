@@ -1,4 +1,15 @@
 ---
+# Layer 3: Host-specific capabilities (Fedora 43 Workstation)
+osbuild_host_components:
+  - gnome-desktop
+  - sway
+  - audio
+  - multimedia
+  - intel-graphics
+  - google-chrome
+  - vscode
+  - syncopated
+
 tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: 800MHz # or "600MHz"
 tuning_cpupower_max_freq: 3100MHz # or "3800MHz"
