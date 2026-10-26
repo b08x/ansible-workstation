@@ -23,19 +23,34 @@
         backup: true
       register: dnf_config_parallel_downloads
 
-    - name: Enable fastestmirror in DNF configuration
+    - name: Enable fastestmirror in DNF configuration (Fedora only)
       community.general.ini_file:
         path: /etc/dnf/dnf.conf
         section: main
         option: fastestmirror
-        value: "{{ 'True' if (dnf_fastestmirror | default(true) | bool) else 'False' }}"
+        value: "{{ 'True' if (dnf_fastestmirror | default(false) | bool) else 'False' }}"
         no_extra_spaces: true
         mode: "0644"
         backup: true
       register: dnf_config_fastestmirror
+      when: ansible_distribution == 'Fedora'
 
+    - name: Purge fastestmirror from DNF configuration (Enterprise Linux)
+      community.general.ini_file:
+        path: /etc/dnf/dnf.conf
+        section: main
+        option: fastestmirror
+        state: absent
+        mode: "0644"
+      register: dnf_purge_fastestmirror
+      when: ansible_os_family == 'RedHat' and ansible_distribution != 'Fedora'
+
+    # noqa: no-handler
     - name: Force refresh DNF metadata cache
       ansible.builtin.command:
         cmd: dnf makecache
       changed_when: true
-      when: (dnf_config_parallel_downloads is changed) or (dnf_config_fastestmirror is changed) # noqa: no-handler
+      when: >-
+        (dnf_config_parallel_downloads is changed) or
+        (dnf_config_fastestmirror is changed) or
+        (dnf_purge_fastestmirror is changed)

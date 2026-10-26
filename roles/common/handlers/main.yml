@@ -8,12 +8,14 @@
   when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
   listen: "restart sshd"
 
-- name: Restart auditd
-  ansible.builtin.service:
-    name: auditd
-    state: restarted
-  when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
-  listen: "restart auditd"
+- name: Flag system reboot required
+  ansible.builtin.file:
+    path: /var/run/reboot-required
+    state: touch
+    mode: "0644"
+  listen:
+    - "flag reboot required"
+    - "restart auditd"
 
 - name: Restart tuned
   ansible.builtin.systemd:

@@ -91,3 +91,55 @@
   roles:
     - role: tools
       tags: ["tools", "system"]
+
+- name: Post-flight Execution Assessment and Reboot Verification
+  hosts: workstations
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Post-flight reboot assessment
+      check_mode: false
+      tags: ["always"]
+      block:
+        - name: Check for pending reboot on RedHat/Fedora family
+          ansible.builtin.command: needs-restarting -r
+          register: _reboot_check_rhel
+          changed_when: false
+          failed_when: false
+          when: ansible_os_family | default('RedHat') == 'RedHat'
+
+        - name: Check for pending reboot flag
+          ansible.builtin.stat:
+            path: /var/run/reboot-required
+          register: _reboot_check_flag
+
+        - name: Evaluate pending reboot status
+          ansible.builtin.set_fact:
+            system_reboot_required: >-
+              {{
+                (_reboot_check_rhel.rc is defined and _reboot_check_rhel.rc == 1)
+                or (_reboot_check_flag.stat.exists is defined and _reboot_check_flag.stat.exists | bool)
+              }}
+
+        - name: Display reboot notice if required
+          ansible.builtin.debug:
+            msg: >-
+              NOTICE: A system reboot is recommended for {{ inventory_hostname }} to apply kernel or audit configuration updates.
+          when: system_reboot_required | default(false) | bool
+
+        - name: Prompt before system reboot
+          ansible.builtin.pause:
+            prompt: "Reboot is recommended for {{ inventory_hostname }}. Press Enter to reboot, or Ctrl+C then 'C' to continue without rebooting."
+            minutes: 1
+          register: _reboot_prompt
+          when:
+            - system_reboot_required | default(false) | bool
+            - workstation_prompt_reboot | default(false) | bool
+
+        - name: Reboot system if confirmed
+          ansible.builtin.reboot:
+            msg: "Rebooting system to apply updates (Syncopated Workstation)"
+            reboot_timeout: 300
+          when:
+            - system_reboot_required | default(false) | bool
+            - workstation_prompt_reboot | default(false) | bool

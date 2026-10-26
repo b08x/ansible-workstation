@@ -365,18 +365,17 @@
           failed_when: false
           when: ansible_os_family == 'RedHat'
 
-        - name: Check for pending reboot on Debian family
+        - name: Check for pending reboot flag
           ansible.builtin.stat:
             path: /var/run/reboot-required
-          register: _reboot_check_debian
-          when: ansible_os_family == 'Debian'
+          register: _reboot_check_flag
 
         - name: Evaluate pending reboot status
           ansible.builtin.set_fact:
             system_reboot_required: >-
               {{
                 (_reboot_check_rhel.rc is defined and _reboot_check_rhel.rc == 1)
-                or (_reboot_check_debian.stat.exists is defined and _reboot_check_debian.stat.exists | bool)
+                or (_reboot_check_flag.stat.exists is defined and _reboot_check_flag.stat.exists | bool)
               }}
 
         - name: Display reboot notice if kernel or core libraries were updated

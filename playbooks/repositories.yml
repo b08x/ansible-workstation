@@ -10,7 +10,7 @@
   tags: ["repos", "repositories", "system"]
   vars:
     dnf_max_parallel_downloads: 10
-    dnf_fastestmirror: true
+    dnf_fastestmirror: false
     enable_third_party_repos: true
     enable_rpmfusion: true
     enable_syncopated_copr: true
