@@ -10,10 +10,11 @@ inventory with verified support for Ansible core 2.18–2.20 and Python 3.14.
 
 Kept as a working notebook: the roles, playbooks, and plugins are the current
 entries of a decade's experiments, and the git history keeps the earlier
-entries.
+entries. A practice rather than a product — the deliverable is maintained
+fluency, not a finished state.
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
+[![ansible-core](<https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg>)](https://docs.ansible.com/ansible-core/devel/)
 [![python](https://img.shields.io/badge/python-3.14%20%7C%203.12%2B-blue.svg)](https://www.python.org/)
 [![CI](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml/badge.svg)](https://github.com/b08x/ansible-playbooks-workstation/actions/workflows/tests.yml)
 
@@ -82,6 +83,87 @@ them.
 
 Make yourself comfortable. The plumbing below is just the argument,
 load-bearing.
+
+## Why This Exists
+
+A workstation is not supposed to be interesting. It is supposed to sit under a
+desk, apply its updates, and hold its opinions; the interesting machinery —
+the failover clusters, the high-availability proxies, the fleets where a
+missing machine is a ticket rather than a Tuesday — lives in other buildings,
+staffed by other people, funded by budgets that have never once asked what a
+revert costs. The repository sits awkwardly between those worlds: half of it
+reads like a dotfiles collection, the other half like a datacenter shrunk in
+the wash, and for years this bothered its author, who kept trying to frame
+the result as one coherent project and kept noticing that it declined to
+converge.
+
+The dotfiles half is easy to inventory and slightly embarrassing to defend.
+`roles/tools` carries task files for five coding-agent CLIs — antigravity,
+claude, crush, opencode, vibe — alongside bun, go, and a GPU-gated
+transcribe.cpp, which is the exact inventory of an enthusiast's dotfiles
+repository wearing a `roles/` directory as a disguise; these are tools that
+reinvent themselves weekly, and they are provisioned with the same ceremony
+as the kernel-adjacent plumbing, because ceremony is the only kind of task
+template this house had in stock.
+
+The datacenter half is the compensation, and the compensation is the point.
+Every one of the ten roles front-loads a pre-flight `assert.yml` that fails in
+under a second on unmet preconditions — distribution family, package
+manager, effective root, identity variables — before a single mutation
+occurs; `local.yml` implements fifteen distinct design patterns, including
+pull-based convergence and hardware auto-detection, so a fresh machine can
+introduce itself to the network and be rendered correct without a human typing
+at it. This is production-grade paranoia, and the fleet it defends is five
+physical machines, one of which is the desk the paranoia is written on. The
+patterns were learned on infrastructure that could afford them — Nashville,
+2014, twenty-one roles across three environments, hosts nobody was ever
+supposed to log into — and the clusters that would normally keep such
+patterns in shape belong to employers and vendors, none of whom,
+historically, have offered to lend me one; so the workstations stand in as
+servers, on the reasonable grounds that a pattern does not care how many
+machines are watching it be performed.
+
+Absence of a fleet does have one recurring cost, and it is not skill decay.
+Reorientation to a cloud console after time away takes about a day — a number
+that sounds like a confession and is really a property of the medium. A cloud
+console is a newspaper: the grammar is fixed, the headlines change, the
+layout rearranges itself inside known boundaries, and fluency is knowing the
+grammar rather than memorizing the headlines. The grammar survives the lapse;
+the headlines do not; a day is the price of re-subscribing. This repository
+is where the grammar gets its exercise — asserted, converged, re-run against
+machines that report zero changes — so that the day stays a day instead of
+becoming a quarter.
+
+Which is the answer to the framing problem, and the reason the bother was
+mislabeled all along. I have been grading a practice against the criteria of
+a product: a project ends, a practice persists; convergence is a property of
+products, and maintained fluency is the property of practices; nobody faults
+a gym for failing to become a body. Nothing here is finished because nothing
+here is meant to be — the roles are the current entries and the git history
+keeps the earlier ones — and the entire apparatus exists so that when a real
+fleet is finally handed over, the only new thing will be the fleet.
+
+### Three genres, one repository
+
+The apparent incoherence dissolves once the parts are sorted by genre rather
+than by topic:
+
+- **The surface** — the dotfiles genre. Agent CLIs, user tooling, shell
+  environment ([`roles/tools`](roles/tools), [`roles/user`](roles/user), the
+  yadm Layer 2). Moves weekly, replaced freely; it is the part visitors
+  recognize first and mistake for the point.
+- **The gym** — the infrastructure genre. Production patterns rehearsed at
+  household scale: fail-fast pre-flight assertions in all ten roles,
+  pull-based convergence in [`local.yml`](local.yml), fact caching, the
+  observe–remediate–learn loop. The patterns stay warm so reorientation costs
+  a day, not a quarter.
+- **The notebook** — the record. Git history, the `Lineage` section below, the
+  trace store. Drift with a changelog beats drift without one, and it beats
+  enforced stasis too.
+
+The genres do not compete; they are the same practice viewed from three
+altitudes — what is being held (the surface), what is being exercised (the
+gym), and what is being remembered (the notebook).
 
 ## What Exists Today
 
@@ -229,7 +311,7 @@ onto the host.
 ### Loops
 
 Three pieces of tooling close a loop around the fleet. Every point where the
-loop *acts* is gated by a human:
+loop _acts_ is gated by a human:
 
 - **Observe — `llm_analyzer` and `rich-ci-formatter`.** Two result callbacks,
   two audiences: one explains the run to a model and records it to the trace
@@ -270,7 +352,7 @@ changing underneath it as it went:
 - **ArchLabs** — the upstream excursion: a complete Arch playbook with a
   dedicated realtime-audio role, hosts managing themselves with
   `ansible-pull`. `soundbot` enters the inventory here and has never left.
-- **pop!_OS** — the middle ground, tried and found to be someone else's
+- **pop!\_OS** — the middle ground, tried and found to be someone else's
   philosophy.
 - **Fedora (Ansible_RAG)** — the archive itself: every Ansible tree from
   those years, parsed into 1,400+ task files across 68 module buckets — the
