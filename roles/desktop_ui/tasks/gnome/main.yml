@@ -1,0 +1,14 @@
+---
+# tasks file for GNOME desktop environment in roles/desktop_ui
+
+- name: Include GNOME desktop installation tasks
+  ansible.builtin.include_tasks: gnome/gnome.yml
+  tags: ["desktop_ui", "gnome"]
+
+- name: Include GNOME extensions tasks
+  ansible.builtin.include_tasks: gnome/extensions.yml
+  tags: ["desktop_ui", "gnome", "extensions"]
+
+- name: Include theme installation tasks
+  ansible.builtin.include_tasks: gnome/theme.yml
+  tags: ["desktop_ui", "gnome", "theme"]

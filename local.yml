@@ -32,6 +32,7 @@
       "networking",
       "containerd",
       "libvirt",
+      "desktop_ui",
       "desktop",
       "tools",
     ]
@@ -54,6 +55,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -73,6 +75,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -91,6 +94,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -121,6 +125,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -139,6 +144,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -173,6 +179,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
           "assert",
@@ -331,11 +338,11 @@
       when: auto_enable_libvirt | default(false) | bool
       tags: ["libvirt", "virt", "system", "assert"]
 
-    - name: Execute desktop role
+    - name: Execute desktop_ui role
       ansible.builtin.include_role:
-        name: desktop
+        name: desktop_ui
       when: auto_enable_desktop | default(false) | bool
-      tags: ["desktop", "system", "assert"]
+      tags: ["desktop_ui", "desktop", "system", "assert"]
 
     - name: Execute tools role
       ansible.builtin.include_role:
@@ -354,6 +361,7 @@
           "networking",
           "containerd",
           "libvirt",
+          "desktop_ui",
           "desktop",
           "tools",
         ]

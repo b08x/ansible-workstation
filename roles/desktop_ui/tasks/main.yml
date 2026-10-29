@@ -1,0 +1,35 @@
+---
+# tasks file for b08x.devworkstation.desktop_ui
+
+- name: Starting desktop_ui tasks
+  ansible.builtin.debug:
+    msg: "Starting desktop_ui tasks"
+  tags: ["desktop_ui", "always"]
+
+- name: Pre-flight role assertions (Fail-Fast Pattern)
+  ansible.builtin.include_tasks: assert.yml
+  when: desktop_ui_assert_enabled | default(true) | bool
+  tags: ["desktop_ui", "assert", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["desktop_ui", "distro"]
+
+- name: Report qt/gtk package keys missing for this distribution
+  ansible.builtin.debug:
+    msg: >-
+      desktop_ui_packages has no {{ item }} key for {{ ansible_distribution }};
+      skipping those packages.
+  loop: "{{ ['qt', 'gtk'] | reject('in', desktop_ui_packages | default({})) | list }}"
+  tags: ["packages", "desktop_ui"]
+
+- name: Install qt and gtk packages
+  ansible.builtin.dnf:
+    name: "{{ (desktop_ui_packages.qt | default([])) + (desktop_ui_packages.gtk | default([])) }}"
+    state: present
+  when: (desktop_ui_packages.qt | default([]) | length > 0) or (desktop_ui_packages.gtk | default([]) | length > 0)
+  tags: ["packages", "desktop_ui"]
+
+- name: Include desktop environment tasks
+  ansible.builtin.include_tasks: "{{ desktop_ui_environment }}/main.yml"
+  tags: ["desktop_ui"]

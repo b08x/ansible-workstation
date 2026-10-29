@@ -1,0 +1,7 @@
+---
+# tasks file for COSMIC desktop environment stub in roles/desktop_ui
+
+- name: Announce COSMIC stub
+  ansible.builtin.debug:
+    msg: "desktop_ui: cosmic provisioning not implemented yet; no changes made."
+  tags: ["desktop_ui", "cosmic"]

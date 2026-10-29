@@ -1,36 +1,36 @@
 ---
 - name: Check if VS Code binary is present
   ansible.builtin.command: which code
-  register: desktop_vscode_check
+  register: tools_vscode_check
   changed_when: false
   failed_when: false
   check_mode: false
-  tags: ["vscode", "desktop"]
+  tags: ["vscode", "tools"]
 
 - name: Install Visual Studio Code
   when: >
-    (desktop_vscode_check.rc != 0) or
-    (desktop_vscode_force_install | default(false) | bool)
-  tags: ["vscode", "desktop"]
+    (tools_vscode_check.rc != 0) or
+    (tools_vscode_force_install | default(false) | bool)
+  tags: ["vscode", "tools"]
   block:
     - name: Install VS Code via Flatpak
-      when: desktop_vscode_flatpak | default(false) | bool
+      when: tools_vscode_flatpak | default(false) | bool
       community.general.flatpak:
         name: com.visualstudio.code
         state: present
         method: system
         remote: flathub
-      tags: ["vscode", "desktop"]
+      tags: ["vscode", "tools"]
 
     - name: Install VS Code from dnf repo
-      when: not (desktop_vscode_flatpak | default(false) | bool)
-      tags: ["vscode", "desktop"]
+      when: not (tools_vscode_flatpak | default(false) | bool)
+      tags: ["vscode", "tools"]
       block:
         - name: Import Microsoft GPG key
           ansible.builtin.rpm_key:
             key: https://packages.microsoft.com/keys/microsoft.asc
             state: present
-          tags: ["vscode", "desktop"]
+          tags: ["vscode", "tools"]
 
         - name: Add Visual Studio Code repository
           ansible.builtin.copy:
@@ -46,16 +46,16 @@
               gpgcheck=1
               gpgkey=https://packages.microsoft.com/keys/microsoft.asc
             backup: true
-          tags: ["vscode", "desktop"]
+          tags: ["vscode", "tools"]
 
         - name: Update package cache (dnf)
           ansible.builtin.dnf:
             update_cache: true
-          tags: ["vscode", "desktop"]
+          tags: ["vscode", "tools"]
 
         - name: Install Visual Studio Code (dnf)
           ansible.builtin.dnf:
             name: code
             state: present
           ignore_errors: "{{ ansible_check_mode }}"
-          tags: ["vscode", "desktop"]
+          tags: ["vscode", "tools"]

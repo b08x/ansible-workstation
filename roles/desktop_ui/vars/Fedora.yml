@@ -1,9 +1,9 @@
 ---
-# distribution package variables for b08x.devworkstation.desktop on Fedora
+# distribution package variables for b08x.devworkstation.desktop_ui on Fedora
 #
 # Every key looped over in tasks/ must exist here. tasks/main.yml installs
 # `qt` and `gtk`; gnome.yml installs `gnome`; theme.yml installs `theme`.
-desktop_packages:
+desktop_ui_packages:
   gnome:
     - "@gnome-desktop"
     - "@graphical-server-environment"

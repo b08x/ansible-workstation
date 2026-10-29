@@ -6,7 +6,6 @@ exclude_paths:
   - collections/ansible_collections/network/
   - .ansible/
   - vendor/
-  - roles/ui/
   - roles/workstation/
 
 # Completely ignore these rules everywhere

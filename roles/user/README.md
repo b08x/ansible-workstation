@@ -20,6 +20,10 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
    - `uv` binary itself is deployed system-wide via native RPM packaging in [`roles/common`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/common/README.md).
    - Shell environment variables (such as `export UV_PYTHON_PREFERENCE="only-managed"`) are maintained in Yadm dotfile templates rather than Ansible inline mutations.
 
+3. **Firstboot Onboarding Tasks (`tasks/firstboot.yml`, `files/firstboot/`)**:
+   - Standalone firstboot onboarding scripts and autostart launchers moved from the former `desktop` role.
+   - Preserved in `roles/user` for future onboarding workflows; currently not included by `tasks/main.yml`.
+
 ## Key Variables
 
 | Variable | Default | Description |

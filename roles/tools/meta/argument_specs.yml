@@ -97,3 +97,45 @@ argument_specs:
         type: bool
         description: Install Mistral Vibe CLI.
         default: true
+      tools_install_gui_apps:
+        type: bool
+        description: Enable installation of graphical desktop tools and applications.
+        default: true
+      tools_install_vscode:
+        type: bool
+        description: Install Visual Studio Code.
+        default: true
+      tools_vscode_flatpak:
+        type: bool
+        description: Install VS Code via Flatpak instead of DNF repo.
+        default: false
+      tools_vscode_force_install:
+        type: bool
+        description: Force install VS Code even if code binary exists.
+        default: false
+      tools_install_antigravity_gui:
+        type: bool
+        description: Install Antigravity Hub and IDE GUI applications.
+        default: true
+      tools_antigravity_state:
+        type: str
+        description: State of Antigravity Hub and IDE (present or absent).
+        default: "present"
+      tools_antigravity_hub_url:
+        type: str
+        description: URL for Antigravity Hub tarball.
+      tools_antigravity_ide_url:
+        type: str
+        description: URL for Antigravity IDE tarball.
+      tools_install_flatpaks:
+        type: bool
+        description: Enable Flatpak package, Flathub remote, and Flatpak application installations.
+        default: true
+      tools_system_flatpaks:
+        type: list
+        elements: str
+        description: List of system Flatpak application IDs to install.
+      tools_install_input_remapper:
+        type: bool
+        description: Install and configure input-remapper service.
+        default: true

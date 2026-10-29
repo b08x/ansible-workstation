@@ -113,8 +113,8 @@ Included in `playbooks/workstation.yml` as part of the base system configuration
       tags: ["networking", "system"]
     - role: containerd
       tags: ["containerd", "virt"]
-    - role: desktop
-      tags: ["desktop", "system"]
+    - role: desktop_ui
+      tags: ["desktop_ui", "desktop", "system"]
     - role: libvirt
       tags: ["libvirt", "virt"]
 ```

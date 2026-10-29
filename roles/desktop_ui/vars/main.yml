@@ -1,7 +1,7 @@
 ---
-# internal vars file for b08x.devworkstation.desktop
+# internal vars file for b08x.devworkstation.desktop_ui
 
-desktop_package_to_id_map:
+desktop_ui_package_to_id_map:
   gnome-shell-extension-appindicator: "appindicatorsupport@rgcjonas.gmail.com"
   gnome-shell-extension-apps-menu: "apps-menu@gnome-shell-extensions.gcampax.github.com"
   gnome-shell-extension-auto-move-windows: "auto-move-windows@gnome-shell-extensions.gcampax.github.com"

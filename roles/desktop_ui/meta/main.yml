@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: foo
-  description: b08x.devworkstation desktop Role
+  description: b08x.devworkstation desktop_ui Role
   company: b08x
 
   # If the issue tracker for your role is not on github, uncomment the

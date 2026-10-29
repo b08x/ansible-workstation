@@ -1,9 +1,5 @@
 ---
-# Rocky 9/10 package set: identical to the AlmaLinux 10 list except where
-# noted. All entries verified inside rockylinux:9 (9.8) and rockylinux:10
-# (10.2) containers with BaseOS, AppStream, CRB, EPEL and RPM Fusion
-# enabled (2026-10-01).
-desktop_packages:
+desktop_ui_packages:
   gnome:
     - "@gnome-desktop"
     - "@graphical-server-environment"
@@ -32,5 +28,4 @@ desktop_packages:
     - gtk4
     - gtk3-devel
     - gtksourceview4
-    # gtksourceview5 is not built for EL 9 (verified in the rockylinux:9
-    # container, 2026-10-01); dropped here so one list serves both majors.
+    - gtksourceview5
