@@ -1,0 +1,78 @@
+---
+# tasks file for COSMIC environment and skeleton configuration in roles/desktop_ui
+
+- name: Ensure environment configuration directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/environment.d
+    - /etc/profile.d
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Configure cutecosmic Qt6 environment drop-in in /etc/environment.d/10-cosmic-qt.conf
+  ansible.builtin.copy:
+    dest: /etc/environment.d/10-cosmic-qt.conf
+    content: |
+      # Configured by Ansible desktop_ui role for COSMIC desktop integration
+      QT_QPA_PLATFORMTHEME=cutecosmic
+      QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Configure cutecosmic Qt6 environment script in /etc/profile.d/cosmic-qt.sh
+  ansible.builtin.copy:
+    dest: /etc/profile.d/cosmic-qt.sh
+    content: |
+      # /etc/profile.d/cosmic-qt.sh - Configured by Ansible desktop_ui role
+      if [ "${XDG_CURRENT_DESKTOP:-}" = "COSMIC" ] || [ "${DESKTOP_SESSION:-}" = "cosmic" ]; then
+          export QT_QPA_PLATFORMTHEME=cutecosmic
+          export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+      fi
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Ensure COSMIC skeleton directories exist in /etc/skel
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/skel/.config
+    - /etc/skel/.config/cosmic
+    - /etc/skel/.config/cosmic/com.system76.CosmicTheme.Mode/v1
+    - /etc/skel/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Seed default COSMIC theme mode skeleton configuration
+  ansible.builtin.copy:
+    dest: /etc/skel/.config/cosmic/com.system76.CosmicTheme.Mode/v1/mode
+    content: |
+      "Dark"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Seed default COSMIC shortcuts skeleton configuration
+  ansible.builtin.copy:
+    dest: /etc/skel/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom
+    content: |
+      {}
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  tags: ["desktop_ui", "cosmic", "environment"]

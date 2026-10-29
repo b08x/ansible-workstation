@@ -1,7 +1,14 @@
 ---
-# tasks file for COSMIC desktop environment stub in roles/desktop_ui
+# tasks file for COSMIC desktop environment in roles/desktop_ui
 
-- name: Announce COSMIC stub
-  ansible.builtin.debug:
-    msg: "desktop_ui: cosmic provisioning not implemented yet; no changes made."
-  tags: ["desktop_ui", "cosmic"]
+- name: Include COSMIC package installation tasks
+  ansible.builtin.include_tasks: cosmic/packages.yml
+  tags: ["desktop_ui", "cosmic", "packages"]
+
+- name: Include COSMIC environment and skeleton configuration tasks
+  ansible.builtin.include_tasks: cosmic/environment.yml
+  tags: ["desktop_ui", "cosmic", "environment"]
+
+- name: Include COSMIC display manager and greeter tasks
+  ansible.builtin.include_tasks: cosmic/greeter.yml
+  tags: ["desktop_ui", "cosmic", "greeter", "systemd"]

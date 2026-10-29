@@ -62,3 +62,27 @@
       Allowed values: gnome, cosmic, sway.
     quiet: true
   tags: ["desktop_ui", "assert", "always"]
+
+- name: Assert supported OS distribution and version for COSMIC
+  ansible.builtin.assert:
+    that:
+      - >-
+        (ansible_distribution == 'Fedora' and (ansible_distribution_major_version | int >= 43)) or
+        (ansible_distribution in ['AlmaLinux', 'Rocky', 'RedHat', 'CentOS'] and (ansible_distribution_major_version | int >= 10))
+    fail_msg: >-
+      COSMIC desktop environment requires Fedora 43+ or Enterprise Linux 10+.
+      Detected: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('unknown') }}.
+    quiet: true
+  when: desktop_ui_environment == 'cosmic'
+  tags: ["desktop_ui", "assert", "always"]
+
+- name: Assert supported display manager for COSMIC
+  ansible.builtin.assert:
+    that:
+      - desktop_ui_display_manager in ['cosmic-greeter', 'gdm']
+    fail_msg: >-
+      Unsupported display manager '{{ desktop_ui_display_manager }}' for COSMIC desktop.
+      Allowed values: cosmic-greeter, gdm.
+    quiet: true
+  when: desktop_ui_environment == 'cosmic'
+  tags: ["desktop_ui", "assert", "always"]

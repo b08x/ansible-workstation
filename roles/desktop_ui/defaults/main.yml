@@ -7,8 +7,12 @@ desktop_ui_assert_enabled: true
 # Target desktop environment: gnome, cosmic, or sway
 desktop_ui_environment: gnome
 
-# Target display manager placeholder (default gdm)
-desktop_ui_display_manager: gdm
+# Target display manager: defaults to cosmic-greeter when environment is cosmic, otherwise gdm
+desktop_ui_display_manager: "{{ 'cosmic-greeter' if desktop_ui_environment == 'cosmic' else 'gdm' }}"
+
+# COSMIC Desktop Environment options
+desktop_ui_cosmic_use_copr: false
+desktop_ui_cosmic_install_supplementary_apps: false
 
 desktop_ui_theme_force_install: false
 

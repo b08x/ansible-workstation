@@ -19,8 +19,18 @@ argument_specs:
         description: Desktop environment to provision (gnome, cosmic, or sway).
       desktop_ui_display_manager:
         type: str
-        default: "gdm"
-        description: Target display manager placeholder (default gdm).
+        choices:
+          - "gdm"
+          - "cosmic-greeter"
+        description: Target display manager (defaults to cosmic-greeter for cosmic, otherwise gdm).
+      desktop_ui_cosmic_use_copr:
+        type: bool
+        default: false
+        description: Enable ryanabx/cosmic-epoch COPR repository before installing packages.
+      desktop_ui_cosmic_install_supplementary_apps:
+        type: bool
+        default: false
+        description: Install supplementary COSMIC desktop applications (@cosmic-desktop-apps).
       desktop_ui_theme_force_install:
         type: bool
         default: false

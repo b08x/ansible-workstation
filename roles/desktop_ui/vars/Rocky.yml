@@ -4,6 +4,13 @@
 # (10.2) containers with BaseOS, AppStream, CRB, EPEL and RPM Fusion
 # enabled (2026-10-01).
 desktop_ui_packages:
+  cosmic_core:
+    - "@cosmic-desktop"
+    - cosmic-greeter
+    - cutecosmic-qt6
+    - xdg-desktop-portal-cosmic
+  cosmic_apps:
+    - "@cosmic-desktop-apps"
   gnome:
     - "@gnome-desktop"
     - "@graphical-server-environment"
