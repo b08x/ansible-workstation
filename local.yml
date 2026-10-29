@@ -102,20 +102,7 @@
 
     - name: Resolve target workstation user account
       ansible.builtin.set_fact:
-        workstation_user: >-
-          {{
-            user.name
-            if (user is defined and user.name is defined and user.name | length > 0)
-            else (
-              ansible_env.SUDO_USER
-              if (ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER | length > 0 and ansible_env.SUDO_USER != 'root')
-              else (
-                lookup('env', 'USER')
-                if (lookup('env', 'USER') is defined and lookup('env', 'USER') | length > 0 and lookup('env', 'USER') != 'root')
-                else ansible_user_id
-              )
-            )
-          }}
+        workstation_user: "{{ user.name }}"
       tags:
         [
           "system",
@@ -437,12 +424,7 @@
 
     - name: Resolve unprivileged user account facts
       ansible.builtin.set_fact:
-        workstation_user: >-
-          {{
-            user.name
-            if (user is defined and user.name is defined and user.name | length > 0)
-            else ansible_user_id
-          }}
+        workstation_user: "{{ user.name }}"
       tags: ["user", "assert"]
 
     - name: Ensure user dictionary is defined for user role
