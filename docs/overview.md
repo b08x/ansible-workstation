@@ -1,0 +1,156 @@
+# Project Overview
+
+This document describes what the Syncopated workstation repository is, what lives
+inside it, and how the pieces fit together. For the build history and the failure
+points that shaped it, see [`build-process.md`](build-process.md) and
+[`failure-points.md`](failure-points.md). For day-to-day usage,
+see [`usage.md`](usage.md).
+
+---
+
+## What This Is
+
+This repository provisions workstations. It installs system packages, configures
+services, detects and wires hardware acceleration (CUDA, Vulkan, Intel
+oneAPI/SYCL), deploys desktop environments, and — centrally — installs the AI
+coding agent CLIs this workstation runs day to day: Claude Code, Google
+Antigravity, Charm Crush, OpenCode, and Mistral Vibe.
+
+But that is the *output*. The more interesting story is the *input*: this
+repository was built by AI coding agents, working in sessions that left a
+trace — and that trace is now part of the project. Across the full lineage of
+this repository (tracked under 46 project entries in the code-insights corpus,
+from `ansible-rhel-workstation-builder` through `ansible-collection-rhel-workstation-builder`
+through `syncopated-ansible` through `Archive/Ansible` through `ansible` to the
+current `workstation`), 512 sessions produced 24,767 messages over roughly nine
+months (January–October 2026), at an estimated token cost of $2,057. The corpus
+yielded 1,491 extracted learnings, 1,324 architectural decisions, 499 session
+summaries (the same 499 sessions that carry facet-level analysis), and 352
+prompt-quality assessments.
+
+The functional use-case is straightforward: **manage an Ansible project with
+coding tools**. Across the corpus, AI coding agents wrote, debugged, refactored,
+and committed the roles, playbooks, and plugins in this repository — though the
+corpus may not capture every manual edit. The failure points
+those agents hit — and the patterns they developed to avoid repeating them —
+are documented in [`failure-points.md`](failure-points.md), because they are the
+actual content of this project. The Ansible roles are the artifact; the
+learnings are the payload.
+
+---
+
+## Repository Structure
+
+```
+workstation/
+├── local.yml                  # ansible-pull playbook for local convergence
+├── ansible.cfg                # Fact caching, pipelining, callback plugins
+├── ansible-navigator.yml      # Navigator configuration
+├── playbooks/
+│   ├── workstation.yml        # Full multi-host provisioning
+│   ├── repositories.yml       # DNF repository configuration
+│   ├── nas.yml                # NAS playbook
+│   └── tts.yml                # Text-to-speech playbook
+├── roles/
+│   ├── common/                # Base system, firstboot, hardening, Molecule tests
+│   ├── tuning/                # Kernel params, zram, CPU tuning
+│   ├── networking/            # Network configuration
+│   ├── containerd/            # Container runtime
+│   ├── libvirt/               # Virtualization (KVM)
+│   ├── desktop_ui/            # GNOME/COSMIC/Sway, GDM, extensions, theming
+│   ├── tools/                 # AI coding CLIs, IDEs, system binaries, Flatpaks
+│   ├── user/                  # User environment, shell, uv toolchains
+│   ├── nas/                   # NFS, Samba, rsync
+│   └── tts/                   # Text-to-speech services
+├── inventory/
+│   ├── hosts.yml              # Host inventory
+│   ├── group_vars/            # Group variables
+│   └── host_vars/             # Per-host variables
+├── plugins/
+│   └── callback/
+│       ├── llm_analyzer.py    # Records every play/task to a trace store
+│       └── rich_ci_formatter.py # Human-readable terminal output
+├── scripts/
+│   ├── bootstrap.sh           # Stage 1: minimal prerequisites + reboot
+│   ├── syncopated-bootstrap-root.sh  # Stage 2: systemd runner for ansible-pull
+│   ├── syncopated-firstboot   # Stage 3: user login bootstrap
+│   ├── 01-ansible-pull.sh     # Yadm bridge to ansible-pull
+│   └── llm_trainset.py        # Builds DSPy trainset from traces
+├── docs/
+│   ├── layering-architecture.md  # Layer 0/1/2 taxonomy
+│   ├── bootstrap.md              # Bootstrap lifecycle details
+│   └── variable-precedence.md    # Variable scoping rules
+└── Vagrantfile                # libvirt Fedora VM for testing
+```
+
+---
+
+## The Layering Model
+
+Three layers, strictly owned (see [`layering-architecture.md`](layering-architecture.md)
+for the full taxonomy):
+
+- **Layer 0 — OSBuild** (the floor): Immutable base images. Kernel, drivers,
+  container runtimes, core packages. Built, never mutated. Lives in the
+  companion `osbuild` repository.
+- **Layer 1 — Ansible** (the system): Host-level packages, services, hardware
+  acceleration, developer IDEs, coding agent CLIs, system Flatpaks. Idempotent
+  by contract — re-running against a converged host reports zero changes.
+- **Layer 2 — yadm** (the user): Dotfiles, shell environment, user version
+  managers, user Cargo crates, user Ruby gems, user Flatpaks. The one layer a
+  re-image does not erase; drift is permitted under version control.
+
+---
+
+## The Coding Tools
+
+The [`tools`](../roles/tools) role provisions five AI coding agent CLIs:
+
+| CLI | Binary | Install Method | Config Location |
+|-----|--------|---------------|-----------------|
+| Claude Code | `claude` | npm global (user prefix) | `~/.claude/settings.json` |
+| Google Antigravity | `agy` | Direct binary download | `~/.config/antigravity/` |
+| Charm Crush | `crush` | Go compile (`~/go/bin`) | `~/.config/crush/` |
+| OpenCode | `opencode` | npm global (user prefix) | `~/.config/opencode/` |
+| Mistral Vibe | `vibe` | `uv tool install` | `~/.vibe/config.toml` |
+
+Ansible installs the binaries; yadm (Layer 2) owns the configs and shared
+skills. The boundary is strict — Ansible never writes into `$HOME` paths that
+yadm owns.
+
+Plus developer IDEs (VS Code, Antigravity Hub & IDE), system binaries
+(`bun`, `transcribe` — compiled from source with a CUDA, Intel SYCL, or
+Vulkan backend chosen by hardware probe; GPU required by default, overridable
+via `tools_transcribe_*` flags), Go toolchain validation, and system
+Flatpaks. All gated by explicit boolean flags (`tools_install_*`).
+
+---
+
+## Observability
+
+Two callback plugins close the loop:
+
+- **`llm_analyzer`** (opt-in; disabled by default) — when enabled via
+  `callbacks_enabled`, sends each play and task to a configurable LLM provider
+  (Mistral by default in ansible.cfg; requires an API key) on a background
+  worker pool, recording predictions to an append-only trace store and markdown
+  under `llm_analysis/`. Play and task content leaves the host when enabled —
+  treat traces as sensitive. Without a key it disables itself and the playbook
+  runs unobserved.
+- **`rich_ci_formatter`** — renders the same runs for the human at the terminal:
+  DNF5 transaction tables, systemd transitions, phase banners
+
+`scripts/llm_trainset.py` turns the accumulated traces into a scored DSPy
+trainset. The loop is: observe (trace + render), learn (trainset), and — in the
+companion `llmops` repository — remediate (diagnose-and-fix pipeline with
+mechanical safety guards).
+
+---
+
+## Companion Repositories
+
+| Repository | Purpose |
+|-----------|---------|
+| [`osbuild`](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints, ISO/appliance/disk composition, package taxonomy |
+| [`rpmbuild`](https://gitlab.com/syncopatedX/rpmbuild) | RPM packaging: `rpm_dev` role, mock build chroots, packaging environments |
+| [`llmops`](https://gitlab.com/syncopatedX/llmops) | LLM operations: Dify, Langfuse, Hermes, Ollama, remediation pipeline |
