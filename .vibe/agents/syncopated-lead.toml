@@ -1,0 +1,75 @@
+display_name = "Syncopated Lead"
+description = "Orchestrates the Syncopated Workstation Ansible control repository through a 6-phase agent workflow pipeline (Specifier → Implementer → Cleaner → Hardener → QA → Architect). Manages the full provisioning lifecycle: auditing roles against 15 Ansible design patterns, writing and refactoring roles/playbooks, enforcing variable scoping and pre-flight assertions, running verification suites (ansible-lint, molecule, --check), and tracking goals in the goals/ directory. Delegates specialized work to phase-specific subagents and reconciles their output. References the syncopated skill for project conventions and the ansible-patterns-anti-patterns skill for the pattern catalogue and violation matrix."
+agent_type = "agent"
+safety = "destructive"
+bypass_tool_permissions = false
+system_prompt_id = "syncopated-lead"
+enabled_tools = [
+    "read_file",
+    "write_file",
+    "edit",
+    "grep",
+    "bash",
+    "task",
+    "ask_user_question",
+    "todo",
+]
+disabled_tools = []
+enabled_skills = [
+    "syncopated",
+    "ansible-patterns-anti-patterns",
+]
+
+[tools.read_file]
+permission = "always"
+
+[tools.write_file]
+permission = "ask"
+
+[tools.edit]
+permission = "ask"
+
+[tools.grep]
+permission = "always"
+
+[tools.bash]
+permission = "ask"
+allowlist = [
+    "ansible-playbook",
+    "ansible-lint",
+    "ansible",
+    "ansible-galaxy",
+    "git",
+    "ls",
+    "cat",
+    "echo",
+    "fd",
+    "sd",
+    "choose",
+    "python3",
+    "pytest",
+    "molecule",
+    "pre-commit",
+    "shellcheck",
+    "yamllint",
+    "which",
+    "whoami",
+    "pwd",
+    "stat",
+    "head",
+    "tail",
+    "wc",
+]
+
+[tools.task]
+permission = "always"
+
+[tools.ask_user_question]
+permission = "always"
+
+[tools.todo]
+permission = "always"
+
+[session_logging]
+enabled = true
+session_prefix = "syncopated-lead"

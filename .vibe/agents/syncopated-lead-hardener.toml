@@ -1,0 +1,35 @@
+display_name = "Syncopated Lead Hardener"
+description = "Hardener Agent — Phase 4 of the pipeline. Adds fail-fast pre-flight assertions (tasks/assert.yml) validating platform compatibility, package manager, init manager, effective root permissions, and identity variables. Verifies idempotency (skip-if-present guards have *_force_install overrides), checks firewall rules are co-located and data-driven, enforces layer boundaries (no writes to $HOME paths owned by yadm), and runs security-focused lint checks."
+agent_type = "subagent"
+safety = "destructive"
+bypass_tool_permissions = false
+system_prompt_id = "syncopated-lead-hardener"
+enabled_tools = [
+    "read_file",
+    "write_file",
+    "edit",
+    "grep",
+    "bash",
+]
+disabled_tools = [
+    "task",
+]
+
+[tools.read_file]
+permission = "always"
+
+[tools.write_file]
+permission = "ask"
+
+[tools.edit]
+permission = "ask"
+
+[tools.grep]
+permission = "always"
+
+[tools.bash]
+permission = "ask"
+
+[session_logging]
+enabled = true
+session_prefix = "syncopated-lead-hardener"

@@ -1,352 +1,327 @@
 ---
 name: syncopated
-description: Builder agent for custom OS appliances and container images. For installer ISOs it writes an intent file under profiles/ (validated against schema/intent.schema.json) and runs playbooks/build.yml; for containers and bootc images it writes an osbuild-role playbook. Generates the blueprint and build-<name>.sh, then verifies both without building.
+description: Project management skill for the Syncopated Workstation Ansible control repository. Covers the full provisioning lifecycle — auditing roles against 15 design patterns, writing and refactoring roles/playbooks, pre-flight assertions, tag-as-select filtering, variable scoping, testing (ansible-lint, molecule, --check), and the 6-phase agent workflow pipeline (Specifier → Implementer → Cleaner → Hardener → QA → Architect). References the osbuild companion repo for image/blueprint building in the Specifier phase.
 ---
 
-# Syncopated Appliance Builder Skill
+# Syncopated Workstation Skill
 
-Turn a natural-language appliance request into the input of the `osbuild`
-role (`roles/osbuild/`), verified to the point where the user only has to run
-the generated build script.
+Manage the Syncopated Workstation Ansible control repository: audit roles,
+write and refactor playbooks, enforce conventions, verify changes, and
+coordinate the 6-phase agent workflow pipeline. This skill is the operational
+companion to `ansible-patterns-anti-patterns` — it tells you **how** to work
+in this repo; the patterns skill tells you **what good looks like**.
 
-- **Installer ISO** (any workstation): write an **intent file**
-  `profiles/<name>.yml` and run `ansible-playbook playbooks/build.yml -e
-  @profiles/<name>.yml`. Never write a per-variant ISO playbook; those were
-  retired. Never set role variables (`osbuild_*`) in an intent.
-- **Application container, bootc image, qcow2**: write or adapt a playbook
-  (`playbooks/osbuild-rocky-cuda-container.yml`, `playbooks/osbuild.yml`).
+---
 
-Repository facts:
+## 1. Project Orientation
 
-- Standalone repo: `ansible.cfg` sets `roles_path = ./roles` and
-  `inventory = ./inventory/hosts.yml`. Group `builder` = `gir` (Fedora 43,
-  local connection) and `tinybot` (AlmaLinux 10).
-- `roles/composer_cli/` (`composer_cli.yml`) is the osbuild-composer/Weldr
-  alternative. This skill targets `roles/osbuild/` only.
-- Package data: the component files in
-  `roles/osbuild/files/<distro>/<major>/<arch>/components/*.yml`, selected by
-  an intent's `components` (or a playbook's `osbuild_blueprint_components`)
-  and resolved for the *target* distro. Edit them with
-  `scripts/package_tracker.py` (`list|search|add|remove|verify|playbook|tui`).
-- `profiles/` is gitignored except `profiles/examples/`. User intents are
-  local files; do not commit them unless asked, and never commit one with
-  remote logging keys inline.
+### What This Is
 
-## 1. Clarify (AskUserQuestion, max 3 questions)
+An Ansible control repository for provisioning Fedora, AlmaLinux, and Rocky
+Linux workstations. Ten roles, layered playbooks, and `local.yml` at the root
+for `ansible-pull` convergence. Built and maintained with AI coding agents.
 
-Ask only what changes the intent; skip anything the request already states.
-Resolve these, in priority order:
+### Where Things Live
 
-- **Image kind.** "Container" is ambiguous — always ask:
-  - *application container* → playbook, image-builder type `container` (OCI archive, no kernel, no driver);
-  - *bootc OS image* → playbook, `osbuild_build_bootc: true` (Rocky bootc is unverified, say so).
-  - Installer ISO → intent. VM image (`qcow2`) or Vagrant box (`generic-vagrant-libvirt`, `generic-vagrant-virtualbox`) → playbook.
-- **Distro + version** as `image-builder list` names it (`rocky-10.2`,
-  `almalinux-10.2`, `fedora-44`, `fedora-43`; not `rocky-10`). Hardening needs `rocky-10.x` or `almalinux-10.x`.
-- **Hardware/stack** (NVIDIA/CUDA, Intel oneAPI, audio, desktop) → components.
-- **ISO only:** hardening profile (`none`, `cis-l2-workstation`, `pci-dss`,
-  `hipaa`), disk size in GiB (a "512 GB" disk is 476 GiB, "1 TB" is 931 GiB —
-  declare at most the real size, or the install aborts), LUKS (`disk.encrypt`
-  makes the passphrase the one installer prompt), the user name.
+| Path | Contents |
+|------|----------|
+| `AGENTS.md` | Project conventions, commands, testing, variable scoping |
+| `roles/` | Ten roles: `common`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop_ui`, `tools`, `user`, `nas`, `tts` |
+| `playbooks/` | `workstation.yml` (full provisioning), `repositories.yml`, `nas.yml`, `tts.yml` |
+| `local.yml` | Root-level `ansible-pull` entry point (pull-based convergence) |
+| `inventory/` | `hosts.yml`, `group_vars/`, `host_vars/` |
+| `docs/` | Architecture, conventions, usage, build process, failure points |
+| `goals/` | PDCA-style goal tracking (goal.md, facts.md, plan.md per goal) |
+| `plugins/callback/` | `llm_analyzer.py` (opt-in LLM trace), `rich_ci_formatter.py` |
+| `scripts/` | Bootstrap stages, ansible-pull bridge, DSPy trainset builder |
 
-Default to generate-only: the role writes files, the user runs the build.
+### Companion Repositories
 
-## 2. Installer ISO: write the intent
+| Repository | Purpose | When to Cross Over |
+|-----------|---------|-------------------|
+| `~/WorkspaceV3/Syncopated/osbuild` | Image building: declarative blueprints, ISO/appliance/disk composition | Specifier phase — designing custom OS images |
+| `~/WorkspaceV3/Syncopated/rpmbuild` | RPM packaging: `rpm_dev` role, mock build chroots | Packaging custom RPMs for roles |
+| `~/WorkspaceV3/Syncopated/llmops` | LLM operations: Dify, Langfuse, Hermes, Ollama | Deploying LLM services on provisioned hosts |
 
-1. Copy the closest example from `profiles/examples/` to `profiles/<name>.yml`:
+### Hosts
 
-   | Need | Example |
-   |------|---------|
-   | Rocky 10.2 workstation | `rocky-10-2-workstation-components.yml` |
-   | …with NVIDIA/CUDA | `rocky-10-2-workstation-nvidia-components.yml` |
-   | …with Intel GPU compute + oneAPI | `rocky-10-2-workstation-intel-oneapi-components.yml` |
-   | …hardened (CIS L2 / PCI-DSS / HIPAA) | `rocky-10-2-workstation-openscap-<profile>.yml` |
-   | …NVIDIA + CIS | `rocky-10-2-workstation-nvidia-openscap-cis-l2-workstation.yml` |
-   | AlmaLinux 10.2 (± NVIDIA) | `almalinux-10-2-workstation{,-nvidia}.yml` |
+| Host | Role | Connection |
+|------|------|------------|
+| `gir` | Fedora dev workstation (builder) | local |
+| `tinybot` | AlmaLinux builder target | SSH (192.168.41.11) |
+| `soundbot` | Workstation target | SSH |
+| `ninjabot` | Headless server | SSH |
 
-2. Edit only intent fields (`schema/intent.schema.json`, additionalProperties
-   false — a typo fails validation):
+---
 
-   ```yaml
-   intent:
-     version: 1
-     name: studio-gx            # outputs <name>.toml, build-<name>.sh, <name>.credentials.txt
-     description: "..."         # optional
-     distro: rocky-10.2
-     arch: x86_64
-     hostname: studio-gx
-     components: [base, anaconda, gnome-desktop, ..., nvidia]   # never openscap-*
-     hardening: cis-l2-workstation    # none | cis-l2-workstation | pci-dss | hipaa
-     password_min_length: 9   # optional; CIS/PCI only (default 14 / 12)
-     disk:
-       size_gib: 931            # declared target disk size (GiB)
-       encrypt: false           # true: LUKS, the installer asks the passphrase
-       tmp: tmpfs               # tmpfs | lv (hardened layout)
-       serial: S5GXNF0R123      # optional: abort unless the disk has this serial
-     users:
-       - name: ada
-         gecos: "Ada Lovelace"
-         groups: [audio]        # optional; wheel + component user_groups are added
-         uid: 1500              # optional
-         ssh_pubkey: "ssh-ed25519 AAAA... ada@laptop"   # optional
-     locale: {language: en_US.UTF-8, keyboard: us, timezone: America/New_York}
-     root: {enabled: false}             # true: root gets the initial password too
-     remote_logging: {enabled: false}   # or enabled: true + url, ca_cert, client_cert, client_key
-     extra_packages: []         # one-off packages for this machine
-     package_pins: {}           # {pkg: "1.2.*"}
-   ```
+## 2. Hard Rules (from AGENTS.md)
 
-3. Components: the names in `files/<target>/<major>/<arch>/components/`.
-   All five targets (`rocky/10`, `rocky/9`, `almalinux/10`, `fedora/43`,
-   `fedora/44`) share `base anaconda gnome-desktop fonts audio multimedia
-   google-chrome vscode intel-graphics development containers-virt cockpit
-   nvidia`; Rocky 10 adds `gui-toolkit intel-oneapi cuda-container`; Rocky 10
-   and AlmaLinux 10 add `syncopated`; Fedora 43 and 44 add `sway`.
-   `python3 scripts/package_tracker.py playbook profiles/<name>.yml list|add|remove <component>`
-   edits the list in place.
+1. **Never auto-commit.** Show the diff, offer the commit, wait for explicit request.
+2. **Variable scoping**:
+   - **Tier 1** (host/domain): Unprefixed names in `group_vars/`/`host_vars/` (`user.*`, `enable_desktop`, `use_containers`, `use_kvm`)
+   - **Tier 2** (role-scoped): Role-prefixed in `defaults/`, `vars/`, `set_fact` (`<role>_*`)
+   - **Registered variables**: Always role-prefixed (`register: _<role>_result`)
+3. **Every role has `tasks/assert.yml`** — fail-fast pre-flight validation. Gated by `<role>_assert_enabled | default(true) | bool`. Tagged `["<role>", "assert", "always"]`. Run with `--tags assert`.
+4. **One file, one owner.** Before templating a shared config path, grep for other writers.
+5. **Idempotency**: every skip-if-present guard ships with a matching `*_force_install` override variable.
+6. **Atomic commits**: one logical change per commit. Classify by intent (`feat`, `fix`, `refactor`, `chore`, `revert`, `docs`).
+7. **Layer boundary**: Ansible (Layer 1) never writes into `$HOME` paths that yadm (Layer 2) owns.
 
-### What the role derives (never put these in an intent)
+---
 
-The former hard rules are enforced in the role; an intent cannot set them:
+## 3. The 6-Phase Workflow Pipeline
 
-- `openscap-<profile>` component, compliant disk layout, audit volume size
-  (4 GiB CIS/PCI, 10 GiB HIPAA) and the workstation audit tailoring follow
-  `hardening`.
-- `/usr` is 80 GiB when `nvidia` or `cuda-container` is selected.
-- Extra repositories come from the components' `repo_urls` only
-  (`osbuild_sources` is emptied for intents; the build host's repo list never
-  reaches another distro's compose). Rocky CRB, Plus and RT are in the Rocky
-  `base` components.
-- `[[customizations.repositories]]` only writes `.repo` files into the image;
-  depsolve uses `--extra-repo` (component `repo_urls`). A package from a new
-  repo needs both (component `repo_urls` + a fragment `[[customizations.repositories]]`).
-- No `[[customizations.user]]`/`[[customizations.group]]`/`unattended`/
-  `sudo-nopasswd` in any blueprint next to the kickstart (asserted). Users come
-  from the intent through kickstart `user` lines.
-- Image type: `image-installer` (EL), `minimal-installer` (Fedora).
-- Output name: `<name>-<commit>.iso` (the `-dirty` suffix marks uncommitted changes).
+Adapted from the SwarmForge workflow matrix for Ansible project management.
+Each phase has a gate — work does not proceed until the gate passes.
 
-### What the generated ISO does (to explain in the report)
-
-- Install asks nothing (LUKS passphrase only with `disk.encrypt`). The %pre
-  picks the disk (no install media/removable/read-only/USB; NVMe first, then
-  largest), checks `disk.serial`, aborts if the disk is smaller than
-  `disk.size_gib`, then counts down 30 s on tty8 naming model, serial and
-  size — any key aborts. Volume sizes are fixed in the kickstart, computed at
-  generation (`filter_plugins/disk_layout.py`); a larger disk's surplus goes to `/home`.
-- Root locked unless `root: {enabled: true}`. Users (and an enabled root) get
-  the initial password `syncopated` (`osbuild_initial_password`; SHA-512 hash
-  only in the ISO; also in `<output>/<name>.credentials.txt`, mode 0600, and
-  printed at the end of the play) and must change it at first login.
-- Hardened: auditd rotates within 512 MB (CIS/PCI) or 2 GiB (HIPAA), never
-  halts/suspends/single-users; below 25% free on `/var/log/audit`,
-  `syncopated-audit-warn` warns in the journal, motd, Cockpit, and a GNOME
-  critical notification for wheel users at each login. CIS/PCI unselect the
-  `dac_modification_*`/`file_deletion_events_*` rules; CIS also
-  unselects `unsuccessful_file_modification_*` (failed `/proc` reads by htop). The tailoring is a JSON
-  file in the image (`/etc/syncopated/openscap-tailoring.json`, blueprint
-  `json_tailoring`) carrying the unselected rules and SSG variables
-  (`password_min_length` → `var_password_pam_minlen`). `sudo syncopated-scan`
-  writes stock + tailored HTML/ARF reports to `/var/lib/syncopated/scans/<ts>/`.
-- `remote_logging.enabled: true` → systemd-journal-upload over mTLS; an
-  unreachable log host only produces log lines and retries.
-
-## 3. Containers, bootc, VM and Vagrant: playbooks
-
-| Need | Start from | Host | Blueprint source |
-|------|-----------|------|------------------|
-| Vagrant box (Libvirt / VirtualBox) | `playbooks/osbuild-fedora44-vagrant.yml` | `builder` | components + `frames/vagrant.toml` |
-| CUDA application container | `playbooks/osbuild-rocky-cuda-container.yml` | `builder` | components (`cuda-container` + `frames/container.toml`) |
-| Host-native bootc image, or a VM image (`-e osbuild_build_bootc=false -e osbuild_image_type=qcow2`; installer types are refused) | `playbooks/osbuild.yml` (= root `osbuild.yml`) | `osbuild_targets` | components, chosen per `ansible_distribution` |
-
-- `roles: - role: osbuild`; `hosts: builder` for cross-distro playbooks (not
-  `localhost`: the role needs facts and `become`). Keep `gather_facts: false`
-  + a `setup` pre_task with `become: false`, the `_git_commit` pre_task and the
-  `image-builder list` assert, as the container playbook does.
-- For non-installer types set `osbuild_kickstart_enabled: false`,
-  `osbuild_kickstart_sudoers: false`, `osbuild_firstboot_enabled: false`;
-  containers and minimal boxes also `osbuild_flathub_enabled: false`. Name container output
-  `.tar` and set `osbuild_container_tag` (the build script `podman load`s it).
-  Vagrant box targets must use non-installer frames (`frames/vagrant.toml` omitting
-  Anaconda `[customizations.installer]`) and produce `.box` archives.
-- NVIDIA in an application container: `cuda-toolkit` (or runtime libs), never
-  the `cuda` meta package (pulls `nvidia-driver` + kmod). The host supplies the
-  driver via nvidia-container-toolkit CDI (`podman run --device nvidia.com/gpu=all`).
-- `ruby-build-rbenv` needs `ruby-build-ruby` next to it.
-
-Component file schema (`tasks/components.yml` asserts `label` and a non-empty
-`packages`; `python3 roles/osbuild/tests/validate_schema.py` checks every file):
-
-```yaml
-label: "Human-readable name"          # required
-packages: ["pkg", "@comps-group"]     # required, non-empty; never versions
-repo_urls: ["https://..."]            # --extra-repo for depsolve
-services: ["unit"]                    # merged into [customizations.services]
-kernel_args: ["arg=value"]            # merged into [customizations.kernel] append
-user_groups: ["libvirt"]              # installer users join these groups
-openscap_unselected: ["rule_id"]      # openscap-* only: tailoring unselects
-fragment: name.toml                   # optional, appended verbatim (array-of-tables only)
-flatpaks: ["org.app.Id"]              # optional, bootc builds only
-bootc_repos: ["shell snippet"]        # optional, bootc builds only
-copr_repos: ["owner/project"]         # optional, bootc builds only
+```
+Phase 1: SPECIFIER    →  Design roles, playbooks, variables, image blueprints
+Phase 2: IMPLEMENTER  →  Write tasks, templates, defaults, handlers
+Phase 3: CLEANER      →  Refactor to 15 patterns, reduce complexity, DRY
+Phase 4: HARDENER     →  Add assertions, run lint, security scan, idempotency check
+Phase 5: QA           →  ansible-lint, molecule, --check, --tags assert
+Phase 6: ARCHITECT    →  Pattern compliance audit, dependency direction, layer boundaries
 ```
 
-A fragment or frame must not define `name`, `description`, `version`,
-`distro`, `packages`, `[customizations]`, `[customizations.kernel]` or
-`[customizations.services]` (rendered from the merged lists). Files appended
-as `'''` literal strings must not contain `'''`.
+### Phase 1 — Specifier (Design + Image Blueprints)
 
-## 4. Add or remove packages
+**Cognitive strategy**: Translate requirements into role/playbook designs,
+variable schemas, and (when needed) osbuild blueprints for custom images.
 
-The component files are the only package data: a package name lives in
-`roles/osbuild/files/<distro>/<major>/<arch>/components/<name>.yml` →
-`packages:`, once per target. Static blueprints (`osbuild_static_blueprint_path`)
-are hand-written and outside the tracker.
+**Key activities**:
+- Read the goal/request and produce a design document
+- Identify which roles are affected
+- Define Tier 1 variables (group_vars/host_vars) and Tier 2 variables (role defaults)
+- For custom OS images: cross over to `~/WorkspaceV3/Syncopated/osbuild` and write
+  an intent file under `profiles/` validated against `schema/intent.schema.json`
+- Produce a Gherkin-style acceptance checklist (Given/When/Then) for the change
 
-Procedure:
+**Gate**: Design document reviewed. Variable names follow scoping rules.
+Acceptance criteria are testable. No implementation code written yet.
 
-1. **Find every component that carries the package or its neighbours.**
-   `python3 scripts/package_tracker.py search <pkg>` prints every
-   target/component that has it. A change meant for "the workstation" goes
-   into the matching component of every target where the name exists
-   (`list --target T` shows the components). Commit 3729a07
-   (`ruby-build-ruby`) shows the full set of files for one addition.
-2. **Confirm the name exists in the target repos before adding it.** Query
-   each repo the build depsolves against (base repos plus its extra repos):
+### Phase 2 — Implementer (Write)
 
-   ```bash
-   dnf repoquery -q --repofrompath=r,<repo URL> --repo r \
-     --qf '%{name} %{repoid}\n' <pkg>
-   ```
+**Cognitive strategy**: Write production tasks, templates, defaults, and
+handlers until the acceptance criteria pass.
 
-   No output means the repo does not provide that name. EL and Fedora names
-   differ. `python3 scripts/package_tracker.py add --target T COMPONENT a b --verify`
-   runs the same lookup against the target's base repos plus the `repo_urls`
-   of its components, and skips names no repo provides. `verify --target T
-   [COMPONENT]` audits existing entries (exit 1 when names are missing).
-   Leave the name out of a target that has no build of it, and say so in a
-   comment (the files already do this for sway on EPEL 10).
-3. **Add the repo when the package needs one the build does not use yet.**
-   Depsolve: the component's `repo_urls` (intents cannot add
-   repositories; a playbook may set `osbuild_extra_repo_urls`). Installed system: a
-   `[[customizations.repositories]]` entry (static blueprint, component
-   fragment or frame). One without the other fails depsolve or leaves the
-   installed system unable to update the package.
-4. **Edit the component** with the tracker or by hand:
+**Key activities**:
+- Write `tasks/*.yml` following the Task Dispatcher Pattern (Pattern 1)
+- Write `defaults/main.yml` for overridable config, `vars/main.yml` for internal data
+- Use `include_vars` for distro-switching (Pattern 3, Dialect A)
+- Add `tags` to every task (Pattern 7)
+- Add `backup: true` to every `template`/`copy` (Pattern 8)
+- Use blocks for grouped conditions (Pattern 9)
+- Write `handlers/main.yml` with only handlers that are notified (Pattern 14)
+- Add `debug: msg: "Starting <role> tasks"` entry message (Pattern 13)
 
-   ```bash
-   python3 scripts/package_tracker.py add    --target rocky/10/x86_64 base a b --verify
-   python3 scripts/package_tracker.py add    --all-targets base a b --verify
-   python3 scripts/package_tracker.py remove --target rocky/10/x86_64 base a
-   python3 scripts/package_tracker.py tui    # Edit / Add / Show details per component
-   ```
+**Gate**: All acceptance criteria pass. `ansible-playbook --check --tags assert`
+succeeds. No lint errors.
 
-   - `--target` is required (exit 2 with the target list otherwise), except
-     `add --all-targets`, which adds to the component in every target that has
-     it, warns for each target that does not, and exits with the worst
-     per-target code. `--verify` checks each target against its own repos, so
-     a name missing from one distro is skipped there only.
-   - `add` appends to the end of the `packages:` list and keeps comments, key
-     order and the existing order. A name already in another component of the
-     same target is refused with a warning naming it, unless `--force`.
-   - `remove` refuses to empty a component.
-5. **By hand**, component `packages:` entries are quoted strings; comps
-   groups start with `@`. Record the source repo and verification date in the
-   file's comment header, as the existing components do. Static blueprint
-   entries are `{ name = "<pkg>", version = "*" },` inside the inline
-   `packages = [ … ]` array; never add a `[[packages]]` table. Keep
-   `version = "*"`; pins belong in `osbuild_package_pins`.
-6. **Removing a package** also removes what exists only for it: the
-   component's `services:` units, `kernel_args`, fragment files and
-   `repo_urls`, and matching `[customizations.services]` /
-   `[customizations.repositories]` entries in fragments. An explicit
-   removal does not exclude the package when another package requires it;
-   confirm with the manifest RPM list (§5).
-7. **Verify** (§5) for every example intent or playbook whose files changed: regenerate,
-   depsolve with `image-builder manifest`, and check the package is present
-   (added) or absent (removed) in the manifest RPM list. Run
-   `ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml`
-   after editing any static blueprint (it parses every one as TOML) and
-   `python3 -m pytest tests -q` after editing a component file.
+### Phase 3 — Cleaner (Refactor)
 
-Commit convention: `➕ chore(packages): …` for additions, `🐛 fix(packages): …`
-when the package repairs broken behavior; the body names the files and the
-reason the package is needed.
+**Cognitive strategy**: Eliminate duplication, enforce the 15 patterns,
+reduce complexity. Match code to the canonical pattern forms.
 
-## 5. Verify before reporting (all must pass)
+**Key activities**:
+- Run the per-role violation matrix from `ansible-patterns-anti-patterns`
+- Fix violations: missing tags, missing backups, hardcoded values, dead handlers
+- Extract repeated filter chains into shared variables
+- Move hardcoded package lists to `vars/{{ ansible_distribution }}.yml`
+- Standardize feature flag dialect: `var | default(false) | bool == True`
+- Ensure `defaults/main.yml` has overridable config; `vars/main.yml` has internal-only data
+
+**Gate**: Violation matrix shows zero new violations. `ansible-lint` passes.
+`ansible-playbook --check` still succeeds.
+
+### Phase 4 — Hardener (Assertions + Security)
+
+**Cognitive strategy**: Add fail-fast pre-flight assertions, enforce
+idempotency, scan for security issues.
+
+**Key activities**:
+- Ensure `tasks/assert.yml` exists and validates: platform compatibility,
+  package manager, init manager, effective root permissions (`id -u == 0`
+  registered as `_<role>_effective_uid`), identity variables
+- Gate assertions in `tasks/main.yml` with `<role>_assert_enabled | default(true) | bool`
+- Tag all assertion tasks with `["<role>", "assert", "always"]`
+- Verify idempotency: every skip-if-present guard has a `*_force_install` override
+- Check firewall rules are co-located in the role (Pattern 15 — data-driven, not hardcoded)
+- Verify layer boundary: no writes to `$HOME` paths owned by yadm
+
+**Gate**: `ansible-playbook playbooks/workstation.yml --tags assert --check` passes
+for all roles. No security regressions.
+
+### Phase 5 — QA (Verify)
+
+**Cognitive strategy**: Run the full verification suite. Prove the change works.
+
+**Key activities**:
+```bash
+# Pre-flight (no mutations)
+ansible-playbook playbooks/workstation.yml --tags "assert" --check
+
+# Lint
+ansible-lint
+
+# Syntax check
+ansible-playbook playbooks/workstation.yml --syntax-check
+
+# Dry run on target
+ansible-playbook playbooks/workstation.yml --check --diff
+
+# Molecule tests (per role)
+cd roles/<role> && molecule test
+
+# Pre-commit hooks
+pre-commit run --all-files
+```
+
+**Gate**: All commands pass. Zero lint violations. Molecule tests green.
+Check mode reports expected changes only.
+
+### Phase 6 — Architect (Pattern Compliance + Governance)
+
+**Cognitive strategy**: Audit the change against the 15 patterns, verify
+dependency direction, enforce layer boundaries, and assess cross-role impact.
+
+**Key activities**:
+- Run the per-role violation matrix — confirm no new violations
+- Check dependency direction: roles should not import from other roles' internals
+- Verify variable scoping: Tier 1 unprefixed, Tier 2 role-prefixed
+- Check that firewall rules are data-driven (Pattern 15)
+- Verify tag coverage: every `import_tasks`, `template`, `copy`, `file` has tags
+- Assess blast radius: which hosts, groups, and playbooks are affected
+- Update `goals/<goal-name>/` with facts and progress
+
+**Gate**: Zero new pattern violations. Variable scoping correct. Tag coverage
+complete. Impact assessment documented.
+
+---
+
+## 4. Common Commands
 
 ```bash
-ansible-playbook playbooks/build.yml -e @profiles/<name>.yml   # rc=0, "generate_only"
-shellcheck /var/tmp/osbuild-images/build-<name>.sh
-# Depsolve without building; run in bash, not zsh (zsh does not word-split
-# $args, so --extra-repo flags arrive as one argument):
-bash -c 'image-builder manifest image-installer --distro <distro> --arch x86_64 \
-  --blueprint <name>.toml --extra-repo URL ... > m.json'        # rc=0
+# Full provisioning
+ansible-playbook playbooks/workstation.yml
+
+# Specific role only
+ansible-playbook playbooks/workstation.yml --tags "tools"
+
+# Pre-flight assertions only (no mutations)
+ansible-playbook playbooks/workstation.yml --tags "assert" --check
+
+# Pull-based local convergence
+ansible-pull -U <repo-url> --tags system local.yml
+ansible-pull -U <repo-url> --tags user local.yml
+
+# Lint
 ansible-lint
+
+# Molecule tests (from role dir)
+cd roles/common && molecule test
+
+# Pre-commit on all files
+pre-commit run --all-files
+
+# Syntax check
+ansible-playbook playbooks/workstation.yml --syntax-check
+
+# Dry run with diff
+ansible-playbook playbooks/workstation.yml --check --diff
 ```
 
-- The play validates the intent first; a schema error names the field
-  (`intent.disk.size_gib: ...`). A too-small `disk.size_gib` fails at
-  generation with the minimum the layout needs.
-- Generated files are mode 0644 (0600 with remote logging; credentials always
-  0600) and owned by the connecting user;
-  `/var/tmp/osbuild-images` itself is root-owned on gir. Use a scratch
-  `-e osbuild_output_dir=...` for manual manifest runs. `passlib` must be
-  importable by the controller Python (`dnf install python3-passlib`).
-- Inspect the manifest, not just its exit code: list RPMs from
-  `sources["org.osbuild.librepo"].items[*].path` and confirm wanted packages
-  are present and unwanted ones absent. Hardened builds must show
-  `org.osbuild.oscap.autotailor` and `org.osbuild.oscap.remediation`. For ISOs,
-  read the kickstart from `sources["org.osbuild.inline"]`, replace
-  `%include /tmp/partitions.ks` with the `syncopated-layout.ks` heredoc
-  (`@DISK@` → `vda`) and run `ksvalidator -v RHEL10` on it
-  (`pip install pykickstart`). `python3 -m pytest tests/test_manifest.py`
-  does all of this for every example on a build host.
-- When role files change, rerun the suites that cover them:
+---
 
-  | Changed | Command | Pass condition |
-  |---------|---------|----------------|
-  | intents, schema, any role task/template | `python3 -m pytest tests -q` | all pass (manifest/VM tests skip off the build host) |
-  | `filter_plugins/disk_layout.py`, layout defaults | `python3 -m pytest tests/test_disk_sizing.py -q` | all pass |
-  | kickstart `%pre` | `bats roles/osbuild/tests/kickstart/kickstart.bats` | all ok |
-  | kickstart, `tasks/blueprint.yml` | `ansible-playbook roles/osbuild/tests/validate_kickstart_injection.yml -e ksvalidator=$(which ksvalidator)` | `failed=0`; `rescued=1` is the expected conflict case |
-  | audit scripts (`../../../files/scripts`) | `bats roles/osbuild/tests/hardening` and `shellcheck -x files/scripts/*.sh` | all ok / clean |
-  | OpenSCAP tailoring lists | `python3 -m pytest tests/test_openscap_tailoring.py` | all pass (needs oscap + SSG content) |
-  | remote logging templates | `python3 -m pytest tests/test_journal_remote_e2e.py` | all pass (needs systemd-journal-remote) |
-  | firstboot, `tasks/blueprint.yml`, any static blueprint | `ansible-playbook roles/osbuild/tests/validate_firstboot_injection.yml` | `failed=0` |
-  | `files/firstboot/` | `shellcheck -x -P SCRIPTDIR roles/osbuild/files/firstboot/syncopated-firstboot{,-launcher}` and `bats roles/osbuild/tests/firstboot/` (as a non-root user) | clean / all ok |
-  | `tasks/select_build_mode.yml` | `ansible-playbook -i roles/osbuild/tests/inventory roles/osbuild/tests/validate_build_modes.yml` | `failed=0` |
-  | a component file | `python3 roles/osbuild/tests/validate_schema.py` and `python3 -m pytest tests -q` | rc=0 / all pass |
+## 5. Variable Scoping Quick Reference
 
-- Unattended install test (KVM host, after building the CIS example ISO):
-  `SYNCOPATED_VM_ISO=<iso> python3 -m pytest tests/test_vm_install.py -s`
-  (wraps `tests/vm/run-install-test.sh`: no-input install, layout,
-  auditd.conf and a `syncopated-scan` run are checked).
+| Tier | Location | Prefix | Examples |
+|------|----------|--------|----------|
+| Tier 1 (host/domain) | `group_vars/`, `host_vars/` | None (semantic) | `user.name`, `user.home`, `enable_desktop`, `use_containers`, `use_kvm`, `enable_third_party_repos` |
+| Tier 2 (role-scoped) | `defaults/main.yml`, `vars/main.yml`, `set_fact` | `<role>_` | `common_assert_enabled`, `tools_force_install`, `desktop_ui_theme` |
+| Registered | `register:` in tasks | `_<role>_` | `register: _tools_effective_uid` |
 
-### Expected `image-builder build --verbose` noise (not failures)
+**Precedence**: role defaults < group_vars < host_vars < extra vars
 
-RPM scriptlets run in osbuild's sandbox, which has no block device nodes, no
-syslog socket and no mounted ESP. osbuild regenerates their outputs in later
-stages (`org.osbuild.fix-bls`, `org.osbuild.dracut`, `org.osbuild.grub2.*`),
-and Anaconda redoes bootloader and initramfs on the target disk. Ignore:
+---
 
-- `Created symlink … wireplumber.service` — `systemctl preset` in wireplumber %post.
-- `grub2-probe: error: failed to get canonical path of '/dev/<host root>'`
-  followed by `No path or device is specified` + usage —
-  `/usr/lib/kernel/install.d/20-grub.install` line 131 (kernel-core %posttrans
-  → `kernel-install add`) probes `/`, which resolves to the *build host's* root
-  partition. The branch is gated on `SUSE_BTRFS_SNAPSHOT_BOOTING`, unused on EL.
-- `dracut[E]: No '/dev/log' or 'logger' included for syslog logging` —
-  `50-dracut.install`; dracut only disables syslog logging.
+## 6. The 15 Patterns Quick Reference
 
-A real failure is a failed osbuild stage or a non-zero `image-builder` exit.
-Post-install check: `sudo grubby --info=ALL` (paths `/vmlinuz-…`, no prefix),
-`lsinitrd | head`, and `cat /etc/syncopated-release` (names the source commit).
+See `ansible-patterns-anti-patterns` skill for the full catalogue with
+per-role violation matrices. Summary:
 
-## 6. Report
+| # | Pattern | One-Line Rule |
+|---|---------|---------------|
+| 1 | Task Dispatcher | `main.yml` imports subtask files with `when` guards |
+| 2 | Data-Driven Dirs | Create dirs from a definitions list with overridable defaults |
+| 3 | Distro-Switching | Use `include_vars` for >2 distro branches; `when` for ≤2 |
+| 4 | Git+Template+Compose | Full lifecycle: clone → template → stop → create |
+| 5 | Pre-flight Check | Detect capabilities before roles execute (KVM, GPU, display) |
+| 6 | Role Composition | Layer playbooks: repos → common → system → user → tools |
+| 7 | Tag-as-Select | Every task has at least one tag; role name = primary tag |
+| 8 | Backup-on-Write | Every `template`/`copy` to a config file has `backup: true` |
+| 9 | Block-as-Unit | Group related tasks with shared `become`, `when`, or `ignore_errors` |
+| 10 | Environment Injection | Set `environment:` at play level; don't copy-paste |
+| 11 | Feature Flags | Use `var \| default(false) \| bool == True` consistently |
+| 12 | Post-task Lifecycle | `post_tasks` for reboot/cleanup only, not firewall rules |
+| 13 | Debug-as-Progress | `debug: msg: "Starting X tasks"` at role entry (or consistently absent) |
+| 14 | Handler Notification | Every handler is notified; no dead handlers |
+| 15 | Data-Driven Firewall | Firewall ports from variable lists, not hardcoded |
 
-Give the build command (`bash /var/tmp/osbuild-images/build-<name>.sh`), the
-intent file path, where the temporary passwords are
-(`<name>.credentials.txt`, mode 0600, and the end of the play output), what
-was verified, and what was not (no image built, no VM install test). Do not
-commit unless asked; never commit `profiles/<name>.yml` (gitignored).
+---
+
+## 7. Verification Checklist
+
+Before reporting any change as complete:
+
+- [ ] `ansible-playbook playbooks/workstation.yml --tags "assert" --check` passes
+- [ ] `ansible-lint` passes with zero violations
+- [ ] `ansible-playbook playbooks/workstation.yml --syntax-check` passes
+- [ ] Every `import_tasks` has a `tags` list (Pattern 7)
+- [ ] Every `template`/`copy` has `backup: true` (Pattern 8)
+- [ ] `defaults/main.yml` contains overridable config; `vars/main.yml` contains internal-only data
+- [ ] Distro-switching uses `include_vars` consistently (Pattern 3)
+- [ ] Feature flags use `var | default(false) | bool == True` (Pattern 11)
+- [ ] No handlers defined without a corresponding `notify` (Pattern 14)
+- [ ] No `post_tasks` in playbooks do work that belongs in a role (Pattern 12)
+- [ ] Debug entry message exists (Pattern 13)
+- [ ] Firewall ports are variable-driven (Pattern 15)
+- [ ] Variable scoping: Tier 1 unprefixed, Tier 2 role-prefixed
+- [ ] Registered variables are role-prefixed (`_<role>_*`)
+- [ ] Layer boundary respected: no writes to `$HOME` paths owned by yadm
+- [ ] `pre-commit run --all-files` passes
+- [ ] Idempotency: every skip-if-present guard has a `*_force_install` override
+
+---
+
+## 8. Goal Tracking (goals/ Directory)
+
+Each goal lives in `goals/<goal-name>/` with:
+
+| File | Purpose |
+|------|---------|
+| `goal.md` | The objective, success criteria, scope |
+| `facts.md` | Discovered facts about the current state |
+| `facts.meta.json` | Metadata about fact gathering |
+| `facts-result.json` | Raw fact-gathering results |
+| `facts-review.json` | Reviewed and validated facts |
+| `plan.md` | Step-by-step implementation plan |
+| `interview.json` | Structured interview/elicitation data |
+| `interview-result.json` | Processed interview results |
+
+When starting work on a goal, read `goal.md` first. Update `facts.md` and
+`plan.md` as work progresses. Mark completion in `goal.md`.
+
+---
+
+## 9. Reporting
+
+When reporting on completed work:
+
+1. **What changed** — files created/modified, roles affected
+2. **Which phase** — where in the 6-phase pipeline the work sits
+3. **Verification results** — which checks passed, which were skipped and why
+4. **Pattern compliance** — any violations introduced or fixed
+5. **Impact** — which hosts, groups, and playbooks are affected
+6. **Next steps** — what phase comes next, or what the user should do
+
+Never commit unless explicitly asked. Show the diff first.
