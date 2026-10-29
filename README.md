@@ -113,9 +113,9 @@ pre-commit run --all-files                              # all hooks
 
 ---
 
-## Syncopated Agent Workflow (Mistral Vibe)
+## Syncopated Agent Workflow (Antigravity & Multi-Harness)
 
-This repository ships a **6-phase agent workflow** built for Mistral Vibe — a pipeline that takes a request from design through implementation, refactoring, hardening, verification, and architectural review, with a gate at each phase that must pass before work proceeds. I find it a genuine comfort, because it means no change reaches you without having been designed, written, cleaned, hardened, tested, and audited by a specialist who does only that one thing.
+This repository ships a **6-phase agent workflow** built for Google Antigravity CLI (`agy`) and Mistral Vibe (`vibe`) — a pipeline that takes a request from design through implementation, refactoring, hardening, verification, and architectural review, with a gate at each phase that must pass before work proceeds. I find it a genuine comfort, because it means no change reaches you without having been designed, written, cleaned, hardened, tested, and audited by a specialist who does only that one thing.
 
 ### The Pipeline
 
@@ -128,7 +128,7 @@ Phase 5: QA           →  ansible-lint, molecule, --check, pre-commit
 Phase 6: ARCHITECT    →  Pattern compliance audit, blast-radius assessment
 ```
 
-Each phase is a **subagent** with its own system prompt, tool permissions, and gate. The **lead agent** orchestrates: it reads your request, decides which phase to start in, delegates via the `task` tool, reviews the output against the phase gate, and either advances or sends the work back with specific feedback.
+Each phase is a **subagent** with its own system prompt, tool constraints, and gate. The **lead agent** orchestrates: it reads your request, decides which phase to start in, delegates via native subagent dispatch (`invoke_subagent` in Antigravity, `task` in Vibe), reviews the output against the phase gate, and either advances or sends the work back with specific feedback.
 
 ### The Agents
 
@@ -142,15 +142,31 @@ Each phase is a **subagent** with its own system prompt, tool permissions, and g
 | `syncopated-lead-qa` | 5 — Verify | Runs the full verification suite (lint, molecule, check mode, pre-commit) | neutral |
 | `syncopated-lead-architect` | 6 — Audit | Audits against 15 patterns, assesses blast radius, updates goal tracking | neutral |
 
-The lead agent (`agent_type = "agent"`) is user-selectable via `--agent syncopated-lead`; the six phase agents (`agent_type = "subagent"`) are spawned by the lead via the `task` tool. Configs live in `.vibe/agents/`, system prompts in `.vibe/prompts/`.
+### Using It with Google Antigravity CLI (`agy`)
 
-### The Skill
+Start Antigravity CLI in the repository root with the lead orchestrator selected:
 
-The [`syncopated`](.agents/skills/syncopated/SKILL.md) skill is the operational backbone — it covers project orientation, hard rules, the 6-phase pipeline, variable scoping, the 15 patterns, the verification checklist, and goal tracking. The lead agent loads it automatically (along with [`ansible-patterns-anti-patterns`](.agents/skills/ansible-patterns-anti-patterns/SKILL.md)) via its `enabled_skills` config.
+```bash
+agy --agent syncopated-lead
+```
 
-### Using It
+Or run individual phase agents directly for targeted work:
 
-Start Mistral Vibe in the repository root with the lead agent selected:
+```bash
+# Target specific phase
+agy --agent syncopated-lead-specifier
+agy --agent syncopated-lead-qa
+
+# Validate agent definitions
+./scripts/validate-agents.sh
+
+# Install or symlink globally to ~/.gemini/agents/
+./scripts/install-agents.sh --symlink
+```
+
+### Using It with Mistral Vibe (`vibe`)
+
+Start Mistral Vibe in the repository root:
 
 ```bash
 vibe --agent syncopated-lead
@@ -171,13 +187,17 @@ The lead agent delegates through the phases in order, stopping at each gate for 
 
 ### What Lives Where
 
-| Path | Contents |
-|------|----------|
-| `.vibe/agents/syncopated-lead.toml` | Lead agent config (orchestrator, user-selectable) |
-| `.vibe/agents/syncopated-lead-{specifier,implementer,cleaner,hardener,qa,architect}.toml` | Phase subagent configs |
-| `.vibe/prompts/syncopated-lead.md` | Lead agent system prompt (full pipeline, delegation, git rules) |
-| `.vibe/prompts/syncopated-lead-{phase}.md` | Phase-specific system prompts |
-| `.agents/skills/syncopated/SKILL.md` | Project management skill (conventions, pipeline, checklist) |
+| Path | Contents | Harness |
+|------|----------|---------|
+| `.agents/agents/syncopated-lead.md` | Antigravity lead orchestrator agent | Antigravity CLI (`agy`) |
+| `.agents/agents/syncopated-lead-{phase}.md` | Antigravity phase subagents (1–6) | Antigravity CLI (`agy`) |
+| `scripts/validate-agents.sh` | Validation suite for Antigravity agents | Shell |
+| `scripts/install-agents.sh` | Installer / symlinker to `~/.gemini/agents/` | Shell |
+| `.vibe/agents/syncopated-lead.toml` | Vibe lead agent config (orchestrator) | Mistral Vibe (`vibe`) |
+| `.vibe/agents/syncopated-lead-{phase}.toml` | Vibe phase subagent configs | Mistral Vibe (`vibe`) |
+| `.vibe/prompts/syncopated-lead*.md` | Vibe system prompts | Mistral Vibe (`vibe`) |
+| `.agents/skills/syncopated/SKILL.md` | Core project workflow skill | Shared |
+| `.agents/skills/ansible-patterns-anti-patterns/SKILL.md` | 15 design patterns skill | Shared |
 
 ---
 

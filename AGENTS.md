@@ -52,6 +52,12 @@ molecule test
 
 # Run pre-commit on all files
 pre-commit run --all-files
+
+# Start the 6-phase Antigravity lead orchestrator
+agy --agent syncopated-lead
+
+# Validate all Antigravity agent definitions
+./scripts/validate-agents.sh
 ```
 
 ## Configuration
