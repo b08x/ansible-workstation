@@ -22,6 +22,11 @@ user:
 enable_desktop: true
 workstation_prompt_reboot: false
 
+# uv-managed Python version for the user role (roles/user/tasks/uv.yml).
+# The osbuild image installs Python 3.14 at firstboot; this override keeps
+# Ansible convergence aligned with the image.
+user_uv_python_version: "3.14"
+
 # ==============================================================================
 # OSBuild Single Source of Truth (SSOT) Component Mapping - Layered Inheritance
 # ==============================================================================
