@@ -34,6 +34,12 @@ GEM
     base64 (0.3.0)
     bcrypt_pbkdf (1.1.2)
     bigdecimal (4.1.3)
+    bubbles (0.1.1)
+      bubbletea
+      harmonica
+      lipgloss
+    bubbletea (0.1.4-x86_64-linux-gnu)
+      lipgloss (~> 0.1)
     coercible (1.0.0)
       descendants_tracker (~> 0.0.1)
     commander (4.6.0)
@@ -57,18 +63,27 @@ GEM
     fiber-storage (1.0.1)
     figaro (1.3.0)
       thor (>= 0.14.0, < 2)
+    harmonica (0.1.1)
     highline (2.0.3)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     ice_nine (0.11.2)
     json (3.1.0)
+    lipgloss (0.2.2-x86_64-linux-gnu)
     logger (1.7.0)
     minitest (5.27.0)
     prism (2.0.0-x86_64-linux-gnu)
+    rake-compiler-dock (1.12.0)
+    ratatui_ruby (1.5.2-x86_64-linux)
+      rb_sys (~> 0.9, >= 0.9.129)
+      rexml (~> 3.4)
+    rb_sys (0.9.130)
+      rake-compiler-dock (= 1.12.0)
     rbs (4.2.0)
       logger
       prism (>= 1.6.0)
       tsort
+    rexml (3.4.4)
     rubydex (0.4.2-x86_64-linux)
     samovar (2.5.1)
       console (~> 1.0)
@@ -96,8 +111,11 @@ DEPENDENCIES
   ansible_module (~> 0.9.3)
   bake (~> 0.25.0)
   bcrypt_pbkdf (~> 1.1)
+  bubbles (~> 0.1.1)
   decode (~> 0.30.0)
   dotenv (~> 3.2)
+  lipgloss (~> 0.2.2)
+  ratatui_ruby (~> 1.5)
   rubydex (~> 0.4.2)
   subspace (~> 3.1)
 
@@ -112,6 +130,8 @@ CHECKSUMS
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bcrypt_pbkdf (1.1.2) sha256=c2414c23ce66869b3eb9f643d6a3374d8322dfb5078125c82792304c10b94cf6
   bigdecimal (4.1.3) sha256=61ebe1e5e559bdc3cc6f2c0ee7f427321fc838f59611c294356eb04d6e21cf66
+  bubbles (0.1.1) sha256=ac16a9adef1cd4d51d7246ea6cda1a745a56321cc21a49e150e7446d62797d05
+  bubbletea (0.1.4-x86_64-linux-gnu) sha256=c1a06df5828c3af8ed664bf08591eba4bcb16aa44c58f8d21f7e2a01c2dea885
   bundler (4.0.21) sha256=7cbf5499b426076aa16c8d28a59e4c2c3aad5a438402abcd961f0119f29f1dd0
   coercible (1.0.0) sha256=5081ad24352cc8435ce5472bc2faa30260c7ea7f2102cc6a9f167c4d9bffaadc
   commander (4.6.0) sha256=7d1ddc3fccae60cc906b4131b916107e2ef0108858f485fdda30610c0f2913d9
@@ -126,14 +146,20 @@ CHECKSUMS
   fiber-local (1.1.0) sha256=c885f94f210fb9b05737de65d511136ea602e00c5105953748aa0f8793489f06
   fiber-storage (1.0.1) sha256=f48e5b6d8b0be96dac486332b55cee82240057065dc761c1ea692b2e719240e1
   figaro (1.3.0) sha256=3d44396f080255663f183572d7aefa419fd8936b6fb5cc30f962345a02781396
+  harmonica (0.1.1) sha256=587da9bc55ffb6387c0ffb9243bb3b03d57d1ebaf29a17282d3912a3443f397a
   highline (2.0.3) sha256=2ddd5c127d4692721486f91737307236fe005352d12a4202e26c48614f719479
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   ice_nine (0.11.2) sha256=5d506a7d2723d5592dc121b9928e4931742730131f22a1a37649df1c1e2e63db
   json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
+  lipgloss (0.2.2-x86_64-linux-gnu) sha256=99b26dfc4eaa2bf2dfd9823f0894a06ef0b8f7f773db70ae8905d1c5d9d663ad
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
   prism (2.0.0-x86_64-linux-gnu) sha256=e0b4830c94d9dc59e80ad34d98096797f514c9e097b677c4947d89598c7f5cd1
+  rake-compiler-dock (1.12.0) sha256=f13205c2738f3d2053afcd03491a9e4541b22a59a0bfc53fc8bc883bd8188023
+  ratatui_ruby (1.5.2-x86_64-linux) sha256=b582d1e763bbb10b51a4e399bfe7e37995bcf76075dda47ae26deb6d38ab8dc1
+  rb_sys (0.9.130) sha256=7d486d99c1da02635515deaf9860fc5aea90bb4ab2589b2deec7fdc7d3548615
   rbs (4.2.0) sha256=51f7b886dcc05bc09e10b901daa6a81829f6adc03101d6ca9ea4aac6103e0674
+  rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rubydex (0.4.2-x86_64-linux) sha256=ec8522671fb16a5d0c87329568823c83a2edd4d8db587e47ed311b4fd1ae69aa
   samovar (2.5.1) sha256=8a9fc41eb8868084f0321eb41678c485cfbc7d282fb306c0be67c3284b1d2394
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1

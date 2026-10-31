@@ -16,3 +16,9 @@ gem "ansible-wrapper"
 gem "dotenv", "~> 3.2"
 
 gem "subspace", "~> 3.1"
+
+gem "ratatui_ruby", "~> 1.5"
+
+gem "lipgloss", "~> 0.2.2"
+
+gem "bubbles", "~> 0.1.1"
