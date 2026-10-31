@@ -1,6 +1,6 @@
 [submodule "vendor/osbuild"]
 	path = vendor/osbuild
-	url = git@gitlab.com:syncopatedX/osbuild.git
+	url = https://gitlab.com/syncopatedX/osbuild.git
 	branch = development
 [submodule "vendor/almalinux-atomic-workstation"]
 	path = vendor/almalinux-atomic-workstation
@@ -10,4 +10,4 @@
 	url = https://github.com/projectbluefin/finpilot.git
 [submodule "vendor/rpmbuild"]
 	path = vendor/rpmbuild
-	url = git@gitlab.com:syncopatedX/rpmbuild.git
+	url = https://gitlab.com/syncopatedX/rpmbuild.git
