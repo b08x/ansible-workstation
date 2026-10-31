@@ -43,8 +43,8 @@ The Syncopated workstation platform uses a three-tier layered architecture estab
 
 | Delivery Mechanism | Target Layer | Manager / Tool | Examples | Justification / Boundary Rule |
 | :--- | :--- | :--- | :--- | :--- |
-| **Base RPM Packages** | OSBuild | `osbuild` / `bootc` | `kernel`, `podman`, `gcc`, `glibc` | Immutable appliance foundations. Baked at build time with DNF/DNF5 package management. |
-| **Host RPM Packages** | Ansible | `ansible.builtin.dnf` (DNF / DNF5 validated) | `sox`, `tesseract-devel`, `yad`, `wl-clipboard`, `fzf` | Dynamic host capabilities, desktop environments, hardware dev libraries. Validated on DNF5 (Fedora 44) and DNF (AlmaLinux 10 / Rocky Linux 10). |
+| **Base RPM Packages** | OSBuild | `osbuild` / `bootc` | `kernel`, `podman`, `gcc`, `glibc`, `cosmic-desktop` | Immutable appliance foundations. Baked at build time with DNF/DNF5 package management. |
+| **Host RPM Packages** | Ansible | `ansible.builtin.dnf` (DNF / DNF5 validated) | `sox`, `tesseract-devel`, `yad`, `wl-clipboard`, `@gnome-desktop`, `@cosmic-desktop` | Dynamic host capabilities, desktop environments (GNOME & COSMIC), hardware dev libraries. Validated on DNF5 (Fedora 44) and DNF (AlmaLinux 10 / Rocky Linux 10). |
 | **System Binaries** | Ansible | [`roles/tools`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tools) | `/usr/local/bin/bun`, `/usr/local/bin/transcribe` | Globally shared utilities requiring compilation or system-wide drop. `transcribe` is gated on CUDA/Vulkan GPU hardware presence. |
 | **System Flatpaks** | Ansible | [`roles/tools/tasks/flatpak.yml`](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tools/tasks/flatpak.yml) | `ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy` | System-wide utility and administration GUI applications. |
 | **User Flatpaks** | Yadm | `yadm/bootstrap.d/80-install-user-flatpaks.sh` | `Obsidian`, `Typora`, `Audacity`, `freac`, `Helvum`, `Podman Desktop`, `DBeaver` | User productivity, authoring, and media creation applications installed per-user. |

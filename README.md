@@ -2,229 +2,184 @@
 
 # Syncopated Workstation
 
-An Ansible control repository for provisioning Fedora, AlmaLinux, and Rocky Linux
-workstations — built and maintained with AI coding tools, and provisioning those
-same tools onto every managed host.
+An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
+workstations. Ten roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
 [![python](https://img.shields.io/badge/python-3.14%20%7C%203.12%2B-blue.svg)](https://www.python.org/)
-[![ruby](https://img.shields.io/badge/ruby-4.0.4-CC342D)](https://www.ruby-lang.org/)
-
-[![Claude Code](https://img.shields.io/badge/Claude_Code-provisioned-D97757)](https://claude.ai/code)
-[![Antigravity](https://img.shields.io/badge/Antigravity-provisioned-4285F4)](https://antigravity.google)
-[![Crush](https://img.shields.io/badge/Crush-provisioned-E85D75)](https://github.com/charmbracelet/crush)
-[![OpenCode](https://img.shields.io/badge/OpenCode-provisioned-1a1a1a)](https://opencode.ai)
-[![Mistral Vibe](https://img.shields.io/badge/Mistral_Vibe-provisioned-FF7000)](https://mistral.ai)
-
-[![Fedora](https://img.shields.io/badge/Fedora-44-294172)](https://getfedora.org)
-[![AlmaLinux](https://img.shields.io/badge/AlmaLinux-10-099CDB)](https://almalinux.org)
-[![Rocky Linux](https://img.shields.io/badge/Rocky_Linux-10-10B981)](https://rockylinux.org)
 
 </div>
 
 ---
 
-## What This Is
+This page is an index, not a manual. Its job is to route you — human operator or AI
+coding agent — to the document that answers your question; the linked files carry the
+detail. The repository was built by AI coding agents across 512 sessions over nine
+months, and the failure patterns from those sessions are encoded as this repo's
+conventions. I find that provenance worth knowing up front: the conventions below
+trace back to documented failure points — [`docs/conventions.md`](docs/conventions.md)
+maps each rule to one.
 
-Ten Ansible roles that provision a workstation — system packages, hardware
-acceleration, desktop environment, developer tools, and the AI coding agent CLIs
-developers actually use. Idempotent by contract: re-running against a converged
-host reports zero changes.
+## Start Here
 
-The repository was built by AI coding agents across 512 sessions over nine months.
-The failure points those agents hit — and the patterns they developed — are the
-actual content of this project. See [`docs/build-process.md`](docs/build-process.md)
-for the build history and [`docs/failure-points.md`](docs/failure-points.md) for
-the 22 learnings.
+| Read | It answers |
+|------|------------|
+| [`docs/overview.md`](docs/overview.md) | What is this repo? Structure, layering model, tools. |
+| [`AGENTS.md`](AGENTS.md) | Project conventions, commands, testing, variable scoping — read this before editing. |
+| [`docs/audit-notes.md`](docs/audit-notes.md) | How does the docs/ corpus source its evidence and label its uncertainty? |
 
-## Quick Start
+## Getting Started & Operating
+
+| Read | It answers |
+|------|------------|
+| [`docs/usage.md`](docs/usage.md) | Prerequisites, provisioning, tags, `--check`, bootstrap, testing, Vagrant. |
+| [`docs/bootstrap.md`](docs/bootstrap.md) | The staged bootstrap lifecycle and the three convergence paths (convergence = running the playbooks until the host matches its declared state). |
+| [`local.yml`](local.yml) | Root-level `ansible-pull` entry point for autonomous local convergence (`ansible-pull -U <repo-url> --tags system local.yml`); run instructions in its header comments and `docs/usage.md`. |
+| [`playbooks/workstation.yml`](playbooks/workstation.yml) | Full host provisioning; imports `playbooks/repositories.yml` first; targets the `workstations` group. |
+| [`playbooks/repositories.yml`](playbooks/repositories.yml) | DNF configuration, repository setup, package updates. |
+| [`playbooks/nas.yml`](playbooks/nas.yml) | NAS services (NFSv4, Samba, Rsync, firewalld); runs against `hosts: all`. |
+| [`playbooks/tts.yml`](playbooks/tts.yml) | Whisper TTS; targets `hosts: workstations`. |
+| [`ansible.cfg`](ansible.cfg) | Runtime configuration: jsonfile fact caching (`/tmp/ansible_cache`) and pipelining are enabled; all `callbacks_enabled` lines are commented out; the active stdout callback is `rich_ci_formatter`; a `[callback_llm_analyzer]` section exists with `provider=mistral`, `model=mistral-medium-latest`, `temperature=0.4`. |
+
+A pre-flight then full provisioning — full runbook in [`docs/usage.md`](docs/usage.md):
 
 ```bash
-# Prerequisites: ansible-core >= 2.15, Python 3.12+, root, x86_64,
-# Fedora 44 / AlmaLinux 10 / Rocky Linux 10
-
-# Pre-flight check (no mutations)
-ansible-playbook playbooks/workstation.yml --tags "assert" --check
+# Pre-flight: run every role's assertions, mutate nothing
+ansible-playbook playbooks/workstation.yml --tags assert --check
 
 # Full provisioning
 ansible-playbook playbooks/workstation.yml
-
-# Specific role only
-ansible-playbook playbooks/workstation.yml --tags "tools"
 ```
 
-Full usage instructions: [`docs/usage.md`](docs/usage.md)
+Everything else — tags, specific roles, Vagrant — is in [`docs/usage.md`](docs/usage.md).
 
----
+## Architecture
 
-## For Coding Agents
+| Read | It answers |
+|------|------------|
+| [`docs/layering-architecture.md`](docs/layering-architecture.md) | How do the layers divide ownership? Layer 0 OSBuild immutable base, Layer 1 Ansible host, Layer 2 yadm user-space — with strict ownership boundaries. |
+| [`docs/end-to-end-validation.md`](docs/end-to-end-validation.md) | What does one request look like from spec sentence to converged host? Per-stage evidence calibration. |
 
-If you are an AI coding agent starting work in this repository, read this
-section first. It is the onboarding overview — everything you need to orient
-before touching code.
+## Conventions & Rules
 
-**What this repository is**: An Ansible control repository for provisioning
-Fedora, AlmaLinux, and Rocky Linux workstations. Roles live in `roles/`, playbooks
-in `playbooks/`, and `local.yml` at the root is the `ansible-pull` entry point.
+| Read | It answers |
+|------|------------|
+| [`docs/conventions.md`](docs/conventions.md) | What are the rules, and which failure points do they trace to? |
+| [`docs/variable-precedence.md`](docs/variable-precedence.md) | Variable scoping: Tier 1 unprefixed domain, Tier 2 role-prefixed; precedence `defaults < group_vars < host_vars < extra vars`. |
+| [`AGENTS.md`](AGENTS.md) | The authoritative hard-rules list. |
 
-**Where things live**:
+The hard rules — never auto-commit, the two variable tiers, every role ships
+`tasks/assert.yml` — live in [`AGENTS.md`](AGENTS.md), and this index does not
+duplicate them.
 
-| Path | Contents |
-|------|----------|
-| `AGENTS.md` | Project conventions, commands, testing, variable scoping — read this before editing |
-| `roles/` | Ten roles: `common`, `tuning`, `networking`, `containerd`, `libvirt`, `desktop_ui`, `tools`, `user`, `nas`, `tts` |
-| `playbooks/` | `workstation.yml` (full provisioning), `repositories.yml`, `nas.yml`, `tts.yml` |
-| `inventory/` | `hosts.yml`, `group_vars/`, `host_vars/` |
-| `docs/` | Architecture, conventions, usage, build process, failure points |
-| `plugins/callback/` | `llm_analyzer.py` (opt-in LLM trace), `rich_ci_formatter.py` (terminal output) |
-| `scripts/` | Bootstrap stages, ansible-pull bridge, DSPy trainset builder |
+## Role Reference
 
-**Hard rules** (full details in `AGENTS.md`):
+| Read | It answers |
+|------|------------|
+| [`roles/common/README.md`](roles/common/README.md) | System baseline, hardware auto-detect, CIS L2 hardening. |
+| [`roles/tuning/README.md`](roles/tuning/README.md) | Realtime audio, ZRAM, udev, systemd drop-ins. |
+| [`roles/networking/README.md`](roles/networking/README.md) | Interfaces, DNS, profiles. |
+| [`roles/containerd/README.md`](roles/containerd/README.md) | Container runtime and dev environment. |
+| [`roles/libvirt/README.md`](roles/libvirt/README.md) | KVM/QEMU, daemon security, bridges, pools. |
+| [`roles/desktop_ui/README.md`](roles/desktop_ui/README.md) | GNOME/COSMIC/Sway dispatch, extensions, display manager, Yaru. |
+| [`roles/tools/README.md`](roles/tools/README.md) | Utilities, IDEs, AI agent CLIs, input-remapper. |
+| [`roles/user/README.md`](roles/user/README.md) | uv-managed Python; deliberately small. |
+| [`roles/nas/README.md`](roles/nas/README.md) | NFSv4, Samba, Rsync, firewalld, multi-tenant. |
+| [`roles/tts/README.md`](roles/tts/README.md) | Whisper — its README is currently an unedited boilerplate stub; [`playbooks/tts.yml`](playbooks/tts.yml) is the better entry point until that is written. |
 
-1. **Never auto-commit.** Show the diff, offer the commit, wait for explicit request.
-2. **Variable scoping**: Tier 1 (host/domain) variables are unprefixed in `group_vars/`/`host_vars/`. Tier 2 (role-scoped) variables in `defaults/`, `vars/`, and `set_fact` must be role-prefixed (`<role>_*`). Registered variables have global host scope.
-3. **Every role has `tasks/assert.yml`** — fail-fast pre-flight validation. Gated by `<role>_assert_enabled | default(true) | bool`. Run with `--tags assert`.
-4. **One file, one owner.** Before templating a shared config path, grep for other writers.
-5. **Idempotency**: every skip-if-present guard ships with a matching `*_force_install` override variable.
-6. **Atomic commits**: one logical change per commit. Classify by intent (`feat`, `fix`, `refactor`, `chore`, `revert`, `docs`).
-7. **Layer boundary**: Ansible (Layer 1) never writes into `$HOME` paths that yadm (Layer 2) owns.
+Role variable references live in each role's `defaults/` and README — standard role structure per [`AGENTS.md`](AGENTS.md) — not here.
 
-**Commands**:
+## Plugins & Internals
+
+| Read | It answers |
+|------|------------|
+| [`plugins/callback/README.md`](plugins/callback/README.md) | The repo-local callback plugins: `llm_analyzer.py`, `rich_ci_formatter.py`. |
+| [`plugins/callback_utils/README.md`](plugins/callback_utils/README.md) | Support modules — and the plugin-namespace trap, documented. |
+| [`docs/llm_analyzer/README.md`](docs/llm_analyzer/README.md) | Entry point for the llm_analyzer knowledgebase. |
+| [`docs/llm_analyzer/how-it-works.md`](docs/llm_analyzer/how-it-works.md) | Event-ordered walkthrough, with file:line citations. |
+| [`docs/llm_analyzer/tuning.md`](docs/llm_analyzer/tuning.md) | Every `[callback_llm_analyzer]` option; environment variables win. |
+| [`docs/llm_analyzer/use-cases.md`](docs/llm_analyzer/use-cases.md) | Use cases, labeled Verified / Supported-by-code / Not-available. |
+| [`scripts/llm_trainset.py`](scripts/llm_trainset.py) | DSPy trainset builder from captured traces. |
+
+## Development Environment
+
+| Read | It answers |
+|------|------------|
+| [`docs/devcontainer-configuration.md`](docs/devcontainer-configuration.md) | The three `devcontainer.json` variants (podman rootless / podman / docker) and what each `runArgs` entry does. |
+
+## The 6-Phase Agent Workflow
+
+This repository ships a 6-phase agent workflow — Specifier, Implementer, Cleaner,
+Hardener, QA, Architect — with a lead agent (`syncopated-lead`) orchestrating the
+handoffs, one subagent per phase. It runs in both Google Antigravity CLI (`agy`) and
+Mistral Vibe. Deeper detail lives in the agent definition files linked below and in
+[`.vibe/README.md`](.vibe/README.md), not here.
+
+| Read | It answers |
+|-------|-------------------|
+| [`.agents/agents/syncopated-lead.md`](.agents/agents/syncopated-lead.md) (+ 6 phase variants) | Antigravity agent definitions. |
+| [`.vibe/agents/syncopated-lead.toml`](.vibe/agents/syncopated-lead.toml) (+ phase variants) | Vibe agent configs. |
+| [`.vibe/prompts/`](.vibe/prompts/) | The 7 Vibe system prompt files. |
+| [`.vibe/README.md`](.vibe/README.md) | The Vibe-harness layout doc. |
+| [`scripts/validate-agents.sh`](scripts/validate-agents.sh) | Validation suite for the agent definitions. |
+| [`scripts/install-agents.sh`](scripts/install-agents.sh) | Installs the agent definitions and symlinks them into `~/.gemini/agents/`. |
 
 ```bash
-ansible-playbook playbooks/workstation.yml              # full provisioning
-ansible-playbook playbooks/workstation.yml --tags assert --check  # pre-flight only
-ansible-lint                                            # lint
-molecule test                                           # common role tests
-pre-commit run --all-files                              # all hooks
+agy --agent syncopated-lead    # Google Antigravity CLI
+vibe --agent syncopated-lead  # Mistral Vibe
 ```
 
-**Where to learn more**:
+## Skills for Agents
 
-- [`docs/overview.md`](docs/overview.md) — what the project is, structure, layering, tools
-- [`docs/conventions.md`](docs/conventions.md) — the rules, with failure-point traceability
-- [`docs/failure-points.md`](docs/failure-points.md) — 22 real failures and the patterns they taught
-- [`docs/build-process.md`](docs/build-process.md) — the build history from session logs
-- [`docs/usage.md`](docs/usage.md) — prerequisites, provisioning, bootstrap, testing
-- [`docs/layering-architecture.md`](docs/layering-architecture.md) — Layer 0/1/2 taxonomy
-- [`docs/variable-precedence.md`](docs/variable-precedence.md) — variable scoping rules
-- [`docs/bootstrap.md`](docs/bootstrap.md) — staged bootstrap lifecycle
+| Read | It answers |
+|------|-----------|
+| [`.agents/skills/ansible-patterns-anti-patterns/SKILL.md`](.agents/skills/ansible-patterns-anti-patterns/SKILL.md) | The 15 Ansible design patterns. |
+| [`.agents/skills/syncopated/SKILL.md`](.agents/skills/syncopated/SKILL.md) | The core project workflow. |
+| [`.agents/skills/langfuse/SKILL.md`](.agents/skills/langfuse/SKILL.md) | Langfuse integration. |
+| [`.agents/skills/zread/README.md`](.agents/skills/zread/README.md) | The zread CLI skill. |
+| [`skills/system/run-workflow/SKILL.md`](skills/system/run-workflow/SKILL.md) | The dynamic workflow runner. |
 
----
+## Improvement Cycles (PDCA)
 
-## Syncopated Agent Workflow (Antigravity & Multi-Harness)
+PDCA here means plan-do-check-act: a change is designed, executed, measured, and
+then either standardized or revised. Current cycles:
 
-This repository ships a **6-phase agent workflow** built for Google Antigravity CLI (`agy`) and Mistral Vibe (`vibe`) — a pipeline that takes a request from design through implementation, refactoring, hardening, verification, and architectural review, with a gate at each phase that must pass before work proceeds. I find it a genuine comfort, because it means no change reaches you without having been designed, written, cleaned, hardened, tested, and audited by a specialist who does only that one thing.
+| Read | Status |
+|------|--------|
+| [`docs/pdca/001-llm-analyzer-dspy.md`](docs/pdca/001-llm-analyzer-dspy.md) | llm_analyzer DSPy refactor — PLAN complete, awaiting DO. |
+| [`docs/pdca/002-tuning-fail-fast-assertions.md`](docs/pdca/002-tuning-fail-fast-assertions.md) | Tuning fail-fast assertions — CHECK & ACT complete. |
+| [`docs/pdca/003-tuning-package-daemon-convergence.md`](docs/pdca/003-tuning-package-daemon-convergence.md) | Tuning package/daemon convergence — CHECK & ACT complete. |
+| [`docs/pdca/004-repo-wide-fail-fast-assertions.md`](docs/pdca/004-repo-wide-fail-fast-assertions.md) | Repo-wide fail-fast assertions — CHECK & ACT complete. |
 
-### The Pipeline
+## Learnings & History
 
-```
-Phase 1: SPECIFIER    →  Design roles, playbooks, variables, acceptance criteria
-Phase 2: IMPLEMENTER  →  Write tasks, templates, defaults, handlers
-Phase 3: CLEANER      →  Refactor to the 15 Ansible design patterns
-Phase 4: HARDENER     →  Add pre-flight assertions, enforce idempotency, security scan
-Phase 5: QA           →  ansible-lint, molecule, --check, pre-commit
-Phase 6: ARCHITECT    →  Pattern compliance audit, blast-radius assessment
-```
+| Read | It answers |
+|------|------------|
+| [`docs/failure-points.md`](docs/failure-points.md) | 22 real build failures, and the pattern each one taught. |
+| [`docs/build-process.md`](docs/build-process.md) | The build history — 512 AI sessions over ~9 months. |
 
-Each phase is a **subagent** with its own system prompt, tool constraints, and gate. The **lead agent** orchestrates: it reads your request, decides which phase to start in, delegates via native subagent dispatch (`invoke_subagent` in Antigravity, `task` in Vibe), reviews the output against the phase gate, and either advances or sends the work back with specific feedback.
+## What This Index Does Not Do
 
-### The Agents
-
-| Agent | Phase | What it does | Safety |
-|-------|-------|-------------|--------|
-| `syncopated-lead` | Orchestrator | Reads requests, delegates to phase agents, reconciles results, offers commits | destructive |
-| `syncopated-lead-specifier` | 1 — Design | Translates requirements into designs, variable schemas, Gherkin acceptance criteria | neutral |
-| `syncopated-lead-implementer` | 2 — Write | Writes production Ansible code following all 15 patterns | destructive |
-| `syncopated-lead-cleaner` | 3 — Refactor | Eliminates duplication, enforces pattern compliance | destructive |
-| `syncopated-lead-hardener` | 4 — Harden | Adds `tasks/assert.yml`, verifies idempotency, checks layer boundaries | destructive |
-| `syncopated-lead-qa` | 5 — Verify | Runs the full verification suite (lint, molecule, check mode, pre-commit) | neutral |
-| `syncopated-lead-architect` | 6 — Audit | Audits against 15 patterns, assesses blast radius, updates goal tracking | neutral |
-
-### Using It with Google Antigravity CLI (`agy`)
-
-Start Antigravity CLI in the repository root with the lead orchestrator selected:
-
-```bash
-agy --agent syncopated-lead
-```
-
-Or run individual phase agents directly for targeted work:
-
-```bash
-# Target specific phase
-agy --agent syncopated-lead-specifier
-agy --agent syncopated-lead-qa
-
-# Validate agent definitions
-./scripts/validate-agents.sh
-
-# Install or symlink globally to ~/.gemini/agents/
-./scripts/install-agents.sh --symlink
-```
-
-### Using It with Mistral Vibe (`vibe`)
-
-Start Mistral Vibe in the repository root:
-
-```bash
-vibe --agent syncopated-lead
-```
-
-Then describe what you want — the lead agent handles the rest:
-
-```
-"Add a new role for managing Tailscale VPN on all workstations"
-```
-
-The lead agent delegates through the phases in order, stopping at each gate for your review. You can also jump straight to a specific phase if you already know where the work sits:
-
-```
-"Run the hardener phase on the tools role — it needs assertions"
-"QA the networking role changes I just made"
-```
-
-### What Lives Where
-
-| Path | Contents | Harness |
-|------|----------|---------|
-| `.agents/agents/syncopated-lead.md` | Antigravity lead orchestrator agent | Antigravity CLI (`agy`) |
-| `.agents/agents/syncopated-lead-{phase}.md` | Antigravity phase subagents (1–6) | Antigravity CLI (`agy`) |
-| `scripts/validate-agents.sh` | Validation suite for Antigravity agents | Shell |
-| `scripts/install-agents.sh` | Installer / symlinker to `~/.gemini/agents/` | Shell |
-| `.vibe/agents/syncopated-lead.toml` | Vibe lead agent config (orchestrator) | Mistral Vibe (`vibe`) |
-| `.vibe/agents/syncopated-lead-{phase}.toml` | Vibe phase subagent configs | Mistral Vibe (`vibe`) |
-| `.vibe/prompts/syncopated-lead*.md` | Vibe system prompts | Mistral Vibe (`vibe`) |
-| `.agents/skills/syncopated/SKILL.md` | Core project workflow skill | Shared |
-| `.agents/skills/ansible-patterns-anti-patterns/SKILL.md` | 15 design patterns skill | Shared |
-
----
-
-## Documentation
-
-| Document | What it covers |
-|----------|---------------|
-| [`docs/overview.md`](docs/overview.md) | Project overview: structure, layering model, coding tools, observability, companion repositories |
-| [`docs/build-process.md`](docs/build-process.md) | Build process deconstructed: project lineage, session rhythm, tool distribution, satisfaction |
-| [`docs/failure-points.md`](docs/failure-points.md) | 22 failure points from the build, each with what happened, the learning, and the pattern |
-| [`docs/usage.md`](docs/usage.md) | Prerequisites, provisioning, pull-based convergence, bootstrap, testing, Vagrant |
-| [`docs/conventions.md`](docs/conventions.md) | Variable scoping, pre-flight assertions, firewall, atomic commits, ownership, idempotency |
-| [`docs/layering-architecture.md`](docs/layering-architecture.md) | Layer 0/1/2 taxonomy (OSBuild / Ansible / yadm) |
-| [`docs/variable-precedence.md`](docs/variable-precedence.md) | Variable precedence chain and naming conventions |
-| [`docs/bootstrap.md`](docs/bootstrap.md) | Staged bootstrap lifecycle details |
-| [`docs/audit-notes.md`](docs/audit-notes.md) | Terminology, uncertainty labels, evidence sourcing |
+This index routes. Where a row summarizes a target, the target remains
+authoritative — treat rows as previews, not replacements. Not covered here:
+[`docs/audits/`](docs/audits/) and [`docs/graphs/`](docs/graphs/) (currently empty),
+and [`docs/ansible_rich_callback_kb.html`](docs/ansible_rich_callback_kb.html) (an
+HTML export, not maintained markdown). `ansible-lint` runs from the repo root, per
+[`AGENTS.md`](AGENTS.md).
 
 ## Companion Repositories
 
 | Repository | Purpose |
 |-----------|---------|
-| [`osbuild`](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints, ISO/appliance/disk composition |
+| [`osbuild`](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints (GNOME/COSMIC), ISO/appliance/disk composition, realtime build progress TUI (`bin/osbuild-progress`) |
 | [`rpmbuild`](https://gitlab.com/syncopatedX/rpmbuild) | RPM packaging: `rpm_dev` role, mock build chroots |
 | [`llmops`](https://gitlab.com/syncopatedX/llmops) | LLM operations: Dify, Langfuse, Hermes, Ollama, remediation pipeline |
 
----
-
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE) for the full text.
+The license claim is GPL-3.0-or-later — the badge above and the previous README
+both carry it. The `LICENSE` file itself is not present in the working tree or in git
+history as of this writing; the previous README linked to one, and that link was
+dead. I'd rather state that plainly than point you at a file that isn't there.
+Adding the file to the repo would resolve the gap; nothing else is needed.

@@ -57,7 +57,7 @@ workstation/
 │   ├── networking/            # Network configuration
 │   ├── containerd/            # Container runtime
 │   ├── libvirt/               # Virtualization (KVM)
-│   ├── desktop_ui/            # GNOME/COSMIC/Sway, GDM, extensions, theming
+│   ├── desktop_ui/            # GNOME & COSMIC desktop, GDM & cosmic-greeter, theming
 │   ├── tools/                 # AI coding CLIs, IDEs, system binaries, Flatpaks
 │   ├── user/                  # User environment, shell, uv toolchains
 │   ├── nas/                   # NFS, Samba, rsync
@@ -151,6 +151,6 @@ mechanical safety guards).
 
 | Repository | Purpose |
 |-----------|---------|
-| [`osbuild`](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints, ISO/appliance/disk composition, package taxonomy |
+| [`osbuild`](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints (GNOME/COSMIC), ISO/appliance/disk composition, package taxonomy, realtime progress TUI (`bin/osbuild-progress`) |
 | [`rpmbuild`](https://gitlab.com/syncopatedX/rpmbuild) | RPM packaging: `rpm_dev` role, mock build chroots, packaging environments |
 | [`llmops`](https://gitlab.com/syncopatedX/llmops) | LLM operations: Dify, Langfuse, Hermes, Ollama, remediation pipeline |

@@ -16,7 +16,7 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
   (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, networking, containerd, desktop_ui, libvirt),
   user (user), and tools (tools).
 
-Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, display manager, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code, Antigravity Hub & IDE), Flatpaks, and input-remapper live in `tools`.
+Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code, Antigravity Hub & IDE), Flatpaks, and input-remapper live in `tools`.
 
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
@@ -134,9 +134,10 @@ Plugin paths are wired in `ansible.cfg` (`library`, `module_utils`,
 
 ## Agent Skills
 
-Repo-local skills live in `.agents/skills/<name>/SKILL.md` and are loaded on demand:
+Repo-local skills live in `.agents/skills/<name>/SKILL.md` (and system skills in `skills/system/<name>/SKILL.md`) and are loaded on demand:
 - **trackboi** — project/board/card tracking via MCP (see block below)
 - **langfuse** — Langfuse tracing, datasets, evaluation; pairs with the `b08x.llmops.langfuse` role
+- **run-workflow** — dynamic programmatic multi-agent orchestration via Python scripts using `run_workflow` (see `skills/system/run-workflow/SKILL.md`)
 
 <trackboi>
 ## trackboi Skill

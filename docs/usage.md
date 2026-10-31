@@ -11,6 +11,7 @@ see [`conventions.md`](conventions.md).
 
 - ansible-core >= 2.15 (verified on 2.18–2.20)
 - Python 3.12+ (3.14 on Fedora 44)
+- Ruby 4.0.4+ and Bundler (`bundle install` for repository Ruby tooling, analysis gems, and TUI monitoring)
 - Root (uid 0) for the system layer — pre-flight assertions fail fast otherwise
 - x86_64 architecture (the tools role pins linux-amd64/x64 upstream binaries)
 - Target: Fedora 44, AlmaLinux 10, or Rocky Linux 10 (verified); pre-flight
@@ -21,11 +22,17 @@ see [`conventions.md`](conventions.md).
 ## Full Provisioning
 
 ```bash
-# From the repository root
+# From the repository root (defaults to GNOME desktop environment)
 ansible-playbook playbooks/workstation.yml
+
+# Provision COSMIC desktop environment instead of GNOME
+ansible-playbook playbooks/workstation.yml -e desktop_ui_environment=cosmic
 
 # Specific role only
 ansible-playbook playbooks/workstation.yml --tags "tools"
+
+# Specific role with fine-grained tags (e.g. COSMIC desktop components)
+ansible-playbook playbooks/workstation.yml --tags "desktop_ui,cosmic"
 
 # Pre-flight assertions only (fail-fast validation, no mutations)
 ansible-playbook playbooks/workstation.yml --tags "assert" --check
