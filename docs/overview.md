@@ -14,7 +14,7 @@ This repository provisions workstations. It installs system packages, configures
 services, detects and wires hardware acceleration (CUDA, Vulkan, Intel
 oneAPI/SYCL), deploys desktop environments, and — centrally — installs the AI
 coding agent CLIs this workstation runs day to day: Claude Code, Google
-Antigravity, Charm Crush, OpenCode, and Mistral Vibe.
+Antigravity, Charm Crush, and OpenCode.
 
 But that is the *output*. The more interesting story is the *input*: this
 repository was built by AI coding agents, working in sessions that left a

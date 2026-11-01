@@ -129,10 +129,10 @@ Plugin paths are wired in `ansible.cfg` (`library`, `module_utils`,
 
 ## Agent Skills
 
-User skills live in `~/.gemini/skills/<name>/SKILL.md` (and system skills in `skills/system/<name>/SKILL.md`) and are loaded on demand:
-- **trackboi** — project/board/card tracking via MCP (see block below)
-- **langfuse** — Langfuse tracing, datasets, evaluation; pairs with the `b08x.llmops.langfuse` role
-- **run-workflow** — dynamic programmatic multi-agent orchestration via Python scripts using `run_workflow` (see `skills/system/run-workflow/SKILL.md`)
+User skills live in `~/.gemini/skills/<name>/SKILL.md` and are loaded on demand:
+- **langfuse** — Langfuse tracing, datasets, evaluation; pairs with the `b08x.llmops.langfuse` role (`~/.gemini/skills/langfuse/SKILL.md`)
+
+**trackboi** is provided via MCP tools rather than a `SKILL.md` file; see the block below.
 
 <trackboi>
 ## trackboi Skill
