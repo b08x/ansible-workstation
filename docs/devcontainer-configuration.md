@@ -6,6 +6,12 @@ variants in this repo differ.
 
 ## The three variants
 
+Which variant do I use: default to the root `.devcontainer/devcontainer.json`
+(rootless Podman, `keep-id`); reach for `.devcontainer/docker/` only where
+Docker is the only runtime available — and accept that it buys nested-container
+function via `CAP_SYS_ADMIN`, `CAP_SYS_RESOURCE`, `seccomp=unconfined`,
+`label=disable`, and `apparmor=unconfined`.
+
 | File | Runtime | `userns` | Security options | Capabilities added |
 | --- | --- | --- | --- | --- |
 | `.devcontainer/devcontainer.json` | Podman (rootless) | `keep-id` | `unmask=/sys/fs/cgroup` | none |
@@ -96,8 +102,8 @@ mounts. When SELinux is enforcing on the host, bind-mounted workspace
 volumes can fail with permission errors because the container process
 label does not match the file label. Disabling labeling avoids the
 denial entirely. Only present in the Docker variant; the Podman variants
-rely on `keep-id` and the root `devcontainer.json` comment notes that
-`label=disable` can be added if SELinux denials on workspace volumes
+rely on `keep-id` and the `podman/` variant's `devcontainer.json` comment notes
+that `label=disable` can be added if SELinux denials on workspace volumes
 appear.
 
 ### `--security-opt apparmor=unconfined`

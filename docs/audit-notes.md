@@ -1,5 +1,7 @@
 # Audit Notes
 
+The labels exist for both readers: the human needs to know what is measured
+versus inferred, and the agent needs to know which numbers it may quote as fact.
 Terminology accountability, uncertainty labels, and evidence sourcing for the
 documentation in this repository. These notes apply across all documents in
 `docs/` and the top-level `README.md`.
@@ -28,8 +30,8 @@ Session counts, friction metrics, satisfaction ratings, and cost estimates are
 drawn from the code-insights corpus (`~/.code-insights/data.db`) filtered to 46
 project entries whose paths or names match the workstation/Ansible project
 lineage (paths containing `workstation`, `Syncopated/ansible`,
-`syncopated/ansible`, `ansible-collection`, `syncopated-ansible`,
-`ansible-rhel`, `Syncopated/Archive/Ansible`, `Syncopated/OS`, or names matching
+`syncopated/ansible`, `ansible-collection`, `syncopated-ansible`, `ansible-rhel`,
+`Syncopated/Archive/Ansible`, `Syncopated/OS`, or names matching
 `workstation`, `devworkstation`, `ansible`, `Syncopated`, `OS`, `rhel_builder`).
 The corpus captures sessions from specific AI coding tools and may not represent
 all development activity on this repository — manual edits, non-AI-assisted work,

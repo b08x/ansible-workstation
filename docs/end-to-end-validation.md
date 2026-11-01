@@ -3,21 +3,20 @@
 This document walks one request all the way home — from a sentence describing an
 operating system, through a compiled ISO and a KVM install, to a freshly
 converged host sitting at the exact threshold of yadm. Each stage is stated as
-a material process with its input, transformation, output, and circumstance;
-the certainty of every material claim is calibrated to the evidence in the
-table near the end; the User's Path states design intent, not observation.
-Nothing here is asserted on vibes — the pipeline is boring on purpose,
-and the boredom is the proof.
+a material process; the certainty of every material claim is calibrated to the
+evidence in the table near the end; the User's Path states design intent, not
+observation. Nothing here is asserted on vibes — the pipeline is boring on
+purpose, and the boredom is the proof.
 
 ---
 
 ## The Scenario *(Material Processes — high certainty per stage; the continuous composition is validated at the seams and inferred between them)*
 
-The syncopated pipeline **transforms** a natural-language description of a
-workstation ISO **into** a pristine, yadm-ready host, **through** six stages
-(the last validated only to its threshold), **within** two hard constraints: the
-build host must be Fedora or an EL 10 distribution, and the declared disk size
-must not exceed the real disk — a smaller disk aborts the install.
+The syncopated pipeline takes a natural-language description of a workstation
+ISO and delivers a pristine, yadm-ready host, in six stages (the last validated
+only to its threshold), under two hard constraints: the build host must be
+Fedora or an EL 10 distribution, and the declared disk size must not exceed
+the real disk — a smaller disk aborts the install.
 
 **Technical contract**
 
@@ -44,24 +43,25 @@ check the work.
 
 ## The Pipeline *(Material Processes — staged)*
 
-**Stage 1 — Intent authoring.** Transforms a natural-language request into a
-validated *intent file* (`profiles/<name>.yml`) — so named because it declares
-what you want the image to be, never how to build it — through the syncopated
-skill's clarify-and-copy workflow: at most three clarifying questions (image
-kind, distro, hardware/hardening/disk/users), then copy the closest
+**Stage 1 — Intent authoring.** A natural-language request becomes a validated
+*intent file* (`profiles/<name>.yml`) — so named because it declares what you
+want the image to be, never how to build it. The syncopated skill's
+clarify-and-copy workflow asks at most three clarifying questions (image kind,
+distro, hardware/hardening/disk/users), then has you copy the closest
 `profiles/examples/*.yml` and edit only intent fields. The intent is validated
-against `schema/intent.schema.json` (JSON Schema draft-07; `additionalProperties:
-false`, so a typo in a field name fails validation; every other field is
-pattern-, enum-, or range-checked) with required fields `name`, `distro`,
-`arch`, `hostname`, `components`, `hardening`, `disk`, `users`, `locale`. The
-distro pattern admits `rocky-(9|10).N`, `almalinux-(9|10).N`, and `fedora-N`;
-`arch` is `x86_64` only; `hardening` is one of `none | cis-l2-workstation |
-pci-dss | hipaa`; `disk.size_gib` is an integer from 32 to 65536.
+against `schema/intent.schema.json` (JSON Schema draft-07;
+`additionalProperties: false`, so a typo in a field name fails validation; every
+other field is pattern-, enum-, or range-checked) with required fields `name`,
+`distro`, `arch`, `hostname`, `components`, `hardening`, `disk`, `users`,
+`locale`. The distro pattern admits `rocky-(9|10).N`, `almalinux-(9|10).N`, and
+`fedora-N`; `arch` is `x86_64` only; `hardening` is one of `none |
+cis-l2-workstation | pci-dss | hipaa`; `disk.size_gib` is an integer from 32
+to 65536.
 
-**Stage 2 — Blueprint generation.** Transforms the intent into an osbuild
-blueprint (`<name>.toml`) and a build script (`build-<name>.sh`), **as the
-agent runs** `ansible-playbook playbooks/build.yml -e @profiles/<name>.yml`
-against the `builder` group. The play's pre-tasks validate the intent
+**Stage 2 — Blueprint generation.** The intent becomes an osbuild blueprint
+(`<name>.toml`) and a build script (`build-<name>.sh`), **as the agent runs**
+`ansible-playbook playbooks/build.yml -e @profiles/<name>.yml` against the
+`builder` group. The play's pre-tasks validate the intent
 (`ansible.utils.validate`), assert the build host is Fedora or EL 10, resolve
 the git commit, and assert `image-builder list` knows the requested distro and
 image type; then `roles/osbuild` renders the blueprint from components and
@@ -72,26 +72,26 @@ kickstart, and passwordless sudo for wheel **when the role variable
 The default mode is *generate-only* (`osbuild_only_generate: true`): the role
 writes files and stops.
 
-**Stage 3 — ISO compilation.** Transforms the blueprint into a bootable ISO
-(`<name>-<commit>.iso`), through the generated build script: repository preflight
+**Stage 3 — ISO compilation.** The blueprint becomes a bootable ISO
+(`<name>-<commit>.iso`) through the generated build script: repository preflight
 → `sudo image-builder build` → newest-image discovery → copy to the output
 directory. The agent never runs this step; you do — and you run the install
 after it, too (the role prints the `virt-install --cdrom` command for you). It
 is the seam the generate-only default is built around.
 
-**Stage 4 — KVM installation.** Transforms the ISO into an installed system on
-disk, on **a KVM-capable host** (the build host or any machine with /dev/kvm,
+**Stage 4 — KVM installation.** The ISO becomes an installed system on disk, on
+**a KVM-capable host** (the build host or any machine with /dev/kvm,
 qemu-system-x86_64, OVMF and libguestfs), **as you run** `virt-install --cdrom`
-(or the unattended harness `tests/vm/run-install-test.sh`: QEMU with
+— or the unattended harness `tests/vm/run-install-test.sh`: QEMU with
 `-enable-kvm` and OVMF, an NVMe disk of exactly `disk.size_gib`, the ISO as
-CD-ROM, `-no-reboot`, and zero input). The
-kickstart — Anaconda's answer file, which is what makes the install ask nothing
-— selects the disk in `%pre` (excluding install media, removable, read-only, and
-USB; NVMe first, then largest), checks `disk.serial`, aborts if the disk is
-smaller than `disk.size_gib`, and counts down 30 seconds on tty8; any key
-aborts. The only prompt is the LUKS passphrase when `disk.encrypt: true`. First
-login uses the password `syncopated`, with a forced change (`chage -d 0`); root
-stays locked unless `root.enabled`.
+CD-ROM, `-no-reboot`, and zero input. The kickstart — Anaconda's answer file,
+which is what makes the install ask nothing — selects the disk in `%pre`
+(excluding install media, removable, read-only, and USB; NVMe first, then
+largest), checks `disk.serial`, aborts if the disk is smaller than
+`disk.size_gib`, and counts down 30 seconds on tty8; any key aborts. The only
+prompt is the LUKS passphrase when `disk.encrypt: true`. First login uses the
+password `syncopated`, with a forced change (`chage -d 0`); root stays locked
+unless `root.enabled`.
 
 **Stage 5a — System convergence via the staged bootstrap (validated on the
 rebuild path).** The rebuild orchestrator pushes `scripts/bootstrap.sh` over
@@ -117,14 +117,13 @@ image does not (see What This Does Not Validate). The osbuild-ISO convergence
 composition is not validated.
 
 **Stage 6 — Firstboot handoff *(design; validated to the threshold)*.**
-On the validated rebuild path, transforms the converged system into a
-yadm-ready user environment, through `syncopated-firstboot`
-(`ws/scripts/syncopated-firstboot`) — the *firstboot*
-hook, so named because it runs once, at first login: it prompts for a dotfiles
-repository (default `https://github.com/b08x/dots.git`), validates it with
-`git ls-remote`, **re-prompting until the URL answers (exiting non-zero in auto
-mode)**, runs `yadm clone -f --no-bootstrap`, then `yadm bootstrap`, and
-writes `~/.local/state/syncopated/firstboot.done`.
+On the validated rebuild path, the converged system becomes a yadm-ready user
+environment through `syncopated-firstboot` (`ws/scripts/syncopated-firstboot`)
+— the *firstboot* hook, so named because it runs once, at first login: it
+prompts for a dotfiles repository (default `https://github.com/b08x/dots.git`),
+validates it with `git ls-remote`, **re-prompting until the URL answers (exiting
+non-zero in auto mode)**, runs `yadm clone -f --no-bootstrap`, then
+`yadm bootstrap`, and writes `~/.local/state/syncopated/firstboot.done`.
 
 > The validated endpoint of this document is the **threshold** of Stage 6 — the
 > *pristine checkpoint*, ready for yadm — not the completed dotfiles convergence.
@@ -132,21 +131,20 @@ writes `~/.local/state/syncopated/firstboot.done`.
 
 ## The User's Path *(Mental Processes — medium certainty)*
 
-The path is shaped as a short, trust-building sequence: you state requirements
-in plain language and learn to trust the clarify step, which asks at most three
-questions and skips whatever the request already says… — each clause traceable
-to the skill doc (table row L33–100). What they learn, and what they decide:
+The path is shaped as a short, trust-building sequence — each clause below is
+traceable to the skill doc (table row L33–100). What they learn, and what they
+decide:
 
 - They learn to state requirements in plain language and to trust the clarify
   step, which asks at most three questions and skips whatever the request
   already says.
 - They learn the intent schema by editing only intent fields — and they learn
-  that a typo in a field name fails validation, which I take as a comfort,
-  because the schema is strict (`additionalProperties: false`).
+  that a typo in a field name fails validation, because the schema is strict
+  (`additionalProperties: false`), which I take as a comfort.
 - They learn the generate-only default: the workflow writes the blueprint and
   the build script but does not run the build. That decision stays with the
-  user, which I find a genuine comfort, because the build — like the install
-  that follows it — is never run on your behalf.
+  user, because the build — like the install that follows it — is never run on
+  your behalf.
 - They decide the disk size (declare at most the real size, or the install
   aborts), the hardening profile (`none | cis-l2-workstation | pci-dss |
   hipaa`), and whether to encrypt (which makes the passphrase the installer's
@@ -231,7 +229,7 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
 | Rebuild orchestrator: 8-step pipeline (teardown → kickstart → virt-install → await SSH → Stage 1 → Stage 2 → Stage 3 → verify idempotence) | High | `ws/goals/fedora-minimal-vm-rebuild/rebuild-orchestrator.sh` L1–60 (config), 417 lines |
 | `ks.cfg` unattended minimal (`@core` + `openssh-server`, Btrfs, user `b08x`, root locked) | High | `ws/goals/fedora-minimal-vm-rebuild/ks.cfg` L1–57 |
 | Vagrantfile: libvirt/KVM provider, `almalinux` (primary) + `fedora` VMs | Medium | `ws/Vagrantfile` L1–45, 231 lines |
-| A single continuous run spanning both repositories end to end | Low (inferred) | Seams only: ISO (Stage 3), firstboot hook (Stages 4–5), ansible-pull entry (Stage 5); no single continuous-run log cited |
+| A single continuous run spanning both repositories | Low (inferred) | Seams only: ISO (Stage 3), firstboot hook (Stages 4–5), ansible-pull entry (Stage 5); no single continuous-run log cited |
 
 ## What This Does Not Validate *(negative capability)*
 
@@ -294,7 +292,11 @@ The validated end state, stated plainly:
 - The host is ready for yadm: clone your dotfiles, run `yadm bootstrap`, and
   Layer 2 takes it from there.
 
+Read as interpretation of documented behavior, not as a new claim: the
+threshold is the same boundary as No Template Clobbering and never auto-commit
+— the system does not do your part, and it does not do your part by design, at
+every level.
+
 And there it rests — a machine that has done everything a machine should do,
 and has the good manners to stop just before it does anything that is yours.
-That threshold is a small thing, and it is very nearly the whole point. I am
-grateful to the pipeline for stopping there; it leaves the best part to you.
+That threshold is a small thing, and it is very nearly the whole point.

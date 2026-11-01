@@ -5,7 +5,7 @@ A traditional README describes a finished product. This one describes a
 512 AI coding sessions spanning 46 project entries and roughly nine months
 (January 30 – October 26, 2026). The code-insights corpus preserves the shape
 of that work: 24,767 messages, 1,491 learnings, 1,324 architectural decisions,
-and 499 session-level facet analyses.
+499 session-level facet analyses, and 352 prompt-quality assessments.
 
 Here is what the build looked like, reconstructed from session logs. For the
 failure points that shaped it, see [`failure-points.md`](failure-points.md).
@@ -18,6 +18,12 @@ The repository has been tracked under many names as it moved through the
 filesystem and was restructured. The direct lineage tells the story — 10 of the
 46 tracked project entries; the remaining entries account for the balance of 512
 sessions:
+
+Read it as what it is: the repository's own memory of being rebuilt. Each path
+below is a renaming or restructuring the corpus survived, stitched to its
+predecessors by path and name matching — a heuristic, documented in
+[`audit-notes.md`](audit-notes.md), that would miss a rename with no path
+overlap.
 
 ```
 /home/b08x/Workspace/ansible-rhel-workstation-builder          (5 sessions, Feb 2026)
@@ -83,6 +89,11 @@ pattern, satisfaction, and rhythm figures below cover those 499. Across those
 5. **Record** — the learning would be captured in the commit message, the role
    README, or the architectural decision record
 
+This rhythm repeats at every scale the corpus records: a single failure point —
+the zram EBUSY entry, [`failure-points.md`](failure-points.md) #1 — is the five
+beats in miniature, and the PDCA cycles in [`docs/pdca/`](pdca/) are the same
+rhythm institutionalized.
+
 The course correction rate across these sessions was 53.1% — 265 of 499
 analyzed sessions required the agent to change direction mid-flight. 461 of
 those 499 sessions involved at least one iteration (an average of 4 iterations
@@ -126,17 +137,21 @@ Seven AI coding tools contributed sessions across the project lineage:
 | crush | 20 | 192 | 9.6 | $0.51 |
 | claude-desktop | 3 | 628 | 209.3 | $106.22 |
 
-OpenCode contributed the most sessions (43.2%) at 19.1 messages per session —
-second-lowest, ahead of only crush (9.6) — consistent with quick, targeted
-tasks. Claude Code contributed the most messages (33.0% of the total) and the
-highest cost — consistent with deep, long-running work. The `bug_hunt` session
-character averaged 310 messages per session across 13 sessions, the
+Summed across the seven tools, the estimated total token cost of the build is
+~$2,057. OpenCode contributed the most sessions (43.2%) at 19.1 messages per
+session — second-lowest, ahead of only crush (9.6) — consistent with quick,
+targeted tasks. Claude Code contributed the most messages (33.0% of the total)
+and the highest cost — consistent with deep, long-running work. The `bug_hunt`
+session character averaged 310 messages per session across 13 sessions, the
 longest-running session character in the corpus, which is what you would
 expect: debugging is a conversation, not a transaction.
 
 ---
 
 ## Outcome Satisfaction
+
+Each of the 499 analyzed sessions carries an outcome rating; the distribution
+below is the corpus's own verdict on the work:
 
 | Rating | Sessions | Share |
 |--------|----------|-------|

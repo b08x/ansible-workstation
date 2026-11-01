@@ -19,7 +19,21 @@ see [`conventions.md`](conventions.md).
   targets
 - DNF or DNF5 package manager
 
-## Full Provisioning
+## Look Before You Leap
+
+Run this first, and before every full run: it executes every role's fail-fast
+assertions and mutates nothing.
+
+```bash
+# Pre-flight assertions only (fail-fast validation, no mutations)
+ansible-playbook playbooks/workstation.yml --tags "assert" --check
+```
+
+## Converge
+
+With the assertions green, converge the host — the full run defaults to GNOME;
+the same command shape selects the COSMIC variant, a single role, or
+fine-grained tags.
 
 ```bash
 # From the repository root (defaults to GNOME desktop environment)
@@ -33,12 +47,12 @@ ansible-playbook playbooks/workstation.yml --tags "tools"
 
 # Specific role with fine-grained tags (e.g. COSMIC desktop components)
 ansible-playbook playbooks/workstation.yml --tags "desktop_ui,cosmic"
-
-# Pre-flight assertions only (fail-fast validation, no mutations)
-ansible-playbook playbooks/workstation.yml --tags "assert" --check
 ```
 
-## Local Pull-Based Convergence
+## Stay Converged
+
+On a machine already under management, converge from the repository itself:
+pull-based, root for the system layer, unprivileged for the user layer.
 
 ```bash
 # System layer (root)
@@ -51,10 +65,10 @@ ansible-pull -U <repo-url> --tags user local.yml
 ansible-playbook local.yml
 ```
 
-## Staged Bootstrap (Fresh Machine)
+## Start From Bare Metal
 
-Three stages, fully automated from a minimal install. See
-[`bootstrap.md`](bootstrap.md) for the full lifecycle details.
+A fresh machine converges itself in three stages, fully automated from a
+minimal install — the full lifecycle is in [`bootstrap.md`](bootstrap.md).
 
 1. **`scripts/bootstrap.sh`** — installs `git`, `ansible-core`, runs `dnf
    upgrade -y --refresh`, stages `syncopated-bootstrap-root.service`, reboots
@@ -64,7 +78,9 @@ Three stages, fully automated from a minimal install. See
 3. **`syncopated-firstboot`** — deployed by the `common` role; triggers on first
    user login to clone dotfiles via yadm, run unprivileged user bootstrap
 
-## Testing
+## Test Your Changes
+
+Before you commit, verify the change the way the repository verifies itself.
 
 ```bash
 # Molecule (common role: builds Fedora + AlmaLinux containers, converges twice)
@@ -77,7 +93,9 @@ ansible-lint
 pre-commit run --all-files
 ```
 
-## Vagrant VM
+For isolated convergence testing, the Vagrant VM is a libvirt/KVM Fedora
+workstation; the `FEDORA_BOX` override for custom or newer images is documented
+in [`bootstrap.md`](bootstrap.md).
 
 ```bash
 vagrant up fedora    # libvirt Fedora workstation VM

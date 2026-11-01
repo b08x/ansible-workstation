@@ -5,9 +5,41 @@ occurred during the build of this repository, extracted from the session
 friction logs. Each one taught a pattern that is now encoded in this repository
 — as code, lint rules, pre-flight assertions, or documented conventions.
 
+The mix matters as much as the count: some of these failures are about systems,
+and some are about how to talk about systems — never auto-commit (5), a
+speaker's own hedge (7), commit-message shell quoting (22) — and both kinds
+became rules. The conventions in [`conventions.md`](conventions.md) are these
+failures, generalized — the return edge, stated here where the failures live.
+
 For the build process that produced these failures, see
-[`build-process.md`](build-process.md). For the conventions they became,
-see [`conventions.md`](conventions.md).
+[`build-process.md`](build-process.md).
+
+---
+
+## The 22, at a glance
+
+1. [Never restart zram on a device holding live swap](#1-never-restart-zram-on-a-device-holding-live-swap)
+2. [One file, one owner](#2-one-file-one-owner)
+3. [A detection result that is never used is a latent bug](#3-a-detection-result-that-is-never-used-is-a-latent-bug)
+4. [Seat-filtered session detection for display-manager restarts](#4-seat-filtered-session-detection-for-display-manager-restarts)
+5. [Never auto-commit](#5-never-auto-commit)
+6. [Prettier invalidates line-wrapped match strings](#6-prettier-invalidates-line-wrapped-match-strings)
+7. [A speaker's own hedge is a hard exclusion signal](#7-a-speakers-own-hedge-is-a-hard-exclusion-signal)
+8. [dnf5 boolean options accept multiple spellings — and that breaks idempotency](#8-dnf5-boolean-options-accept-multiple-spellings--and-that-breaks-idempotency)
+9. [Confirm the failing host before local probing in multi-host Ansible](#9-confirm-the-failing-host-before-local-probing-in-multi-host-ansible)
+10. [Presence checks need an escape hatch](#10-presence-checks-need-an-escape-hatch)
+11. [YAML folded scalars do not interpret `\n`](#11-yaml-folded-scalars-do-not-interpret-n)
+12. [Role-scoped variables need the role prefix](#12-role-scoped-variables-need-the-role-prefix)
+13. [Atomic commits are a discipline, not a preference](#13-atomic-commits-are-a-discipline-not-a-preference)
+14. [Missing CDI spec silently breaks NVIDIA container GPU access](#14-missing-cdi-spec-silently-breaks-nvidia-container-gpu-access)
+15. [pip --user and uv tool create duplicate conflicting installations](#15-pip---user-and-uv-tool-create-duplicate-conflicting-installations)
+16. [Ansible's Jinja2 sandbox lacks `list.append()`](#16-ansibles-jinja2-sandbox-lacks-listappend)
+17. [Ansible defaults with Jinja2 expressions evaluate lazily](#17-ansible-defaults-with-jinja2-expressions-evaluate-lazily)
+18. [Implicit ordering dependencies between roles break silently](#18-implicit-ordering-dependencies-between-roles-break-silently)
+19. [NVIDIA CUDA EL repositories are major-version keyed](#19-nvidia-cuda-el-repositories-are-major-version-keyed)
+20. [Pre-commit hooks can block the very first commit](#20-pre-commit-hooks-can-block-the-very-first-commit)
+21. [Vagrant CLI breaks when asdf Ruby shadows system gems](#21-vagrant-cli-breaks-when-asdf-ruby-shadows-system-gems)
+22. [Multi-line commit messages with angle brackets break zsh parsing](#22-multi-line-commit-messages-with-angle-brackets-break-zsh-parsing)
 
 ---
 

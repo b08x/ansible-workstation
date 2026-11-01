@@ -22,11 +22,11 @@ trace — and that trace is now part of the project. Across the full lineage of
 this repository (tracked under 46 project entries in the code-insights corpus,
 from `ansible-rhel-workstation-builder` through `ansible-collection-rhel-workstation-builder`
 through `syncopated-ansible` through `Archive/Ansible` through `ansible` to the
-current `workstation`), 512 sessions produced 24,767 messages over roughly nine
-months (January–October 2026), at an estimated token cost of $2,057. The corpus
-yielded 1,491 extracted learnings, 1,324 architectural decisions, 499 session
-summaries (the same 499 sessions that carry facet-level analysis), and 352
-prompt-quality assessments.
+current `workstation`), 512 sessions over roughly nine months (January–October
+2026) produced it, at an estimated token cost of $2,057. The detailed corpus
+counts — messages, learnings, architectural decisions, facet analyses,
+prompt-quality assessments — live in [`build-process.md`](build-process.md),
+their canonical home.
 
 The functional use-case is straightforward: **manage an Ansible project with
 coding tools**. Across the corpus, AI coding agents wrote, debugged, refactored,
@@ -100,6 +100,12 @@ for the full taxonomy):
   managers, user Cargo crates, user Ruby gems, user Flatpaks. The one layer a
   re-image does not erase; drift is permitted under version control.
 
+Layer 2 is not passive: before user configuration is applied, yadm's first
+bootstrap step, `scripts/01-ansible-pull.sh`, bridges back down into Ansible
+(`ansible-pull --tags user local.yml`), so the top of the stack can pull its own
+floor into shape — see [`bootstrap.md`](bootstrap.md) for the bridge and
+[`layering-architecture.md`](layering-architecture.md) for the boundary it crosses.
+
 ---
 
 ## The Coding Tools
@@ -114,7 +120,7 @@ The [`tools`](../roles/tools) role provisions four AI coding agent CLIs:
 | OpenCode | `opencode` | npm global (user prefix) | `~/.config/opencode/` |
 
 Ansible installs the binaries; yadm (Layer 2) owns the configs and shared
-skills. The boundary is strict — Ansible never writes into `$HOME` paths that
+skills. The boundary is strict — Ansible never writes into paths that
 yadm owns.
 
 Plus developer IDEs (VS Code, Antigravity Hub & IDE), system binaries
@@ -125,24 +131,23 @@ Flatpaks. All gated by explicit boolean flags (`tools_install_*`).
 
 ---
 
-## Observability
+## Observability: the loop
 
-Two callback plugins close the loop:
+When the `llm_analyzer` callback is enabled via `callbacks_enabled` (opt-in,
+disabled by default) and an API key exists, every play and task this repository
+runs is sent to a configurable LLM provider — Mistral by default in
+`ansible.cfg` — on a background worker pool, with predictions recorded to an
+append-only trace store and markdown under `llm_analysis/`. Without a key the
+callback disables itself and the run goes unobserved; when it is on, play and
+task content leaves the host — treat traces as sensitive. The accumulated
+traces then become a scored DSPy trainset via `scripts/llm_trainset.py`, and
+the companion `llmops` repository runs a diagnose-and-fix remediation pipeline
+with mechanical safety guards against the learnings. The build's own execution
+history becomes training material for improving the build: observe (trace +
+render), learn (trainset), remediate (llmops).
 
-- **`llm_analyzer`** (opt-in; disabled by default) — when enabled via
-  `callbacks_enabled`, sends each play and task to a configurable LLM provider
-  (Mistral by default in ansible.cfg; requires an API key) on a background
-  worker pool, recording predictions to an append-only trace store and markdown
-  under `llm_analysis/`. Play and task content leaves the host when enabled —
-  treat traces as sensitive. Without a key it disables itself and the playbook
-  runs unobserved.
-- **`rich_ci_formatter`** — renders the same runs for the human at the terminal:
-  DNF5 transaction tables, systemd transitions, phase banners
-
-`scripts/llm_trainset.py` turns the accumulated traces into a scored DSPy
-trainset. The loop is: observe (trace + render), learn (trainset), and — in the
-companion `llmops` repository — remediate (diagnose-and-fix pipeline with
-mechanical safety guards).
+For the human at the terminal, `rich_ci_formatter` renders the same runs:
+DNF5 transaction tables, systemd transitions, phase banners.
 
 ---
 
