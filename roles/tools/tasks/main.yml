@@ -52,11 +52,6 @@
   when: tools_install_opencode | default(true) | bool
   tags: ["opencode", "agents", "tools"]
 
-- name: Include Mistral Vibe CLI installation tasks
-  ansible.builtin.include_tasks: vibe.yml
-  when: tools_install_vibe | default(true) | bool
-  tags: ["vibe", "agents", "tools"]
-
 - name: Include Intel drivers and oneAPI toolkit tasks
   ansible.builtin.include_tasks: intel.yml
   when: >-

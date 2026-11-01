@@ -19,7 +19,7 @@ Under the [distribution taxonomy](../../docs/layering-architecture.md):
 
 2. **UV Python Runtime (`tasks/uv.yml`)**:
    - Runs `uv python install {{ user_uv_python_version }}` (default: `3.12`) as the unprivileged user.
-   - The `uv` binary itself is expected to be on `PATH` — installed outside this role. (The former `roles/base` carried `uv` in its Fedora package list, but the migration to `roles/common` in commit `0b73d61` curated the package list down to a terminal baseline and dropped it; no role currently installs `uv`. The `tools` role's `vibe.yml` checks for `uv` and warns if absent. If you need `uv` installed by Ansible, that gap needs to be filled — likely in `roles/common` or `roles/tools`.)
+   - The `uv` binary itself is expected to be on `PATH` — installed outside this role. (The former `roles/base` carried `uv` in its Fedora package list, but the migration to `roles/common` in commit `0b73d61` curated the package list down to a terminal baseline and dropped it; no role currently installs `uv`. If you need `uv` installed by Ansible, that gap needs to be filled — likely in `roles/common` or `roles/tools`.)
    - Shell environment variables (such as `export UV_PYTHON_PREFERENCE="only-managed"`) are maintained in Yadm dotfile templates rather than Ansible inline mutations.
 
 3. **Firstboot Onboarding (`tasks/firstboot.yml`, `files/firstboot/`)** — *dormant*:

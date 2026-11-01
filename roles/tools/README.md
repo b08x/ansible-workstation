@@ -1,6 +1,6 @@
 # Ansible Role: tools
 
-Provisions host-level command-line utilities, hardware-accelerated compiled binaries, Go toolchain environment validation (>= 1.22), AI coding agent command-line interfaces (`agy`, `claude`, `crush`, `opencode`, `vibe`), developer IDEs (Visual Studio Code, Google Antigravity Hub & IDE), system management Flatpaks, and hardware key remapping (`input-remapper`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
+Provisions host-level command-line utilities, hardware-accelerated compiled binaries, Go toolchain environment validation (>= 1.22), AI coding agent command-line interfaces (`agy`, `claude`, `crush`, `opencode`), developer IDEs (Visual Studio Code, Google Antigravity Hub & IDE), system management Flatpaks, and hardware key remapping (`input-remapper`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
 
 ---
 
@@ -15,8 +15,8 @@ It establishes a strict boundary separating binary installation from user config
 |                       Layer 2: Yadm (User Space)                         |
 |   Configuration Files & Shared Agent Skills:                             |
 |   ~/.gemini/antigravity-cli/settings.json, ~/.claude/settings.json,      |
-|   ~/.config/crush/crushrc, ~/.config/opencode/, ~/.vibe/config.toml,     |
-|   ~/.agents/skills/                                                      |
+|   ~/.config/crush/crushrc, ~/.config/opencode/,                          |
+|   ~/.gemini/skills/                                                      |
 +--------------------------------------------------------------------------+
                                     |
                                     v
@@ -36,7 +36,6 @@ It establishes a strict boundary separating binary installation from user config
 |       * Anthropic Claude Code CLI (claude)                               |
 |       * Charm Crush CLI (Go-compiled in ~/go/bin and ~/.local/bin)       |
 |       * OpenCode CLI (opencode)                                          |
-|       * Mistral Vibe CLI (vibe via uv tool)                              |
 +--------------------------------------------------------------------------+
                                     |
                                     v
@@ -51,17 +50,17 @@ It establishes a strict boundary separating binary installation from user config
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `vibe.yml`, `intel.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `intel.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
 2. **GUI Availability Gating**: Graphical desktop tools (VS Code, Antigravity Hub & IDE, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"`. Headless systems automatically skip graphical installations while retaining all CLI utilities.
 3. **Pre-flight Hardware Capability Checks**:
    - `tasks/transcribe-cpp.yml` probes the host for CUDA hardware devices (`nvidia-smi`, `/dev/nvidia*`, PCI vendor `0x10de`) and Vulkan physical GPU devices (`vulkaninfo`, render nodes).
    - If neither CUDA nor Vulkan hardware devices are present and `tools_transcribe_require_gpu: true`, compilation is automatically **skipped** with an informative debug notice rather than failing or wasting resources on CPU builds.
 4. **Failure-Shape Pattern (Shape 2: True Fallback & Auto-Detection)**:
    - Evaluates hardware acceleration tiers for Whisper transcription: CUDA (`GGML_CUDA=ON`) &rarr; Intel SYCL/oneAPI (`GGML_SYCL=ON`) &rarr; Vulkan (`GGML_VULKAN=ON`) &rarr; CPU fallback.
-5. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `transcribe`, `agy`, `claude`, `crush`, `opencode`, `vibe`, `vscode`, `input-remapper`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which npm`, `which uv`, `which go`, `go version`, `which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
+5. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `transcribe`, `agy`, `claude`, `crush`, `opencode`, `vscode`, `input-remapper`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which npm`, `which uv`, `which go`, `go version`, `which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
 6. **User Context & Runtime Isolation (`become_user`)**: User-scoped tools and Go-compiled utilities install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership. Additionally, npm global installs (`claude`, `opencode`) define `TMPDIR: "/run/user/{{ user.uid }}/tmp"` under unprivileged `become_user` to eliminate tempfile permission collisions.
 7. **Handler Notification Pattern**: Changes to service unit files (`input-remapper.service`) notify `Daemon reload` (`systemd daemon_reload: true`).
-8. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `agents`, `system`) and dedicated tool tags (`bun`, `transcribe`, `go`, `antigravity`, `claude`, `crush`, `opencode`, `vibe`, `vscode`, `flathub`, `flatpaks`, `input-remapper`).
+8. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `agents`, `system`) and dedicated tool tags (`bun`, `transcribe`, `go`, `antigravity`, `claude`, `crush`, `opencode`, `vscode`, `flathub`, `flatpaks`, `input-remapper`).
 9. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `user.home`) and Tier 2 namespaced role variables (`tools_*`).
 10. **Pre-flight Assertion Pattern**: Frontloads prerequisite validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, effective root privileges, target user configuration, Go toolchain parameters) are missing or misconfigured.
 
@@ -106,21 +105,18 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Installs OpenCode (`opencode-ai`) via user npm global prefix into `~/.local/bin/opencode`.
 - Implements `TMPDIR: "/run/user/{{ user.uid }}/tmp"` runtime isolation under unprivileged `become_user` to eliminate tempfile permission collisions.
 
-### 8. Mistral Vibe CLI (`tasks/vibe.yml`)
-- Installs Mistral's Vibe CLI (`mistral-vibe`) via `uv tool install` into `~/.local/bin/vibe`.
-
-### 9. Visual Studio Code (`tasks/vscode.yml`)
+### 8. Visual Studio Code (`tasks/vscode.yml`)
 - Checks for existing `code` binary in `$PATH` to ensure idempotency.
 - Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`).
 - Supports native RPM installation (default) or Flatpak distribution (`tools_vscode_flatpak: true`).
 - Gated by `tools_install_gui_apps` and `tools_install_vscode`.
 
-### 10. System Flatpaks & Flathub Remote (`tasks/flatpak.yml`)
+### 9. System Flatpaks & Flathub Remote (`tasks/flatpak.yml`)
 - Configures the official Flathub remote repository (`https://dl.flathub.org/repo/flathub.flatpakrepo`) under system scope (`method: system`).
 - Deploys administrative, utility, and creative Flatpak applications defined in `tools_system_flatpaks` (overridable via `system_flatpaks`).
 - Gated by `tools_install_gui_apps` and `tools_install_flatpaks`.
 
-### 11. Hardware Key Remapper (`tasks/input-remapper.yml`)
+### 10. Hardware Key Remapper (`tasks/input-remapper.yml`)
 - Checks `/usr/bin/input-remapper-gtk` via `ansible.builtin.stat` for idempotency.
 - **Fedora**: Installs the native `input-remapper` RPM package via DNF.
 - **Enterprise Linux (AlmaLinux & Rocky Linux)**: Installs required Python dependencies (`evdev`, `pydantic`, `dasbus`, `PyGObject`, `psutil`), clones the upstream repository, and installs the service using Python installer hooks.
@@ -160,7 +156,6 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `tools_install_claude` | `true` | Enable/disable Claude Code CLI. |
 | `tools_install_crush` | `true` | Enable/disable Charm Crush CLI. |
 | `tools_install_opencode` | `true` | Enable/disable OpenCode CLI. |
-| `tools_install_vibe` | `true` | Enable/disable Mistral Vibe CLI. |
 | `tools_install_gui_apps` | `{{ auto_enable_desktop \| default(true) \| bool }}` | Master gate for graphical desktop applications. |
 | `tools_install_vscode` | `{{ tools_install_gui_apps }}` | Enable/disable Visual Studio Code installation. |
 | `tools_vscode_flatpak` | `false` | When true, installs VS Code via Flatpak instead of native RPM. |
@@ -187,7 +182,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 |---|---|---|
 | `tools` | Role | Applies to all tasks within the `tools` role. |
 | `assert` | Validation | Executes pre-flight assertion tasks. |
-| `agents` | Subsystem | Targets all AI coding agent CLI tasks (`agy`, `claude`, `crush`, `opencode`, `vibe`). |
+| `agents` | Subsystem | Targets all AI coding agent CLI tasks (`agy`, `claude`, `crush`, `opencode`). |
 | `system` | Playbook | System configuration group tag shared across system provisioning roles. |
 | `bun` | Feature | Runs only Bun installation tasks. |
 | `transcribe` | Feature | Runs only transcribe.cpp hardware detection and build tasks. |
@@ -196,7 +191,6 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `claude` | Feature | Runs only Claude Code CLI tasks. |
 | `crush` | Feature | Runs only Crush CLI tasks. |
 | `opencode` | Feature | Runs only OpenCode CLI tasks. |
-| `vibe` | Feature | Runs only Mistral Vibe CLI tasks. |
 | `vscode` | Feature | Runs only Visual Studio Code installation tasks. |
 | `flathub` | Feature | Ensures system Flathub remote repository is configured. |
 | `flatpaks` | Feature | Deploys system Flatpak applications. |

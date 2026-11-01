@@ -184,11 +184,6 @@ cython_debug/
 
 *.code-workspace
 
-.agents/skills/langfuse
-.agents/skills/trackboi
-.agents/skills/zread
-
-.trackboi/
 .vagrant/
 
 argspec_validation_plays.meta.yml

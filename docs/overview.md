@@ -104,7 +104,7 @@ for the full taxonomy):
 
 ## The Coding Tools
 
-The [`tools`](../roles/tools) role provisions five AI coding agent CLIs:
+The [`tools`](../roles/tools) role provisions four AI coding agent CLIs:
 
 | CLI | Binary | Install Method | Config Location |
 |-----|--------|---------------|-----------------|
@@ -112,7 +112,6 @@ The [`tools`](../roles/tools) role provisions five AI coding agent CLIs:
 | Google Antigravity | `agy` | Direct binary download | `~/.config/antigravity/` |
 | Charm Crush | `crush` | Go compile (`~/go/bin`) | `~/.config/crush/` |
 | OpenCode | `opencode` | npm global (user prefix) | `~/.config/opencode/` |
-| Mistral Vibe | `vibe` | `uv tool install` | `~/.vibe/config.toml` |
 
 Ansible installs the binaries; yadm (Layer 2) owns the configs and shared
 skills. The boundary is strict — Ansible never writes into `$HOME` paths that

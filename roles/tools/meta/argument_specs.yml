@@ -93,10 +93,6 @@ argument_specs:
         type: bool
         description: Install OpenCode CLI.
         default: true
-      tools_install_vibe:
-        type: bool
-        description: Install Mistral Vibe CLI.
-        default: true
       tools_install_gui_apps:
         type: bool
         description: Enable installation of graphical desktop tools and applications.

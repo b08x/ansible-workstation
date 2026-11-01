@@ -207,7 +207,7 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
 
 | Claim | Certainty | Evidence (file + line) |
 |---|---|---|
-| Natural-language → intent workflow (clarify ≤3 questions, copy example, edit intent fields only) | High | `osb/.agents/skills/syncopated/SKILL.md` L33–100 (steps 1–2) |
+| Natural-language → intent workflow (clarify ≤3 questions, copy example, edit intent fields only) | High | `osb/skills/syncopated/SKILL.md` L33–100 (steps 1–2) |
 | Intent schema: required fields, distro pattern, hardening enum, `arch` = `x86_64` only, `disk.size_gib` 32–65536, `additionalProperties: false` | High | `osb/schema/intent.schema.json` L9–61 |
 | Intent validation: `ansible.utils.validate`, fail naming offending fields, map intent → role vars, assert component files exist | High | `osb/roles/osbuild/tasks/intent.yml` L23–94 |
 | Build play: `hosts: builder`, `become: true`, pre-tasks (intent validate, Fedora/EL10 assert, git commit, `image-builder list` assert), `roles: [osbuild]` | High | `osb/playbooks/build.yml` L24–89 |
@@ -217,7 +217,7 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
 | Completion summary (FINISHED branch) prints a `virt-install --cdrom` test command; the default GENERATED branch (L274–283) prints only the build instruction | High | `osb/roles/osbuild/tasks/main.yml` L262–272, L274–283 |
 | Build script: repo preflight, `sudo image-builder build`, newest image, copy to `<name>-<commit>.iso` | High | `osb/roles/osbuild/templates/image-builder-build.sh.j2` (88 lines) |
 | Build hosts: `builder` = `gir` (Fedora, local, .10) + `tinybot` (AlmaLinux 10, SSH .11) | High | `osb/inventory/hosts.yml` L6–14 |
-| ISO install: zero-interaction kickstart, `%pre` disk pick (NVMe first, then largest), 30 s tty8 countdown, LUKS-only prompt | High | `osb/.agents/skills/syncopated/SKILL.md` L127–137 ("What the generated ISO does") |
+| ISO install: zero-interaction kickstart, `%pre` disk pick (NVMe first, then largest), 30 s tty8 countdown, LUKS-only prompt | High | `osb/skills/syncopated/SKILL.md` L127–137 ("What the generated ISO does") |
 | Injected first-login splash: `sudo dnf upgrade`, graphical target, `ansible-pull` only when `/etc/syncopated-ansible-pull.conf` is present | High | `osb/roles/osbuild/files/firstboot/syncopated-firstboot` (conf-conditional ansible-pull lines) |
 | First-login password `syncopated`, forced change (`chage -d 0`), root locked unless `root.enabled` | High | `osb/roles/osbuild/defaults/main.yml` L248–261 |
 | Unattended KVM install harness: `-enable-kvm`, OVMF, NVMe disk of exactly `disk.size_gib`, `-no-reboot`, zero input; offline libguestfs + online `syncopated-scan` | High | `osb/tests/vm/run-install-test.sh` L1–55 (header), 210 lines |
@@ -230,8 +230,8 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
 | Stage 3 firstboot: prompt dotfiles repo (default `dots.git`), `git ls-remote` validate, `yadm clone -f --no-bootstrap`, `yadm bootstrap`, `firstboot.done` marker | High | `ws/scripts/syncopated-firstboot` L17, L49–81 |
 | yadm → ansible bridge: `01-ansible-pull.sh` defaults (workstation repo, `local.yml`, `development`), opt-in `SYNCOPATED_ANSIBLE_PULL`, runs `ansible-pull --tags user local.yml` | High | `ws/scripts/01-ansible-pull.sh` L38–44, L57–66, L92–110 |
 | Three-layer taxonomy + layer ownership principles | High | `ws/docs/layering-architecture.md` L1–78 |
-| 6-phase agent workflow (Specifier → Implementer → Cleaner → Hardener → QA → Architect) as the meta-loop over the workstation repository | High | `ws/.agents/skills/syncopated/SKILL.md` §3 |
-| `rpmbuild` repository as packaging companion (supports Layer 1, off this pipeline's critical path) | High | `ws/.agents/skills/syncopated/SKILL.md` §1 companion table; `rpmbuild/README.md` |
+| 6-phase agent workflow (Specifier → Implementer → Cleaner → Hardener → QA → Architect) as the meta-loop over the workstation repository | High | `skills/syncopated/SKILL.md` §3 |
+| `rpmbuild` repository as packaging companion (supports Layer 1, off this pipeline's critical path) | High | `skills/syncopated/SKILL.md` §1 companion table; `rpmbuild/README.md` |
 | `fedora-minimal-vm-rebuild` done condition (8 points, incl. idempotency `changed=0, failed=0`) | High | `ws/goals/fedora-minimal-vm-rebuild/goal.md` L9–20 |
 | Rebuild orchestrator: 8-step pipeline (teardown → kickstart → virt-install → await SSH → Stage 1 → Stage 2 → Stage 3 → verify idempotence) | High | `ws/goals/fedora-minimal-vm-rebuild/rebuild-orchestrator.sh` L1–60 (config), 417 lines |
 | `ks.cfg` unattended minimal (`@core` + `openssh-server`, Btrfs, user `b08x`, root locked) | High | `ws/goals/fedora-minimal-vm-rebuild/ks.cfg` L1–57 |

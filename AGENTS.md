@@ -53,11 +53,6 @@ molecule test
 # Run pre-commit on all files
 pre-commit run --all-files
 
-# Start the 6-phase Antigravity lead orchestrator
-agy --agent syncopated-lead
-
-# Validate all Antigravity agent definitions
-./scripts/validate-agents.sh
 ```
 
 ## Configuration
@@ -134,7 +129,7 @@ Plugin paths are wired in `ansible.cfg` (`library`, `module_utils`,
 
 ## Agent Skills
 
-Repo-local skills live in `.agents/skills/<name>/SKILL.md` (and system skills in `skills/system/<name>/SKILL.md`) and are loaded on demand:
+User skills live in `~/.gemini/skills/<name>/SKILL.md` (and system skills in `skills/system/<name>/SKILL.md`) and are loaded on demand:
 - **trackboi** — project/board/card tracking via MCP (see block below)
 - **langfuse** — Langfuse tracing, datasets, evaluation; pairs with the `b08x.llmops.langfuse` role
 - **run-workflow** — dynamic programmatic multi-agent orchestration via Python scripts using `run_workflow` (see `skills/system/run-workflow/SKILL.md`)
@@ -142,5 +137,5 @@ Repo-local skills live in `.agents/skills/<name>/SKILL.md` (and system skills in
 <trackboi>
 ## trackboi Skill
 
-When trackboi MCP tools are available, agents can load `.agents/skills/trackboi/SKILL.md` for details, then call `orient_agent` to catch up before updating cards, tracks, boards, or handoff notes. If `.trackboi`, `.etc/.trackboi`, or `.etc/trackboi` files are present but MCP tools are not available, agents may read those files to catch up on local context. Do not manually create, update, or delete trackboi records in the filesystem; use MCP tools for mutations.
+When trackboi MCP tools are available, agents can load trackboi skill details, then call `orient_agent` to catch up before updating cards, tracks, boards, or handoff notes. If `.trackboi`, `.etc/.trackboi`, or `.etc/trackboi` files are present but MCP tools are not available, agents may read those files to catch up on local context. Do not manually create, update, or delete trackboi records in the filesystem; use MCP tools for mutations.
 </trackboi>

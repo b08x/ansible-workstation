@@ -108,38 +108,6 @@ Role variable references live in each role's `defaults/` and README — standard
 |------|------------|
 | [`docs/devcontainer-configuration.md`](docs/devcontainer-configuration.md) | The three `devcontainer.json` variants (podman rootless / podman / docker) and what each `runArgs` entry does. |
 
-## The 6-Phase Agent Workflow
-
-This repository ships a 6-phase agent workflow — Specifier, Implementer, Cleaner,
-Hardener, QA, Architect — with a lead agent (`syncopated-lead`) orchestrating the
-handoffs, one subagent per phase. It runs in both Google Antigravity CLI (`agy`) and
-Mistral Vibe. Deeper detail lives in the agent definition files linked below and in
-[`.vibe/README.md`](.vibe/README.md), not here.
-
-| Read | It answers |
-|-------|-------------------|
-| [`.agents/agents/syncopated-lead.md`](.agents/agents/syncopated-lead.md) (+ 6 phase variants) | Antigravity agent definitions. |
-| [`.vibe/agents/syncopated-lead.toml`](.vibe/agents/syncopated-lead.toml) (+ phase variants) | Vibe agent configs. |
-| [`.vibe/prompts/`](.vibe/prompts/) | The 7 Vibe system prompt files. |
-| [`.vibe/README.md`](.vibe/README.md) | The Vibe-harness layout doc. |
-| [`scripts/validate-agents.sh`](scripts/validate-agents.sh) | Validation suite for the agent definitions. |
-| [`scripts/install-agents.sh`](scripts/install-agents.sh) | Installs the agent definitions and symlinks them into `~/.gemini/agents/`. |
-
-```bash
-agy --agent syncopated-lead    # Google Antigravity CLI
-vibe --agent syncopated-lead  # Mistral Vibe
-```
-
-## Skills for Agents
-
-| Read | It answers |
-|------|-----------|
-| [`.agents/skills/ansible-patterns-anti-patterns/SKILL.md`](.agents/skills/ansible-patterns-anti-patterns/SKILL.md) | The 15 Ansible design patterns. |
-| [`.agents/skills/syncopated/SKILL.md`](.agents/skills/syncopated/SKILL.md) | The core project workflow. |
-| [`.agents/skills/langfuse/SKILL.md`](.agents/skills/langfuse/SKILL.md) | Langfuse integration. |
-| [`.agents/skills/zread/README.md`](.agents/skills/zread/README.md) | The zread CLI skill. |
-| [`skills/system/run-workflow/SKILL.md`](skills/system/run-workflow/SKILL.md) | The dynamic workflow runner. |
-
 ## Improvement Cycles (PDCA)
 
 PDCA here means plan-do-check-act: a change is designed, executed, measured, and

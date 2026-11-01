@@ -95,11 +95,6 @@ tools_install_opencode: true
 tools_opencode_npm_package: "opencode-ai"
 tools_opencode_force_install: false
 
-# Mistral Vibe CLI
-tools_install_vibe: true
-tools_vibe_package: "mistral-vibe"
-tools_vibe_force_install: false
-
 # -- Graphical Desktop Tools & Applications --
 tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"
 
@@ -133,7 +128,6 @@ tools_system_flatpaks:
 
 # input-remapper
 tools_install_input_remapper: "{{ tools_install_gui_apps | default(true) | bool }}"
-
 
 tools_skills_repos:
   - https://github.com/NeoLabHQ/context-engineering-kit.git
