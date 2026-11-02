@@ -17,15 +17,15 @@ this directory.
 
 ### Enable
 
-Already enabled in this repo's `ansible.cfg`:
+Opt-in: the `callbacks_enabled` lines in this repo's `ansible.cfg` are
+commented out — uncomment `#callbacks_enabled       = llm_analyzer` to enable
+the analyzer. The `[callback_llm_analyzer]` section is already configured:
 
 ```ini
-[defaults]
-callbacks_enabled = llm_analyzer
-
 [callback_llm_analyzer]
-provider = openrouter
-model = openrouter/deepseek/deepseek-v4-flash
+provider = mistral
+# Overridden by the AI_MODEL environment variable when it is set.
+model = mistral-medium-latest
 temperature = 0.4
 max_tokens = 8192
 ```

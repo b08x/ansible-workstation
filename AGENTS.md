@@ -57,7 +57,7 @@ pre-commit run --all-files
 
 ## Configuration
 
-- Inventory: `inventory/hosts.ini` (default) or `inventory/hosts.yml`
+- Inventory: `inventory/hosts.yml` (the only inventory; set as the default in `ansible.cfg`)
 - Group vars: `group_vars/dev.yml` (and `group_vars/all.yml`)
 - Host vars: `host_vars/{{ inventory_hostname }}.yml` (e.g. `host_vars/tinybot.yml`)
 - User vars define: `user.name`, `user.home`, `user.shell`
