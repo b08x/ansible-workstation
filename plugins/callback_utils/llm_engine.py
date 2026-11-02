@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """DSPy-backed LLM engine for llm_analyzer.
 
 Holds everything that talks to a model: provider/key resolution, the two

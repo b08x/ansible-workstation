@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """Bounded background worker pool for llm_analyzer.
 
 Ansible calls ``v2_playbook_on_task_start`` on the main thread and waits for it

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """Markdown rendering and on-disk reports for llm_analyzer.
 
 The renderers reproduce the layout the prompt template used to dictate. Moving

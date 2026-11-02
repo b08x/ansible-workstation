@@ -5,7 +5,7 @@
 An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
 workstations. Ten roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
 
-[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
 [![python](https://img.shields.io/badge/python-3.14%20%7C%203.12%2B-blue.svg)](https://www.python.org/)
 [![Fedora](https://img.shields.io/badge/Fedora-44-294172.svg)](https://fedoraproject.org/)
@@ -224,8 +224,22 @@ structure per [`AGENTS.md`](AGENTS.md) — not here.
 
 ## License
 
-The license claim is GPL-3.0-or-later — the badge above and the previous README
-both carry it. The `LICENSE` file itself is not present in the working tree or in git
-history as of this writing; the previous README linked to one, and that link was
-dead. I'd rather state that plainly than point you at a file that isn't there.
-Adding the file to the repo would resolve the gap; nothing else is needed.
+MIT — see [`LICENSE`](LICENSE). The badge above carries the same claim.
+(Earlier READMEs claimed GPL-3.0-or-later, but no `LICENSE` file was ever
+present in the working tree or in git history; that claim is retired in favor
+of the MIT file now at the repository root.)
+
+Two files are carved out of the MIT grant and remain GPL with their upstream
+credits intact:
+
+- [`plugins/callback/llm_analyzer.py`](plugins/callback/llm_analyzer.py) —
+  GPL-3.0-or-later, `Copyright (c) 2023 Sagi Shnaidman` (derived from his
+  callback plugin)
+- [`roles/tuning/templates/usr/lib/systemd/system/cpupower.service.j2`](roles/tuning/templates/usr/lib/systemd/system/cpupower.service.j2) —
+  GPL-2.0-or-later, `Copyright (C) 2012-2020 Sébastien Luttringer`,
+  `Copyright (C) 2024-2025 Francesco Poli` (derived from the Arch Linux
+  cpupower unit)
+
+The `vendor/` submodules are separate works governed by their own licenses:
+`almalinux-atomic-workstation` (GPL-3.0), `finpilot` (Apache-2.0), and
+`osbuild` / `rpmbuild` (MIT, this stack).

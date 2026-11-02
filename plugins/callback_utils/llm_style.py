@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """Ansible style-guide checkers for llm_analyzer.
 
 Every checker here is a pure function of the YAML text: no Ansible object, no

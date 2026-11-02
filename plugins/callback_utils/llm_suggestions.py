@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """Turn style violations into concrete, actionable edits.
 
 Split from :mod:`llm_style` on purpose. Detection answers "what is wrong here"

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# GNU General Public License v3.0+ (see LICENSES/GPL-3.0-or-later.txt)
+# SPDX-License-Identifier: MIT
 """DSPy signatures for Ansible task and play analysis.
 
 These replace the hand-built f-string templates that previously encoded the
