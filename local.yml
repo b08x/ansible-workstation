@@ -23,20 +23,6 @@
   hosts: "{{ target_hosts | default('all') }}"
   become: true
   gather_facts: true
-  tags:
-    [
-      "system",
-      "repos",
-      "common",
-      "tuning",
-      "gpu",
-      "networking",
-      "containerd",
-      "libvirt",
-      "desktop_ui",
-      "desktop",
-      "tools",
-    ]
 
   pre_tasks:
     - name: Ensure facts are gathered
@@ -336,7 +322,7 @@
       ansible.builtin.include_role:
         name: desktop_ui
       when: auto_enable_desktop | default(false) | bool
-      tags: ["desktop_ui", "desktop", "system", "assert"]
+      tags: ["desktop_ui", "desktop", "assert"]
 
     - name: Execute tools role
       ansible.builtin.include_role:
