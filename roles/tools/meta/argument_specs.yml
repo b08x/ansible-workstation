@@ -29,10 +29,6 @@ argument_specs:
         type: list
         elements: str
         description: List of runtime packages to install.
-      tools_install_transcribe:
-        type: bool
-        description: Install whisper transcription CLI (transcribe.cpp).
-        default: true
       tools_install_bun:
         type: bool
         description: Install bun JavaScript/TypeScript runtime.

@@ -1,0 +1,545 @@
+---
+# Standalone OPT-IN installer for transcribe.cpp — the Whisper audio
+# transcription CLI (https://github.com/handy-computer/transcribe.cpp).
+#
+# Run examples:
+#   ansible-playbook playbooks/transcribe-cpp.yml                                  # converge / install
+#   ansible-playbook playbooks/transcribe-cpp.yml --tags assert --check            # pre-flight only
+#   ansible-playbook playbooks/transcribe-cpp.yml -e transcribe_force_build=true   # rebuild a present binary
+#   ansible-playbook playbooks/transcribe-cpp.yml -e transcribe_require_gpu=false  # force CPU backend build
+#   ansible-playbook playbooks/transcribe-cpp.yml -e transcribe_build_taskset_cpus=7-14 -e transcribe_build_cpulimit_percent=150
+#                                                                                       # opt-in build resource limiting
+#
+# Opt-in: no entry playbook (playbooks/workstation.yml, local.yml) imports this
+# file. Running this playbook is the only way transcribe.cpp is built or
+# installed on a host.
+#
+# Variable summary (play `vars`; see the vars block below):
+#   transcribe_assert_enabled     gate the pre-flight assertion block (default true)
+#   transcribe_repo/_version      upstream source repo / git ref ("main")
+#   transcribe_build_dir          scratch build directory (/tmp/transcribe.cpp-build)
+#   transcribe_dest               install destination (/usr/local/bin/transcribe)
+#   transcribe_force_build        force a source rebuild even when the binary exists
+#   transcribe_require_gpu        skip with a notice when no CUDA/Vulkan hardware is detected
+#   transcribe_require_min_specs  skip with a notice below the cores/RAM minimums
+#   transcribe_min_cores/_min_mem_gb/_min_mem_mb  hardware qualification thresholds
+#   transcribe_cleanup            remove the scratch build directory when done (default true)
+#   transcribe_oneapi_setvars     oneAPI environment script probed/sourced for SYCL
+#                                builds (/opt/intel/oneapi/setvars.sh; probe-only — oneAPI
+#                                installation is owned by roles/gpu)
+#   transcribe_build_nice_level     CPU niceness for the build steps (default 19 — DEFAULT-ON;
+#                                  an empty value omits the nice segment)
+#   transcribe_build_ionice_class   IO scheduling class for the build steps (default 3 = idle —
+#                                  DEFAULT-ON; an empty value omits the ionice segment)
+#   transcribe_build_taskset_cpus  CPU affinity list for the build steps, e.g. 7-14 (default ""
+#                                  = OFF — host-specific pinning must be opt-in per run, never a
+#                                  global default across gir/tinybot/soundbot)
+#   transcribe_build_cpulimit_percent  cpulimit CPU cap for the build steps in PER-CORE percent
+#                                  (default "" = OFF; setting it makes this playbook dnf-install
+#                                  cpulimit — per-task become — when absent)
+#
+# Precedence caveat: play `vars` outrank group_vars/host_vars, so overrides
+# must be passed via extra vars (-e transcribe_*=...) only. This is deliberate —
+# the playbook owns its defaults (agent-harness precedent).
+#
+# Privilege model: per-task become. The play runs unprivileged (become: false)
+# and facts are gathered as the connection user; the whole compile runs as the
+# unprivileged user. Four tasks escalate (become: true): the pre-flight
+# `id -u` root check, the install task (copy into /usr/local/bin), the
+# always-block cleanup (removes root-owned build-dir residue left by earlier
+# root-based runs of the former tools role task), and the conditional dnf
+# install of cpulimit (only when a CPU cap is requested and cpulimit is
+# absent — see Build resource limiting). The escalated pre-flight `id -u`
+# doubles as a passwordless-sudo check — this playbook requires
+# passwordless sudo on the target host.
+#
+# Check-mode safety: hardware probes run with check_mode: false and the build
+# block carries `not (ansible_check_mode)` in its when, so --check runs are
+# green: they evaluate the qualification gates and would-be actions, skip the
+# compile, and touch nothing.
+#
+# Layer boundary: this playbook installs ONLY the binary. Whisper models and
+# user configuration stay with Yadm / user space (Layer 2) — nothing here
+# writes into $HOME.
+#
+# Build resource limiting: the CMake configure and compile tasks run under a
+# composed wrapper prefix — "nice -n 19 ionice -c 3" with defaults; the
+# taskset and cpulimit segments are opt-in per run via extra vars, e.g.
+# -e transcribe_build_taskset_cpus=7-14 -e transcribe_build_cpulimit_percent=150.
+# Caveats:
+# - nice, ionice, and taskset are inherited by child processes and are the
+#   reliable limiters; cpulimit throttles via SIGSTOP/SIGCONT and in `--`
+#   exec mode caps only the launched process — compiler children spawned by
+#   make underneath cmake can escape the cap (opt-in garnish, least reliable).
+# - taskset -c takes a CPU-list (e.g. 7-14 or 0-7,16-23), not a mask.
+# - cpulimit percent is PER-CORE: 150 means 1.5 cores' worth of CPU, not
+#   150% of the whole host.
+# - ionice effectiveness depends on the IO scheduler honoring class 3
+#   (BFQ/CFQ); on none-scheduler NVMe it is a harmless no-op — nice/taskset
+#   still apply.
+# - All four wrappers are unprivileged-safe on this playbook's own build
+#   processes (raising niceness, idle-IO on one's own process, re-owning
+#   affinity, throttling one's own children need no root), so the only
+#   escalation they add is the dnf install of cpulimit itself (per-task
+#   become: true).
+
+- name: Transcribe.cpp (Whisper transcription CLI) build and install
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    transcribe_assert_enabled: true
+    transcribe_repo: "https://github.com/handy-computer/transcribe.cpp.git"
+    transcribe_version: "main"
+    transcribe_build_dir: "/tmp/transcribe.cpp-build"
+    transcribe_dest: "/usr/local/bin/transcribe"
+    transcribe_force_build: false
+    transcribe_require_gpu: true
+    transcribe_require_min_specs: true
+    transcribe_min_cores: 16
+    transcribe_min_mem_gb: 32
+    transcribe_min_mem_mb: "{{ ((transcribe_min_mem_gb | int) * 1024 * 0.9) | int }}"
+    transcribe_cleanup: true
+    transcribe_oneapi_setvars: "/opt/intel/oneapi/setvars.sh"
+    transcribe_build_nice_level: 19
+    transcribe_build_ionice_class: 3
+    transcribe_build_taskset_cpus: ""
+    transcribe_build_cpulimit_percent: ""
+
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # workstation.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+
+    - name: Check if transcribe binary exists
+      ansible.builtin.stat:
+        path: "{{ transcribe_dest }}"
+      register: _transcribe_stat
+      tags: ["transcribe", "assert", "always"]
+
+    - name: Pre-flight assertions (Fail-Fast Pattern)
+      when: transcribe_assert_enabled | default(true) | bool
+      tags: ["transcribe", "assert", "always"]
+      block:
+        - name: Assert Ansible facts are gathered
+          ansible.builtin.assert:
+            that:
+              - ansible_os_family is defined
+              - ansible_distribution is defined
+            fail_msg: >-
+              Ansible facts must be gathered before building transcribe.cpp.
+              Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+            quiet: true
+
+        - name: Assert supported OS family and distribution
+          ansible.builtin.assert:
+            that:
+              - ansible_os_family == 'RedHat'
+              - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
+            fail_msg: >-
+              transcribe.cpp is only supported on RedHat-family distributions
+              (Fedora, AlmaLinux, Rocky Linux). Current host is
+              {{ ansible_distribution | default('Unknown') }}
+              ({{ ansible_os_family | default('Unknown') }}).
+            success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
+            quiet: false
+
+        - name: Assert supported package manager
+          ansible.builtin.assert:
+            that:
+              - ansible_pkg_mgr in ['dnf', 'dnf5']
+            fail_msg: >-
+              The transcribe.cpp playbook requires the dnf/dnf5 package manager.
+              Current host reports '{{ ansible_pkg_mgr | default("Unknown") }}'.
+            quiet: true
+
+        - name: Verify effective privileges (escalated)
+          ansible.builtin.command:
+            cmd: id -u
+          register: _transcribe_effective_uid
+          changed_when: false
+          check_mode: false
+          become: true
+          when: >-
+            (not (_transcribe_stat.stat.exists | default(false))) or
+            (transcribe_force_build | default(false) | bool)
+
+        - name: Assert effective root privileges
+          ansible.builtin.assert:
+            that:
+              - _transcribe_effective_uid.stdout | trim == '0'
+            fail_msg: >-
+              Installing transcribe.cpp copies the compiled binary into
+              /usr/local/bin/transcribe as root. The escalated identity check
+              (id -u) did not return 0 — passwordless sudo is required on this
+              host before a build can be attempted.
+            quiet: true
+          when: >-
+            (not (_transcribe_stat.stat.exists | default(false))) or
+            (transcribe_force_build | default(false) | bool)
+
+        - name: Probe build prerequisites
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - "command -v git && command -v cmake && command -v make && command -v g++"
+          register: _transcribe_build_prereqs
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: >-
+            (not (_transcribe_stat.stat.exists | default(false))) or
+            (transcribe_force_build | default(false) | bool)
+
+        - name: Assert build prerequisites present
+          ansible.builtin.assert:
+            that:
+              - (_transcribe_build_prereqs.rc | default(1)) == 0
+            fail_msg: >-
+              The transcribe.cpp build toolchain is incomplete. Install git,
+              cmake, make, and gcc-c++ (dnf, or the common role developer
+              package sets) before running this playbook.
+            quiet: true
+          when: >-
+            (not (_transcribe_stat.stat.exists | default(false))) or
+            (transcribe_force_build | default(false) | bool)
+
+  tasks:
+    - name: Pre-flight hardware and GPU accelerator detection
+      when: not _transcribe_stat.stat.exists or (transcribe_force_build | default(false) | bool)
+      tags: ["transcribe"]
+      block:
+        - name: Probe for CUDA hardware device presence
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - |
+                if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep -q "^GPU "; then
+                  exit 0
+                fi
+                if [ -e /dev/nvidia0 ] || [ -e /dev/nvidiactl ]; then
+                  exit 0
+                fi
+                for d in /sys/bus/pci/devices/*; do
+                  if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                    v=$(cat "$d/vendor")
+                    c=$(cat "$d/class")
+                    if [ "$v" = "0x10de" ] && [ "${c#0x03}" != "$c" ]; then
+                      exit 0
+                    fi
+                  fi
+                done
+                exit 1
+          register: _transcribe_cuda_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: has_cuda_device is not defined
+
+        - name: Probe for Vulkan hardware device presence
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - |
+                if command -v vulkaninfo >/dev/null 2>&1; then
+                  pattern="deviceType\s*=\s*PHYSICAL_DEVICE_TYPE_(DISCRETE_GPU|INTEGRATED_GPU|VIRTUAL_GPU)"
+                  if vulkaninfo --summary 2>/dev/null | grep -E "$pattern" >/dev/null 2>&1; then
+                    exit 0
+                  fi
+                fi
+                if ls /dev/dri/renderD* >/dev/null 2>&1; then
+                  for d in /sys/bus/pci/devices/*; do
+                    if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                      v=$(cat "$d/vendor")
+                      c=$(cat "$d/class")
+                      case "$v" in
+                        0x8086|0x1002|0x10de)
+                          if [ "${c#0x03}" != "$c" ]; then
+                            exit 0
+                          fi
+                          ;;
+                      esac
+                    fi
+                  done
+                fi
+                exit 1
+          register: _transcribe_vulkan_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: has_vulkan_device is not defined
+
+        - name: Probe CPU cores and memory when facts are missing
+          when: ansible_processor_vcpus is not defined or ansible_memtotal_mb is not defined
+          block:
+            - name: Probe nproc
+              ansible.builtin.command:
+                cmd: nproc
+              register: _transcribe_nproc_probe
+              changed_when: false
+              failed_when: false
+              check_mode: false
+
+            - name: Probe MemTotal from /proc/meminfo
+              ansible.builtin.shell:
+                cmd: "awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo"
+              register: _transcribe_mem_probe
+              changed_when: false
+              failed_when: false
+              check_mode: false
+
+        - name: Set GPU acceleration facts
+          ansible.builtin.set_fact:
+            transcribe_has_cuda: >-
+              {{
+                has_cuda_device | bool
+                if has_cuda_device is defined
+                else ((_transcribe_cuda_probe.rc | default(1)) == 0)
+              }}
+            transcribe_has_vulkan: >-
+              {{
+                has_vulkan_device | bool
+                if has_vulkan_device is defined
+                else ((_transcribe_vulkan_probe.rc | default(1)) == 0)
+              }}
+
+        - name: Evaluate GPU acceleration availability
+          ansible.builtin.set_fact:
+            transcribe_has_gpu_acceleration: >-
+              {{ (transcribe_has_cuda | default(false) | bool) or
+                 (transcribe_has_vulkan | default(false) | bool) }}
+
+        - name: Set host hardware resource facts
+          ansible.builtin.set_fact:
+            transcribe_host_cores: >-
+              {{
+                [
+                  ansible_processor_vcpus | default(0) | int,
+                  ansible_processor_nproc | default(0) | int,
+                  ((ansible_processor_cores | default(0) | int) * (ansible_processor_count | default(1) | int)),
+                  _transcribe_nproc_probe.stdout | default(0) | int
+                ] | max
+              }}
+            transcribe_host_mem_mb: >-
+              {{
+                ansible_memtotal_mb | default(_transcribe_mem_probe.stdout | default(0)) | int
+              }}
+
+        - name: Evaluate host hardware specifications
+          ansible.builtin.set_fact:
+            transcribe_has_min_cores: >-
+              {{ (transcribe_host_cores | int) >= (transcribe_min_cores | default(16) | int) }}
+            transcribe_has_min_memory: >-
+              {{
+                (transcribe_host_mem_mb | int) >=
+                (transcribe_min_mem_mb | default(((transcribe_min_mem_gb | default(32) | int) * 1024 * 0.9) | int) | int)
+              }}
+
+        - name: Evaluate hardware qualification for transcribe.cpp
+          ansible.builtin.set_fact:
+            transcribe_has_min_specs: >-
+              {{
+                (transcribe_has_min_cores | bool) and
+                (transcribe_has_min_memory | bool)
+              }}
+
+    - name: Notify that transcribe.cpp is skipped due to insufficient hardware specifications
+      ansible.builtin.debug:
+        msg: >-
+          Skipping transcribe.cpp: host does not meet hardware requirements
+          (found {{ transcribe_host_cores }} cores / {{ (transcribe_host_mem_mb | int / 1024) | round(1) }} GB RAM,
+          required minimum {{ transcribe_min_cores | default(16) }} cores and {{ transcribe_min_mem_gb | default(32) }} GB RAM).
+      when:
+        - not _transcribe_stat.stat.exists or (transcribe_force_build | default(false) | bool)
+        - transcribe_require_min_specs | default(true) | bool
+        - not (transcribe_has_min_specs | default(false) | bool)
+      tags: ["transcribe"]
+
+    - name: Notify that transcribe.cpp is skipped due to missing GPU devices
+      ansible.builtin.debug:
+        msg: "Skipping transcribe.cpp: neither CUDA nor Vulkan hardware devices were detected on this host."
+      when:
+        - not _transcribe_stat.stat.exists or (transcribe_force_build | default(false) | bool)
+        - (transcribe_has_min_specs | default(false) | bool) or not (transcribe_require_min_specs | default(true) | bool)
+        - transcribe_require_gpu | default(true) | bool
+        - not (transcribe_has_gpu_acceleration | default(false) | bool)
+      tags: ["transcribe"]
+
+    - name: Build and install transcribe.cpp
+      when:
+        - not _transcribe_stat.stat.exists or (transcribe_force_build | default(false) | bool)
+        - (transcribe_has_min_specs | default(false) | bool) or not (transcribe_require_min_specs | default(true) | bool)
+        - (transcribe_has_gpu_acceleration | default(false) | bool) or not (transcribe_require_gpu | default(true) | bool)
+        - not (ansible_check_mode | default(false))
+      tags: ["transcribe"]
+      block:
+        - name: Check for nvcc compiler
+          ansible.builtin.command:
+            argv: [sh, -c, "command -v nvcc"]
+          register: _transcribe_nvcc_check
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: transcribe_has_cuda | default(false) | bool
+
+        - name: Check for Intel oneAPI compiler
+          ansible.builtin.shell:
+            cmd: |
+              if [ -f "{{ transcribe_oneapi_setvars }}" ]; then
+                source "{{ transcribe_oneapi_setvars }}" >/dev/null 2>&1 || true
+              fi
+              for cxx in icpx dpcpp icx; do
+                if command -v "$cxx" >/dev/null 2>&1 && "$cxx" --version >/dev/null 2>&1; then
+                  echo "$cxx"
+                  exit 0
+                fi
+              done
+              exit 1
+            executable: /bin/bash
+          register: _transcribe_oneapi_check
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: not (transcribe_has_cuda | default(false) | bool) or ((_transcribe_nvcc_check.rc | default(1)) != 0)
+
+        - name: Determine transcribe build backend
+          ansible.builtin.set_fact:
+            transcribe_backend: >-
+              {{
+                'cuda' if ((transcribe_has_cuda | default(false) | bool) and ((_transcribe_nvcc_check.rc | default(1)) == 0))
+                else (
+                  'sycl' if ((_transcribe_oneapi_check.rc | default(1)) == 0)
+                  else (
+                    'vulkan' if (transcribe_has_vulkan | default(false) | bool)
+                    else 'cpu'
+                  )
+                )
+              }}
+
+        - name: Set CMake flags based on backend
+          ansible.builtin.set_fact:
+            transcribe_cmake_args: >-
+              {{
+                '-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON' if transcribe_backend == 'cuda'
+                else (
+                  '-DGGML_SYCL=ON -DCMAKE_CXX_COMPILER=' ~ (_transcribe_oneapi_check.stdout | default('') | trim) if transcribe_backend == 'sycl'
+                  else (
+                    '-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON' if transcribe_backend == 'vulkan'
+                    else '-DGGML_CUDA=OFF -DTRANSCRIBE_CUDA=OFF -DGGML_VULKAN=OFF -DTRANSCRIBE_VULKAN=OFF'
+                  )
+                )
+              }}
+
+        - name: Compose build resource-limiting wrapper
+          ansible.builtin.set_fact:
+            transcribe_build_resource_wrapper: >-
+              {{
+                [
+                  ('nice -n ' ~ transcribe_build_nice_level)
+                    if (transcribe_build_nice_level | default('') | string | length > 0) else '',
+                  ('ionice -c ' ~ transcribe_build_ionice_class)
+                    if (transcribe_build_ionice_class | default('') | string | length > 0) else '',
+                  ('taskset -c ' ~ transcribe_build_taskset_cpus)
+                    if (transcribe_build_taskset_cpus | default('') | string | length > 0) else '',
+                  ('cpulimit -l ' ~ transcribe_build_cpulimit_percent ~ ' --')
+                    if (transcribe_build_cpulimit_percent | default('') | string | length > 0) else ''
+                ] | select | join(' ')
+              }}
+          # select (no args) drops the empty-string segments, so disabled parts
+          # contribute nothing — with all defaults: "nice -n 19 ionice -c 3".
+          # Reliability: nice/ionice/taskset are inherited by child processes
+          # (the whole compile tree is covered); cpulimit caps only the
+          # launched process via SIGSTOP/SIGCONT — children can escape it.
+
+        - name: Announce transcribe.cpp build configuration
+          ansible.builtin.debug:
+            msg: >-
+              Compiling transcribe.cpp with backend '{{ transcribe_backend }}'
+              (CMake flags: {{ transcribe_cmake_args }};
+              resource wrapper: {{ transcribe_build_resource_wrapper | default('<none>', true) }})
+
+        - name: Probe for cpulimit when a CPU cap is requested
+          ansible.builtin.command:
+            argv: [sh, -c, "command -v cpulimit"]
+          register: _transcribe_cpulimit_check
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: transcribe_build_cpulimit_percent | default('') | string | length > 0
+
+        - name: Install cpulimit when requested and absent
+          ansible.builtin.dnf:
+            name: cpulimit
+            state: present
+          become: true
+          when:
+            - transcribe_build_cpulimit_percent | default('') | string | length > 0
+            - (_transcribe_cpulimit_check.rc | default(1)) != 0
+
+        - name: Clone transcribe.cpp repository
+          ansible.builtin.git:
+            repo: "{{ transcribe_repo }}"
+            dest: "{{ transcribe_build_dir }}"
+            version: "{{ transcribe_version }}"
+            recursive: true
+            force: true
+
+        - name: Configure transcribe.cpp build with CMake
+          ansible.builtin.shell:
+            cmd: >-
+              {{ ('source "' ~ transcribe_oneapi_setvars ~ '" >/dev/null 2>&1;') if transcribe_backend == 'sycl' else '' }}
+              {{ transcribe_build_resource_wrapper }}
+              cmake -B build -DCMAKE_BUILD_TYPE=Release {{ transcribe_cmake_args }}
+            executable: /bin/bash
+            chdir: "{{ transcribe_build_dir }}"
+          changed_when: true
+
+        - name: Compile transcribe.cpp
+          ansible.builtin.shell:
+            cmd: >-
+              {{ ('source "' ~ transcribe_oneapi_setvars ~ '" >/dev/null 2>&1;') if transcribe_backend == 'sycl' else '' }}
+              {{ transcribe_build_resource_wrapper }}
+              cmake --build build --config Release -j{{ transcribe_host_cores | default(ansible_processor_vcpus | default(4)) }}
+            executable: /bin/bash
+            chdir: "{{ transcribe_build_dir }}"
+          changed_when: true
+
+        - name: Find compiled transcribe binary
+          ansible.builtin.find:
+            paths:
+              - "{{ transcribe_build_dir }}/build/bin"
+              - "{{ transcribe_build_dir }}/build"
+            patterns:
+              - "transcribe*"
+            file_type: file
+          register: _transcribe_binaries
+
+        - name: Install transcribe binary to destination
+          ansible.builtin.copy:
+            src: >-
+              {{ (_transcribe_binaries.files
+                  | selectattr('path', 'search', 'transcribe(-cli)?$')
+                  | map(attribute='path') | first)
+                  | default(transcribe_build_dir ~ '/build/bin/transcribe-cli') }}
+            dest: "{{ transcribe_dest }}"
+            mode: "0755"
+            owner: root
+            group: root
+            remote_src: true
+          become: true
+
+      always:
+        - name: Clean up transcribe build directory
+          ansible.builtin.file:
+            path: "{{ transcribe_build_dir }}"
+            state: absent
+          when:
+            - transcribe_cleanup | default(true) | bool
+            - not (ansible_check_mode | default(false))
+          become: true

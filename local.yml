@@ -261,11 +261,6 @@
             auto_enable_containerd: "{{ pull_enable_containerd | default(true) | bool }}"
             has_cuda_device: "{{ (_preflight_cuda_stat.rc | default(1)) == 0 }}"
             has_vulkan_device: "{{ (_preflight_vulkan_stat.rc | default(1)) == 0 }}"
-            auto_enable_transcribe: >-
-              {{
-                ((_preflight_cuda_stat.rc | default(1)) == 0) or
-                ((_preflight_vulkan_stat.rc | default(1)) == 0)
-              }}
 
         - name: Display pre-flight capability findings
           ansible.builtin.debug:
@@ -275,7 +270,7 @@
               - "KVM Support: {{ _preflight_kvm_stat.stat.exists | default(false) }} -> Libvirt: {{ auto_enable_libvirt }}"
               - "Default Target: {{ _preflight_default_target.stdout | default('unknown') }} -> Desktop: {{ auto_enable_desktop }}"
               - "Containers: {{ auto_enable_containerd }}"
-              - "GPU Acceleration: CUDA={{ has_cuda_device }}, Vulkan={{ has_vulkan_device }} -> Transcribe: {{ auto_enable_transcribe }}"
+              - "GPU Acceleration: CUDA={{ has_cuda_device }}, Vulkan={{ has_vulkan_device }}"
 
   tasks:
     - name: Configure DNF performance settings

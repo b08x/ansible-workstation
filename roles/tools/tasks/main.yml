@@ -17,11 +17,6 @@
   when: tools_install_runtimes | default(true) | bool
   tags: ["runtimes", "compilers", "tools"]
 
-- name: Include transcribe.cpp compilation tasks
-  ansible.builtin.include_tasks: transcribe-cpp.yml
-  when: tools_install_transcribe | default(true) | bool
-  tags: ["transcribe", "tools"]
-
 - name: Include bun installation tasks
   ansible.builtin.include_tasks: bun.yml
   when: tools_install_bun | default(true) | bool

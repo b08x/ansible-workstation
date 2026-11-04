@@ -1,8 +1,8 @@
 # Ansible Role: tools
 
-Provisions host-level command-line utilities, hardware-accelerated compiled binaries, Go toolchain environment validation (>= 1.22), the Visual Studio Code developer IDE, system management Flatpaks, and hardware key remapping (`input-remapper`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
+Provisions host-level command-line utilities, Go toolchain environment validation (>= 1.22), the Visual Studio Code developer IDE, system management Flatpaks, and hardware key remapping (`input-remapper`) across Fedora and Enterprise Linux (AlmaLinux, Rocky Linux).
 
-Coding agent CLIs are provisioned by the standalone playbooks in [`playbooks/agent-harness/`](../../playbooks/agent-harness/).
+Coding agent CLIs are provisioned by the standalone playbooks in [`playbooks/agent-harness/`](../../playbooks/agent-harness/). transcribe.cpp (Whisper transcription CLI) is built by the standalone [`playbooks/transcribe-cpp.yml`](../../playbooks/transcribe-cpp.yml) playbook.
 
 ---
 
@@ -22,9 +22,8 @@ It establishes a strict boundary separating binary installation from user config
                                     v
 +--------------------------------------------------------------------------+
 |                      Layer 1: roles/tools (Ansible)                      |
-|   - System Binaries & Hardware CLI Tools (/usr/local/bin):               |
+|   - System Binaries (/usr/local/bin):                                    |
 |       * Bun Standalone JS/TS Runtime (bun)                               |
-|       * Hardware-Accelerated Audio Transcription (transcribe.cpp)        |
 |   - Developer IDEs & Graphical Tools (gated by tools_install_gui_apps):  |
 |       * Visual Studio Code (Native DNF RPM or Flatpak)                   |
 |       * System-scoped Flatpaks & Flathub Remote                          |
@@ -37,7 +36,7 @@ It establishes a strict boundary separating binary installation from user config
 +--------------------------------------------------------------------------+
 |                  Layer 0: Host Operating System & Hardware               |
 |        Hardware Acceleration: see the `gpu` role (NVIDIA CUDA,           |
-|        Intel oneAPI/graphics); tools only consumes oneAPI/CUDA          |
+|        Intel oneAPI/graphics)                                            |
 |             Fedora 40+, AlmaLinux 9/10, Rocky Linux 9/10                 |
 +--------------------------------------------------------------------------+
 ```
@@ -46,19 +45,14 @@ It establishes a strict boundary separating binary installation from user config
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `go.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
 2. **GUI Availability Gating**: Graphical desktop tools (VS Code, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"`. Headless systems automatically skip graphical installations while retaining all CLI utilities.
-3. **Pre-flight Hardware Capability Checks**:
-   - `tasks/transcribe-cpp.yml` probes the host for CUDA hardware devices (`nvidia-smi`, `/dev/nvidia*`, PCI vendor `0x10de`) and Vulkan physical GPU devices (`vulkaninfo`, render nodes).
-   - If neither CUDA nor Vulkan hardware devices are present and `tools_transcribe_require_gpu: true`, compilation is automatically **skipped** with an informative debug notice rather than failing or wasting resources on CPU builds.
-4. **Failure-Shape Pattern (Shape 2: True Fallback & Auto-Detection)**:
-   - Evaluates hardware acceleration tiers for Whisper transcription: CUDA (`GGML_CUDA=ON`) &rarr; Intel SYCL/oneAPI (`GGML_SYCL=ON`) &rarr; Vulkan (`GGML_VULKAN=ON`) &rarr; CPU fallback.
-5. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `transcribe`, `go`, `vscode`, `input-remapper`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which go`, `go version`, `which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
-6. **User Context & Runtime Isolation (`become_user`)**: User-scoped tools and Go-compiled utilities install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership.
-7. **Handler Notification Pattern**: Changes to service unit files (`input-remapper.service`) notify `Daemon reload` (`systemd daemon_reload: true`).
-8. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `system`) and dedicated tool tags (`bun`, `transcribe`, `go`, `vscode`, `flathub`, `flatpaks`, `input-remapper`).
-9. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `user.home`) and Tier 2 namespaced role variables (`tools_*`).
-10. **Pre-flight Assertion Pattern**: Frontloads prerequisite validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, effective root privileges, target user configuration, Go toolchain parameters) are missing or misconfigured.
+3. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `go`, `vscode`, `input-remapper`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which go`, `go version`, `which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
+4. **User Context & Runtime Isolation (`become_user`)**: User-scoped tools and Go-compiled utilities install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership.
+5. **Handler Notification Pattern**: Changes to service unit files (`input-remapper.service`) notify `Daemon reload` (`systemd daemon_reload: true`).
+6. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `system`) and dedicated tool tags (`bun`, `go`, `vscode`, `flathub`, `flatpaks`, `input-remapper`).
+7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `user.home`) and Tier 2 namespaced role variables (`tools_*`).
+8. **Pre-flight Assertion Pattern**: Frontloads prerequisite validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, effective root privileges, target user configuration, Go toolchain parameters) are missing or misconfigured.
 
 ---
 
@@ -69,33 +63,24 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 - Architecture-aware download for `x86_64` and `aarch64`.
 - Idempotently checks binary existence and permissions before initiating downloads.
 
-### 2. Transcribe.cpp Whisper Engine (`tasks/transcribe-cpp.yml`)
-- Clones and builds [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) (Whisper audio transcription CLI) with automatic hardware acceleration detection:
-  - **Hardware Qualification Gate**: Controlled by `tools_transcribe_require_min_specs: true` (default). Verifies host meets minimum hardware requirements of 16 CPU cores/vCPUs and 32 GB RAM before attempting compilation.
-  - **CUDA (NVIDIA)**: Probes hardware device and `command -v nvcc` &rarr; compiles with `-DGGML_CUDA=ON -DTRANSCRIBE_CUDA=ON`.
-  - **Intel oneAPI / SYCL**: Probes `icpx`/`dpcpp`/`icx` (sourcing `setvars.sh`) &rarr; compiles with `-DGGML_SYCL=ON -DCMAKE_CXX_COMPILER=<probed compiler>` inside the oneAPI environment.
-  - **Vulkan**: Probes Vulkan physical GPUs (Intel Iris/Arc, AMD Radeon, NVIDIA) &rarr; compiles with `-DGGML_VULKAN=ON -DTRANSCRIBE_VULKAN=ON`.
-  - **GPU Requirement Gate**: Controlled by `tools_transcribe_require_gpu: true` (default). When no GPU accelerator is found, cleanly skips compilation.
-- Installs binary to `/usr/local/bin/transcribe`.
-
-### 3. Go Toolchain Environment Validation (`tasks/go.yml`)
+### 2. Go Toolchain Environment Validation (`tasks/go.yml`)
 - Verifies that a valid Go compiler (>= 1.22, controlled by `tools_go_min_version`) is available in `PATH`.
 - Prepares user binary and Go workspace directories (`~/.local/bin` and `~/go/bin`) under target user ownership.
 - Probes compiler availability and version using `which go` and `go version` with check-mode safe flags.
 - Asserts environment readiness via `ansible.builtin.assert`, failing fast with guidance to install Go via package manager (e.g. `dnf install golang`) if Go is absent or below the required version.
 
-### 4. Visual Studio Code (`tasks/vscode.yml`)
+### 3. Visual Studio Code (`tasks/vscode.yml`)
 - Checks for existing `code` binary in `$PATH` to ensure idempotency.
 - Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`).
 - Supports native RPM installation (default) or Flatpak distribution (`tools_vscode_flatpak: true`).
 - Gated by `tools_install_gui_apps` and `tools_install_vscode`.
 
-### 5. System Flatpaks & Flathub Remote (`tasks/flatpak.yml`)
+### 4. System Flatpaks & Flathub Remote (`tasks/flatpak.yml`)
 - Configures the official Flathub remote repository (`https://dl.flathub.org/repo/flathub.flatpakrepo`) under system scope (`method: system`).
 - Deploys administrative, utility, and creative Flatpak applications defined in `tools_system_flatpaks` (overridable via `system_flatpaks`).
 - Gated by `tools_install_gui_apps` and `tools_install_flatpaks`.
 
-### 6. Hardware Key Remapper (`tasks/input-remapper.yml`)
+### 5. Hardware Key Remapper (`tasks/input-remapper.yml`)
 - Checks `/usr/bin/input-remapper-gtk` via `ansible.builtin.stat` for idempotency.
 - **Fedora**: Installs the native `input-remapper` RPM package via DNF.
 - **Enterprise Linux (AlmaLinux & Rocky Linux)**: Installs required Python dependencies (`evdev`, `pydantic`, `dasbus`, `PyGObject`, `psutil`), clones the upstream repository, and installs the service using Python installer hooks.
@@ -126,9 +111,6 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `tools_user_go_bin` | `{{ tools_user_home }}/go/bin` | User Go binary execution directory. |
 | `tools_install_runtimes` | `true` | Install developer toolchains and language runtimes (golang, nodejs, npm). |
 | `tools_install_bun` | `true` | Enable/disable Bun installation. |
-| `tools_install_transcribe` | `true` | Enable/disable transcribe.cpp compilation. |
-| `tools_transcribe_require_min_specs` | `true` | Skip compilation if host has fewer than minimum cores or RAM. |
-| `tools_transcribe_require_gpu` | `true` | Skip compilation if neither CUDA nor Vulkan devices are detected. |
 | `tools_install_go` | `true` | Enable/disable Go toolchain environment validation. |
 | `tools_go_min_version` | `"1.22"` | Minimum Go compiler version required in PATH. |
 | `tools_install_gui_apps` | `{{ auto_enable_desktop \| default(true) \| bool }}` | Master gate for graphical desktop applications. |
@@ -157,7 +139,6 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `assert` | Validation | Executes pre-flight assertion tasks. |
 | `system` | Playbook | System configuration group tag shared across system provisioning roles. |
 | `bun` | Feature | Runs only Bun installation tasks. |
-| `transcribe` | Feature | Runs only transcribe.cpp hardware detection and build tasks. |
 | `go` | Feature | Runs only Go toolchain environment validation tasks. |
 | `vscode` | Feature | Runs only Visual Studio Code installation tasks. |
 | `flathub` | Feature | Ensures system Flathub remote repository is configured. |
