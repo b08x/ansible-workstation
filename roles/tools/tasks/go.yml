@@ -1,6 +1,6 @@
 ---
 # tasks file for Go toolchain validation in roles/tools
-# Verifies that a valid Go compiler is available for user CLI tools (e.g. Crush).
+# Verifies that a valid Go compiler is available for user CLI tools.
 
 - name: Ensure user local bin and go directories exist
   ansible.builtin.file:

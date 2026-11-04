@@ -82,7 +82,7 @@
     - role: user
       tags: ["user", "system"]
 
-- name: Host Tools and Coding Agent Utilities
+- name: Host Tools
   hosts: workstations
   become: true
   gather_facts: false

@@ -1,0 +1,71 @@
+---
+# Standalone installer for the OpenCode CLI.
+# Config files (~/.config/opencode/opencode.json) are managed by Yadm dotfiles (Layer 2).
+
+- name: OpenCode CLI
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    opencode_user: "{{ user.name | default(ansible_user_id) }}"
+    opencode_user_home: "{{ user.home | default(ansible_env.HOME) }}"
+    opencode_local_bin: "{{ opencode_user_home }}/.local/bin"
+    opencode_npm_package: "opencode-ai"
+    opencode_force_install: false
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # workstation.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+
+    - name: Check if OpenCode binary exists
+      ansible.builtin.stat:
+        path: "{{ opencode_local_bin }}/opencode"
+      register: _opencode_binary_stat
+      tags: ["opencode", "assert", "always"]
+
+    - name: Check for npm command availability
+      ansible.builtin.command:
+        cmd: which npm
+      register: _opencode_npm_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      tags: ["opencode", "assert", "always"]
+
+    - name: Assert npm is available when OpenCode needs installing
+      ansible.builtin.assert:
+        that:
+          - (_opencode_npm_check.rc | default(1)) == 0
+        fail_msg: >-
+          npm was not found in PATH and the OpenCode binary is not installed
+          at {{ opencode_local_bin }}/opencode (or opencode_force_install is true).
+          Install nodejs/npm via the base role (roles/common) before running
+          this playbook.
+        quiet: false
+      when: >-
+        (not (_opencode_binary_stat.stat.exists | default(false))) or
+        (opencode_force_install | default(false) | bool)
+      tags: ["opencode", "assert", "always"]
+  tasks:
+    - name: Install OpenCode CLI
+      when:
+        - (_opencode_npm_check.rc | default(1)) == 0
+        - >-
+          (not (_opencode_binary_stat.stat.exists | default(false))) or
+          (opencode_force_install | default(false) | bool)
+      tags: ["opencode", "agents"]
+      block:
+        - name: Configure npm user prefix
+          ansible.builtin.command:
+            cmd: "npm config set prefix {{ opencode_user_home }}/.local"
+          changed_when: false
+          tags: ["opencode", "agents"]
+
+        - name: Install OpenCode npm package
+          ansible.builtin.command:
+            cmd: "npm install -g --prefix {{ opencode_user_home }}/.local {{ opencode_npm_package }}"
+          changed_when: true
+          tags: ["opencode", "agents"]

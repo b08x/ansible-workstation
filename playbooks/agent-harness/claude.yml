@@ -1,0 +1,71 @@
+---
+# Standalone installer for the Claude Code CLI.
+# Config files and MCP definitions are managed by Yadm dotfiles (Layer 2).
+
+- name: Claude Code CLI
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    claude_user: "{{ user.name | default(ansible_user_id) }}"
+    claude_user_home: "{{ user.home | default(ansible_env.HOME) }}"
+    claude_local_bin: "{{ claude_user_home }}/.local/bin"
+    claude_npm_package: "@anthropic-ai/claude-code"
+    claude_force_install: false
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # workstation.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+
+    - name: Check if Claude Code binary exists
+      ansible.builtin.stat:
+        path: "{{ claude_local_bin }}/claude"
+      register: _claude_binary_stat
+      tags: ["claude", "assert", "always"]
+
+    - name: Check for npm command availability
+      ansible.builtin.command:
+        cmd: which npm
+      register: _claude_npm_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      tags: ["claude", "assert", "always"]
+
+    - name: Assert npm is available when Claude Code needs installing
+      ansible.builtin.assert:
+        that:
+          - (_claude_npm_check.rc | default(1)) == 0
+        fail_msg: >-
+          npm was not found in PATH and the Claude Code binary is not installed
+          at {{ claude_local_bin }}/claude (or claude_force_install is true).
+          Install nodejs/npm via the base role (roles/common) before running
+          this playbook.
+        quiet: false
+      when: >-
+        (not (_claude_binary_stat.stat.exists | default(false))) or
+        (claude_force_install | default(false) | bool)
+      tags: ["claude", "assert", "always"]
+  tasks:
+    - name: Install Claude Code CLI
+      when:
+        - (_claude_npm_check.rc | default(1)) == 0
+        - >-
+          (not (_claude_binary_stat.stat.exists | default(false))) or
+          (claude_force_install | default(false) | bool)
+      tags: ["claude", "agents"]
+      block:
+        - name: Configure npm user prefix
+          ansible.builtin.command:
+            cmd: "npm config set prefix {{ claude_user_home }}/.local"
+          changed_when: false
+          tags: ["claude", "agents"]
+
+        - name: Install Claude Code npm package
+          ansible.builtin.command:
+            cmd: "npm install -g --prefix {{ claude_user_home }}/.local {{ claude_npm_package }}"
+          changed_when: true
+          tags: ["claude", "agents"]

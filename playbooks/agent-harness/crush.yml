@@ -1,0 +1,95 @@
+---
+# Standalone installer for the Crush CLI (Charm).
+# Config files (~/.config/crush/crushrc) are managed by Yadm dotfiles (Layer 2).
+
+- name: Crush CLI
+  hosts: workstations
+  become: false
+  gather_facts: false
+  vars:
+    crush_user: "{{ user.name | default(ansible_user_id) }}"
+    crush_user_home: "{{ user.home | default(ansible_env.HOME) }}"
+    crush_local_bin: "{{ crush_user_home }}/.local/bin"
+    crush_go_bin: "{{ crush_user_home }}/go/bin"
+    crush_go_package: "github.com/charmbracelet/crush@latest"
+    crush_force_install: false
+  # An explicit setup task always gathers fresh facts. gathering = smart in
+  # ansible.cfg would otherwise reuse cached facts from a root play such as
+  # workstation.yml, where ansible_user_dir is /root.
+  pre_tasks:
+    - name: Gather facts as unprivileged connection user
+      ansible.builtin.setup:
+      tags: ["always"]
+
+    - name: Check if Crush binary exists in local bin
+      ansible.builtin.stat:
+        path: "{{ crush_local_bin }}/crush"
+      register: _crush_local_stat
+      tags: ["crush", "assert", "always"]
+
+    - name: Check if Crush binary exists in go bin
+      ansible.builtin.stat:
+        path: "{{ crush_go_bin }}/crush"
+      register: _crush_go_stat
+      tags: ["crush", "assert", "always"]
+
+    - name: Check for go command availability
+      ansible.builtin.command:
+        cmd: which go
+      register: _crush_go_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      tags: ["crush", "assert", "always"]
+
+    - name: Assert go is available when Crush needs installing
+      ansible.builtin.assert:
+        that:
+          - (_crush_go_check.rc | default(1)) == 0
+        fail_msg: >-
+          go was not found in PATH and the Crush binary is not installed at
+          {{ crush_local_bin }}/crush or {{ crush_go_bin }}/crush (or
+          crush_force_install is true). Install Go via the tools role
+          (ansible-playbook playbooks/workstation.yml --tags go) before
+          running this playbook.
+        quiet: false
+      when: >-
+        ((not (_crush_local_stat.stat.exists | default(false))) and
+         (not (_crush_go_stat.stat.exists | default(false)))) or
+        (crush_force_install | default(false) | bool)
+      tags: ["crush", "assert", "always"]
+  tasks:
+    - name: Install Crush CLI via Go
+      when: >-
+        ((not (_crush_local_stat.stat.exists | default(false))) and
+         (not (_crush_go_stat.stat.exists | default(false)))) or
+        (crush_force_install | default(false) | bool)
+      tags: ["crush", "agents"]
+      block:
+        - name: Ensure user go bin directory exists
+          ansible.builtin.file:
+            path: "{{ crush_go_bin }}"
+            state: directory
+            mode: "0755"
+          tags: ["crush", "agents"]
+
+        - name: Compile and install Crush CLI
+          ansible.builtin.command:
+            cmd: "go install {{ crush_go_package }}"
+          environment:
+            GOPATH: "{{ crush_user_home }}/go"
+            PATH: "{{ crush_local_bin }}:{{ crush_user_home }}/.local/go/bin:{{ ansible_env.PATH }}"
+            GOTOOLCHAIN: "auto"
+          changed_when: true
+          tags: ["crush", "agents"]
+
+        - name: Symlink Crush binary to user local bin
+          ansible.builtin.file:
+            src: "{{ crush_go_bin }}/crush"
+            dest: "{{ crush_local_bin }}/crush"
+            state: link
+            force: true
+          when: >-
+            (_crush_local_stat.stat.exists | default(false)) is false or
+            (crush_force_install | default(false) | bool)
+          tags: ["crush", "agents"]

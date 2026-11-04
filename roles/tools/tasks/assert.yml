@@ -52,7 +52,7 @@
       - tools_user_home.startswith('/')
     fail_msg: >-
       The tools role requires a valid target user ('tools_user') and home directory ('tools_user_home')
-      to install user-scoped toolchains and coding agent CLIs.
+      to install user-scoped toolchains.
     quiet: true
   tags: ["tools", "assert", "always"]
 
