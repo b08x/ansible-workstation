@@ -16,7 +16,7 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
   (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, gpu, networking, containerd, desktop_ui, libvirt),
   user (user), and tools (tools).
 
-Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `gpu`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code), Flatpaks, and input-remapper live in `tools`. Coding agent CLIs and the Antigravity Hub & IDE are provisioned by the standalone playbooks in `playbooks/agent-harness/`.
+Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `gpu`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code), Flatpaks, and input-remapper live in `tools`. Coding agent CLIs and the Antigravity Hub & IDE are provisioned by the standalone playbooks in `playbooks/agent-harness/`. The transcribe.cpp (Whisper) transcription CLI is built by the standalone opt-in playbook `playbooks/transcribe-cpp.yml`.
 
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative

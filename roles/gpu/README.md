@@ -8,7 +8,7 @@ Optional host GPU compute stacks: the Intel oneAPI toolkit (pinned MKL/compiler 
 
 Under the [workstation layering taxonomy](../../docs/layering-architecture.md), the `gpu` role operates at **Layer 1 (Ansible Machine Orchestration)** to deploy vendor repositories, kernel driver packages, kernel command-line arguments, systemd services, and CDI container integration owned by the host.
 
-The role was carved out of `roles/tools` (which previously carried the Intel tasks) and extended with the NVIDIA stack ported from the sibling `osbuild` repository's `nvidia` blueprint component. It runs in the **System Configuration** play of `playbooks/workstation.yml`, after `common` (which exports `detected_gpu_vendor` with the `always` tag) and before `tools` (whose `transcribe-cpp.yml` probes for oneAPI and CUDA as a consumer, never an installer).
+The role was carved out of `roles/tools` (which previously carried the Intel tasks) and extended with the NVIDIA stack ported from the sibling `osbuild` repository's `nvidia` blueprint component. It runs in the **System Configuration** play of `playbooks/workstation.yml`, after `common` (which exports `detected_gpu_vendor` with the `always` tag); the standalone `playbooks/transcribe-cpp.yml` probes for oneAPI and CUDA as a consumer, never an installer.
 
 ```
 +--------------------------------------------------------------------------+
@@ -205,8 +205,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
       tags: ["gpu", "system"]
 ```
 
-The role runs after `common` (hardware detection) and before `tools`
-(transcribe.cpp oneAPI/CUDA probes).
+The role runs after `common` (hardware detection); the standalone [`playbooks/transcribe-cpp.yml`](../../playbooks/transcribe-cpp.yml) carries the transcribe.cpp oneAPI/CUDA probes (consumer only).
 
 ### 2. Enabling a stack per host (`inventory/host_vars/<host>.yml`)
 
