@@ -13,10 +13,10 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
 
 - `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers, CUDA/Vulkan GPUs), Tag-as-Select role filtering, and reboot assessment.
 - `playbooks/workstation.yml` — full workstation provisioning. Targets the `workstations` group
-  (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, networking, containerd, desktop_ui, libvirt),
+  (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, gpu, networking, containerd, desktop_ui, libvirt),
   user (user), and tools (tools).
 
-Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code, Antigravity Hub & IDE), Flatpaks, and input-remapper live in `tools`.
+Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `gpu`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code, Antigravity Hub & IDE), Flatpaks, and input-remapper live in `tools`.
 
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative

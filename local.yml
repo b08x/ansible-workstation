@@ -29,6 +29,7 @@
       "repos",
       "common",
       "tuning",
+      "gpu",
       "networking",
       "containerd",
       "libvirt",
@@ -52,6 +53,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -72,6 +74,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -91,6 +94,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -109,6 +113,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -128,6 +133,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -163,6 +169,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",
@@ -308,6 +315,11 @@
         name: tuning
       tags: ["tuning", "system", "assert"]
 
+    - name: Execute gpu role
+      ansible.builtin.include_role:
+        name: gpu
+      tags: ["gpu", "system", "assert"]
+
     - name: Execute networking role
       ansible.builtin.include_role:
         name: networking
@@ -345,6 +357,7 @@
           "repos",
           "common",
           "tuning",
+          "gpu",
           "networking",
           "containerd",
           "libvirt",

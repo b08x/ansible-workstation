@@ -3,7 +3,7 @@
 # Ansible Collection: Development Workstation
 
 An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
-workstations. Ten roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
+workstations. Eleven roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
@@ -63,8 +63,8 @@ pipeline** — declarative blueprints, functional as intended with minor fixes s
 pending — or the **bootc immutable container-image pipeline**, which is unfinished; do
 not rely on it yet. Layer 1 does not care which floor it stands on: either way it
 starts from a Fedora 44 / AlmaLinux 10 / Rocky Linux 10 host and converges it. Layer 1
-is this repository: Ansible converging the host through ten roles — common,
-containerd, desktop_ui, libvirt, nas, networking, tools, tts, tuning,
+is this repository: Ansible converging the host through eleven roles — common,
+containerd, desktop_ui, gpu, libvirt, nas, networking, tools, tts, tuning,
 user — idempotent by contract. Layer 2 is yadm: the user's dotfiles, cloned on first
 login and owned by the user forever after.
 
@@ -285,6 +285,7 @@ export, not maintained markdown).
 | [roles/containerd/README.md](roles/containerd/README.md) | Container runtime and dev environment. |
 | [roles/libvirt/README.md](roles/libvirt/README.md) | KVM/QEMU, daemon security, bridges, pools. |
 | [roles/desktop_ui/README.md](roles/desktop_ui/README.md) | GNOME/COSMIC/Sway dispatch, extensions, display manager, Yaru. |
+| [roles/gpu/README.md](roles/gpu/README.md) | Optional Intel oneAPI/graphics and NVIDIA CUDA stacks, off by default per host. |
 | [roles/tools/README.md](roles/tools/README.md) | Utilities, IDEs, AI agent CLIs, input-remapper. |
 | [roles/user/README.md](roles/user/README.md) | uv-managed Python; deliberately small. |
 | [roles/nas/README.md](roles/nas/README.md) | NFSv4, Samba, Rsync, firewalld, multi-tenant. |

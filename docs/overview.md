@@ -11,8 +11,9 @@ see [`usage.md`](usage.md).
 ## What This Is
 
 This repository provisions workstations. It installs system packages, configures
-services, detects and wires hardware acceleration (CUDA, Vulkan, Intel
-oneAPI/SYCL), deploys desktop environments, and — centrally — installs the AI
+services, detects hardware acceleration (CUDA, Vulkan, Intel
+oneAPI/SYCL) and installs those vendor stacks through the optional `gpu`
+role, deploys desktop environments, and — centrally — installs the AI
 coding agent CLIs this workstation runs day to day: Claude Code, Google
 Antigravity, Charm Crush, and OpenCode.
 
@@ -58,6 +59,7 @@ workstation/
 │   ├── containerd/            # Container runtime
 │   ├── libvirt/               # Virtualization (KVM)
 │   ├── desktop_ui/            # GNOME & COSMIC desktop, GDM & cosmic-greeter, theming
+│   ├── gpu/                   # Optional Intel oneAPI + NVIDIA CUDA stacks (off by default)
 │   ├── tools/                 # AI coding CLIs, IDEs, system binaries, Flatpaks
 │   ├── user/                  # User environment, shell, uv toolchains
 │   ├── nas/                   # NFS, Samba, rsync

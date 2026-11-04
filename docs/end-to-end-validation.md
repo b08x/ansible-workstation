@@ -103,7 +103,10 @@ unit (`TimeoutSec=0`), enables it, and reboots. Bootstrap step 2
 (`scripts/syncopated-bootstrap-root.sh`) runs `ansible-pull --tags system
 local.yml`, which probes hardware (`/dev/kvm`, default target, CUDA, Vulkan)
 and converges the repository configuration and the `common`, `tuning`,
-`networking`, and `tools` roles unconditionally; `containerd` and `desktop_ui`
+`gpu`, `networking`, and `tools` roles unconditionally — the `gpu` role
+installs vendor stacks only when `intel_oneapi_install` /
+`nvidia_cuda_install` host flags are set, otherwise it makes no changes;
+`containerd` and `desktop_ui`
 unless their enable flags are overridden (both default on); and `libvirt` only
 when `/dev/kvm` is present — including installing the yadm RPM (with a
 standalone-binary fallback) and deploying the firstboot hooks — then writes
