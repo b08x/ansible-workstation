@@ -22,6 +22,8 @@ playbooks/
   workstation.yml             # full provisioning: repos → common → system roles (incl. gpu) → user → tools → post-flight
   repositories.yml            # imported by workstation.yml (play 1)
   nas.yml, tts.yml            # standalone service playbooks
+  agent-harness/              # standalone coding-agent installers (antigravity, claude,
+                              # crush, opencode + README); opt-in, NOT imported by any entry playbook
   tasks/repositories/         # dnf.yml, Fedora.yml, EL.yml, AlmaLinux.yml, Rocky.yml, RHEL.yml (+ files/epel.repo)
 roles/                        # 11 roles: common, containerd, desktop_ui, gpu, libvirt,
                               # nas, networking, tools, tts, tuning, user
@@ -62,11 +64,13 @@ placeholders). Only `roles/common/molecule/default/` has a molecule scenario.
 - `roles/common`: baseline packages, **hardware auto-detection**
   (`tasks/hardware.yml`), tuned profile, CIS-L2 hardening (`tasks/hardening/{main,auditd,sshd,crypto,limits}.yml`),
   zsh/yadm install, firstboot. Vars: `AlmaLinux.yml`, `Fedora.yml`, `Rocky-9.yml`, `Rocky-10.yml`.
-- `roles/tools`: task dispatcher with 14 subtask files (`runtimes`, `transcribe-cpp`,
-  `bun`, `go`, `antigravity`, `claude`, `crush`, `opencode`, `gitflow`, `inxi`,
-  `homebrew` (Fedora-only), `vscode`, `flatpak`, `input-remapper`). `intel.yml`
-  has moved to `roles/gpu/tasks/intel.yml` (commit e9a6c78) and is gone from
-  tools. `vars/main.yml` is empty; no distro vars files.
+- `roles/tools`: task dispatcher with 10 subtask files (`runtimes`, `transcribe-cpp`,
+  `bun`, `go`, `gitflow`, `inxi`, `homebrew` (Fedora-only), `vscode`,
+  `flatpak`, `input-remapper`). `intel.yml` has moved to
+  `roles/gpu/tasks/intel.yml` (commit e9a6c78) and the coding-agent installers
+  (`antigravity`, `claude`, `crush`, `opencode`) have moved to the standalone
+  playbooks in `playbooks/agent-harness/` (see `goals/agent-harness-playbooks/`).
+  `vars/main.yml` is empty; no distro vars files.
 - `roles/gpu`: host GPU compute stacks — `tasks/intel.yml` (oneAPI toolkit +
   Intel graphics) and `tasks/nvidia.yml` (CUDA driver, toolkit, container
   toolkit), both OFF by default, plus per-major distro vars
@@ -90,7 +94,8 @@ placeholders). Only `roles/common/molecule/default/` has a molecule scenario.
    `[role, domain…]` tags). `role: gpu` runs with `tags: ["gpu", "system"]`
    immediately after `tuning` (workstation.yml:55-56).
 4. "User Workstation Setup" (become: false) — `user`
-5. "Host Tools and Coding Agent Utilities" (become) — `tools`
+5. "Host Tools" (become) — `tools` (agent CLIs are no longer installed here;
+   `playbooks/agent-harness/` is the deliberate standalone replacement)
 6. "Post-flight Execution Assessment and Reboot Verification" (workstation.yml:97):
    `needs-restarting -r` (RedHat family) + `stat /var/run/reboot-required` →
    `system_reboot_required`; optional `pause`+`reboot` only when
@@ -275,6 +280,11 @@ exists (stale).
 **Caution**: `ansible.cfg` enables jsonfile fact caching
 (`/tmp/ansible_cache`, 86400s) — cached facts can mask fresh
 `detected_gpu_vendor` between runs during verification.
+
+**Caution**: the `rich_ci_formatter` stdout_callback emits no
+`PLAY RECAP … failed=N` line — verify check-mode runs by exit code /
+absence of `FAILED` entries rather than recap greps (`llm_analyzer` is
+commented out in `ansible.cfg` and inactive).
 
 ## Layer Boundaries
 

@@ -112,7 +112,7 @@ floor into shape — see [`bootstrap.md`](bootstrap.md) for the bridge and
 
 ## The Coding Tools
 
-The [`tools`](../roles/tools) role provisions four AI coding agent CLIs:
+The standalone playbooks in [`playbooks/agent-harness/`](../playbooks/agent-harness/) provision four AI coding agent CLIs:
 
 | CLI | Binary | Install Method | Config Location |
 |-----|--------|---------------|-----------------|
@@ -125,7 +125,7 @@ Ansible installs the binaries; yadm (Layer 2) owns the configs and shared
 skills. The boundary is strict — Ansible never writes into paths that
 yadm owns.
 
-Plus developer IDEs (VS Code, Antigravity Hub & IDE), system binaries
+Plus developer IDEs (VS Code), system binaries
 (`bun`, `transcribe` — compiled from source with a CUDA, Intel SYCL, or
 Vulkan backend chosen by hardware probe; GPU required by default, overridable
 via `tools_transcribe_*` flags), Go toolchain validation, and system
