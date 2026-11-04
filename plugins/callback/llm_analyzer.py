@@ -35,18 +35,18 @@ if not os.path.isdir(_UTILS_DIR):
 if _UTILS_DIR not in sys.path:
     sys.path.insert(0, _UTILS_DIR)
 
-from llm_engine import AnsibleAnalyzer
-from llm_pool import AnalysisPool
-from llm_report import (
+from llm_engine import AnsibleAnalyzer  # noqa: E402
+from llm_pool import AnalysisPool  # noqa: E402
+from llm_report import (  # noqa: E402
     render_play_markdown,
     render_style_section,
     render_task_markdown,
     save_markdown,
     save_suggestions,
 )
-from llm_style import analyze_style
-from llm_suggestions import generate_structured_suggestions
-from llm_trace_store import TraceStore
+from llm_style import analyze_style  # noqa: E402
+from llm_suggestions import generate_structured_suggestions  # noqa: E402
+from llm_trace_store import TraceStore  # noqa: E402
 
 DOCUMENTATION = """
     name: llm_analyzer

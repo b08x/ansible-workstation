@@ -16,6 +16,13 @@ repos:
     rev: 7.1.1
     hooks:
       - id: flake8
+        # black (line-length=100) is the line-length authority: E501 would
+        # flag non-splittable URLs/literals that black leaves alone.
+        # E203/W503 are incompatible with black's slice/operator formatting.
+        # Imports that must follow sys.path setup carry inline "# noqa: E402".
+        args:
+          - --max-line-length=100
+          - --extend-ignore=E501,E203,W503
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0

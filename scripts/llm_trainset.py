@@ -28,8 +28,8 @@ if not _UTILS_DIR.is_dir():
     raise SystemExit(f"support modules not found at {_UTILS_DIR}")
 sys.path.insert(0, str(_UTILS_DIR))
 
-from llm_metrics import METRIC_VERSION, extract_gold, score_task
-from llm_trace_store import TraceStore, connect
+from llm_metrics import METRIC_VERSION, extract_gold, score_task  # noqa: E402
+from llm_trace_store import TraceStore, connect  # noqa: E402
 
 DEFAULT_ROOT = Path("llm_analysis/traces")
 

@@ -2,7 +2,7 @@
 """
 High-Contrast Ansible stdout Callback Plugin
 
-Architecturally optimized for Continuous Integration (CI) environments, providing 
+Architecturally optimized for Continuous Integration (CI) environments, providing
 specialized, high-density telemetry rendering for dnf5, podman_image, and systemd modules.
 Strictly prohibits the emission of unstructured JSON and default Ansible tracebacks.
 """
