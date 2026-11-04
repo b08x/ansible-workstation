@@ -45,7 +45,7 @@ It establishes a strict boundary separating binary installation from user config
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `go.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`runtimes.yml`, `bun.yml`, `go.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
 2. **GUI Availability Gating**: Graphical desktop tools (VS Code, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"`. Headless systems automatically skip graphical installations while retaining all CLI utilities.
 3. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or version probe (`bun`, `go`, `vscode`, `input-remapper`) to bypass redundant archive downloads, git checkouts, and compilations on converged hosts. Probe commands (`which go`, `go version`, `which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
 4. **User Context & Runtime Isolation (`become_user`)**: User-scoped tools and Go-compiled utilities install strictly under `become_user: "{{ tools_user }}"`, preserving unprivileged home directory ownership.
