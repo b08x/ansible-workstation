@@ -1,0 +1,78 @@
+---
+# tasks file for Intel graphics drivers and oneAPI toolkit in roles/gpu
+# Moved from roles/tools/tasks/intel.yml with identical behavior.
+
+- name: Install Intel Graphics Drivers
+  when: gpu_install_intel_graphics | default(false) | bool
+  tags: ["intel", "gpu"]
+  block:
+    - name: Install Intel Graphics Drivers packages
+      ansible.builtin.dnf:
+        name: "{{ gpu_intel_graphics_packages }}"
+        state: present
+
+  rescue:
+    - name: Report Intel Graphics Drivers failure
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: failed to install the Intel graphics driver packages.
+          Expected on non-Intel hardware; otherwise check repository availability.
+
+    - name: Fail the play when Intel Graphics Drivers are required
+      ansible.builtin.fail:
+        msg: "Intel graphics driver installation failed and gpu_intel_graphics_required is true."
+      when: gpu_intel_graphics_required | default(false) | bool
+
+- name: Install Intel oneAPI Toolkit
+  when: (gpu_install_intel_oneapi | default(false) | bool) or (intel_oneapi_install | default(false) | bool)
+  tags: ["intel_oneapi", "intel", "gpu"]
+  block:
+    - name: Import Intel oneAPI GPG Key
+      ansible.builtin.rpm_key:
+        state: present
+        key: https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+        validate_certs: true
+
+    - name: Add Intel openAPI Repository
+      ansible.builtin.yum_repository:
+        name: oneAPI
+        description: "Intel® oneAPI repository"
+        baseurl: https://yum.repos.intel.com/oneapi
+        enabled: true
+        gpgcheck: true
+        gpgkey: https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+
+    - name: Update Package Cache
+      ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Install Intel oneAPI MKL
+      ansible.builtin.dnf:
+        name: "{{ gpu_intel_oneapi_packages }}"
+        state: "{{ 'latest' if (gpu_intel_oneapi_force_install | default(false) | bool) else 'present' }}"
+
+    - name: Create oneAPI Environment Profile Script
+      ansible.builtin.copy:
+        dest: /etc/profile.d/intel-oneapi.sh
+        content: |
+          #!/bin/bash
+          # Initialize Intel oneAPI environment variables on login
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              source /opt/intel/oneapi/setvars.sh --force > /dev/null 2>&1
+          fi
+        mode: "0755"
+        owner: root
+        group: root
+        backup: true
+
+  rescue:
+    - name: Report Intel oneAPI setup failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to set up the Intel oneAPI toolkit. The pinned package versions
+          in this task are the usual cause - check that yum.repos.intel.com still
+          carries them.
+
+    - name: Fail the play on Intel oneAPI setup failure
+      ansible.builtin.fail:
+        msg: "Intel oneAPI installation failed - see the preceding task output."

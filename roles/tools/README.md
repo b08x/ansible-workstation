@@ -41,7 +41,8 @@ It establishes a strict boundary separating binary installation from user config
                                     v
 +--------------------------------------------------------------------------+
 |                  Layer 0: Host Operating System & Hardware               |
-|            Hardware Acceleration: NVIDIA CUDA, Intel oneAPI/Vulkan       |
+|        Hardware Acceleration: see the `gpu` role (NVIDIA CUDA,           |
+|        Intel oneAPI/graphics); tools only consumes oneAPI/CUDA          |
 |             Fedora 40+, AlmaLinux 9/10, Rocky Linux 9/10                 |
 +--------------------------------------------------------------------------+
 ```
@@ -50,7 +51,7 @@ It establishes a strict boundary separating binary installation from user config
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `intel.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular tool installers (`bun.yml`, `transcribe-cpp.yml`, `go.yml`, `antigravity.yml`, `claude.yml`, `crush.yml`, `opencode.yml`, `gitflow.yml`, `inxi.yml`, `homebrew.yml`, `vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
 2. **GUI Availability Gating**: Graphical desktop tools (VS Code, Antigravity Hub & IDE, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"`. Headless systems automatically skip graphical installations while retaining all CLI utilities.
 3. **Pre-flight Hardware Capability Checks**:
    - `tasks/transcribe-cpp.yml` probes the host for CUDA hardware devices (`nvidia-smi`, `/dev/nvidia*`, PCI vendor `0x10de`) and Vulkan physical GPU devices (`vulkaninfo`, render nodes).

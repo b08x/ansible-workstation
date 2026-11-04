@@ -155,8 +155,6 @@ rpmlint,Development,rpm_build,Provides rpmlint
 mock,Development,rpm_build,Provides mock
 fedora-packager,Development,rpm_build,Provides fedora-packager
 distribution-gpg-keys,Development,rpm_build,Provides distribution-gpg-keys
-intel-basekit,Development,basekit,Provides intel-basekit
-intel-hpckit,Development,hpckit,Provides intel-hpckit
 xdg-desktop-portal,Utility,xdg,Provides xdg-desktop-portal
 xdg-desktop-portal-gtk,Utility,xdg,Provides xdg-desktop-portal-gtk
 xdg-user-dirs,Utility,xdg,allows changing default dirs

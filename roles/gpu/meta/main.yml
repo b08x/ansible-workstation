@@ -1,0 +1,29 @@
+---
+galaxy_info:
+  author: Robert Pannick
+  description: >-
+    Host GPU compute role managing optional Intel oneAPI/graphics stacks
+    and the NVIDIA CUDA driver, toolkit, and container toolkit for Fedora
+    and Enterprise Linux.
+  company: Syncopated
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+
+  galaxy_tags:
+    - system
+    - gpu
+    - nvidia
+    - cuda
+    - oneapi
+    - drivers
+
+dependencies: []

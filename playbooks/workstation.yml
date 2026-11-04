@@ -52,6 +52,8 @@
   roles:
     - role: tuning
       tags: ["tuning", "system"]
+    - role: gpu
+      tags: ["gpu", "system"]
     - role: networking
       tags: ["networking", "system"]
     - role: containerd

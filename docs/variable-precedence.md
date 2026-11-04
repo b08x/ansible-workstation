@@ -4,7 +4,7 @@ This project adheres to the following variable precedence rules and naming conve
 
 - **Tier 1 (Domain Scope)**: Unprefixed variables representing system-wide capabilities, user identity, or hardware intent.
   - Defined in `inventory/group_vars/all.yml` or specific `group_vars` / `host_vars`.
-  - Examples: `user.*`, `intel_oneapi_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`, `has_cuda_device`, `has_vulkan_device`.
+  - Examples: `user.*`, `intel_oneapi_install`, `nvidia_cuda_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`, `has_cuda_device`, `has_vulkan_device`.
 
 - **Tier 2 (Role Scope)**: Role-prefixed variables (`<role>_*`) that configure specific role behavior.
   - Defined in `roles/<role>/defaults/main.yml` and `roles/<role>/vars/main.yml`.
@@ -38,6 +38,9 @@ Every link in the chain below is verifiable in this repository:
   `roles/desktop_ui/defaults/main.yml` for exactly one run (step 4).
 
 The tiers also meet on purpose: `inventory/host_vars/tinybot.yml` sets the
-Tier 1 `intel_oneapi_install: true`, and `roles/tools/defaults/main.yml`
-consumes it as `tools_install_intel: "{{ intel_oneapi_install | default(false)
-| bool }}"` — a Tier 2 default that defers to a Tier 1 fact of the machine.
+Tier 1 `intel_oneapi_install: true`, and `roles/gpu/defaults/main.yml`
+consumes it as `gpu_install_intel_oneapi: "{{ intel_oneapi_install |
+default(false) | bool }}"` — a Tier 2 default that defers to a Tier 1 fact
+of the machine. The same pattern drives the NVIDIA stack: the Tier 1
+`nvidia_cuda_install` flag (unset on every current host) is consumed as the
+Tier 2 `gpu_install_nvidia` default of the `gpu` role.

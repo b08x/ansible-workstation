@@ -28,7 +28,7 @@ In accordance with the workstation architecture:
   - Deploys `syncopated-firstboot`, desktop launcher, and login hooks.
 - **Decoupled Responsibilities**:
   - **Repositories & System Updates**: Decoupled into `playbooks/repositories.yml` and `playbooks/tasks/repositories/`.
-  - **Developer Toolchains & Compilers**: Heavy runtimes (`golang`, `nodejs`, `npm`), vendor toolchains (`intel.yml` / oneAPI), and developer CLIs (`gitflow`, `inxi`, `homebrew`) are decoupled into [`roles/tools`](../tools/README.md).
+  - **Developer Toolchains & Compilers**: Heavy runtimes (`golang`, `nodejs`, `npm`) and developer CLIs (`gitflow`, `inxi`, `homebrew`) are decoupled into [`roles/tools`](../tools/README.md); vendor GPU toolchains (`intel.yml` / oneAPI) are decoupled into [`roles/gpu`](../gpu/README.md).
 
 ---
 

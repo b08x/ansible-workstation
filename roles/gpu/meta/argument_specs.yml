@@ -1,0 +1,108 @@
+---
+# argument spec file for gpu
+
+argument_specs:
+  main:
+    short_description: GPU role managing optional Intel oneAPI/graphics stacks and the NVIDIA CUDA driver, toolkit, and container toolkit.
+    options:
+      gpu_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      gpu_install_intel_oneapi:
+        type: bool
+        description: >-
+          Install the Intel oneAPI toolkit. Lazily consumes the Tier 1
+          intel_oneapi_install host flag; resolves to false when unset.
+        default: false
+      gpu_intel_oneapi_packages:
+        type: list
+        elements: str
+        description: Pinned Intel oneAPI package list (overridable per host).
+      gpu_intel_oneapi_force_install:
+        type: bool
+        description: Force-install override; re-evaluates the oneAPI package set with state latest.
+        default: false
+      gpu_install_intel_graphics:
+        type: bool
+        description: Install Intel graphics driver packages.
+        default: false
+      gpu_intel_graphics_required:
+        type: bool
+        description: Whether Intel graphics driver failure causes a fatal error.
+        default: false
+      gpu_intel_graphics_packages:
+        type: list
+        elements: str
+        description: Intel graphics driver package list.
+      gpu_install_nvidia:
+        type: bool
+        description: >-
+          Install the NVIDIA CUDA stack. Lazily consumes the Tier 1
+          nvidia_cuda_install host flag; resolves to false when unset.
+        default: false
+      gpu_nvidia_force_install:
+        type: bool
+        description: Force-install override; re-evaluates the NVIDIA driver package set with state latest.
+        default: false
+      gpu_nvidia_cuda_toolkit:
+        type: bool
+        description: Install the cuda-toolkit package.
+        default: true
+      gpu_nvidia_container_toolkit:
+        type: bool
+        description: >-
+          Install the nvidia-container-toolkit package plus the CDI
+          generation script and refresh service.
+        default: true
+      gpu_nvidia_utils:
+        type: bool
+        description: Install NVIDIA utility packages (nvidia-settings, nvtop).
+        default: true
+      gpu_nvidia_utils_packages:
+        type: list
+        elements: str
+        description: NVIDIA utility package list.
+      gpu_nvidia_persistenced:
+        type: bool
+        description: >-
+          Enable the nvidia-persistenced service. Loaded from
+          vars/<Distro>-<major>.yml (EL defaults true, Fedora
+          false); the nvidia-persistenced package is always installed with
+          the driver set.
+      gpu_nvidia_kernel_args:
+        type: list
+        elements: str
+        description: Kernel command-line arguments applied via grubby for all installed kernels.
+      gpu_nvidia_driver_packages:
+        type: list
+        elements: str
+        description: NVIDIA driver package list always installed when NVIDIA is enabled.
+      gpu_nvidia_cuda_repo_path:
+        type: str
+        description: >-
+          Internal. NVIDIA CUDA repository path segment, loaded from
+          vars/<Distro>-<major>.yml (fedora43, fedora44, rhel9,
+          rhel10).
+      gpu_nvidia_cuda_gpgkey:
+        type: str
+        description: >-
+          Internal. NVIDIA CUDA repository GPG key filename, loaded from
+          vars/<Distro>-<major>.yml (1940C73E.pub, 73CD9B30.pub,
+          CDF6BA43.pub).
+      gpu_nvidia_container_repo_baseurl:
+        type: str
+        description: >-
+          Internal. NVIDIA container toolkit (libnvidia-container) repository
+          base URL, loaded from vars/main.yml (distro-independent).
+      gpu_nvidia_container_repo_gpgkey:
+        type: str
+        description: >-
+          Internal. NVIDIA container toolkit repository GPG key URL, loaded
+          from vars/main.yml (distro-independent).
+      gpu_nvidia_supported:
+        type: list
+        elements: str
+        description: >-
+          Internal. Supported Distro-major combinations for the NVIDIA CUDA
+          stack, loaded from vars/main.yml.

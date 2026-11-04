@@ -1,0 +1,18 @@
+---
+# Internal data for the gpu role (not meant for user override).
+# Distribution-specific values (CUDA repo path, GPG key, persistenced
+# default) live in vars/<Distro>-<major>.yml and are loaded by
+# tasks/main.yml via a first_found lookup.
+
+# Distro-major combinations the NVIDIA CUDA stack supports
+gpu_nvidia_supported:
+  - Fedora-43
+  - Fedora-44
+  - Rocky-9
+  - Rocky-10
+  - AlmaLinux-10
+
+# NVIDIA container toolkit (libnvidia-container) repository — identical across
+# supported distros (matches the osbuild nvidia component's repository table).
+gpu_nvidia_container_repo_baseurl: https://nvidia.github.io/libnvidia-container/stable/rpm/x86_64/
+gpu_nvidia_container_repo_gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey

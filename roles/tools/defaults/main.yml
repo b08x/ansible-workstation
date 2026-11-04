@@ -42,11 +42,6 @@ tools_bun_force_install: false
 
 # -- Auxiliary Developer CLIs and Toolchains --
 
-# Intel Graphics and oneAPI Toolkit
-tools_install_intel: "{{ intel_oneapi_install | default(false) | bool }}"
-tools_install_intel_graphics: false
-tools_intel_graphics_required: false
-
 # gitflow-avh
 tools_install_gitflow: true
 tools_gitflow_copr_fedora: "b08x/syncopated"

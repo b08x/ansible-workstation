@@ -1,0 +1,151 @@
+---
+# tasks file for the NVIDIA CUDA driver, toolkit, and container toolkit
+# in roles/gpu. Mirrors the osbuild nvidia component (repos, packages,
+# CDI script/unit, kernel args, services) on a running host.
+
+- name: Apply NVIDIA driver, CUDA toolkit, and container toolkit
+  when: >-
+    (gpu_install_nvidia | default(false) | bool) and
+    (_gpu_nvidia_active | default(true) | bool)
+  tags: ["gpu", "nvidia"]
+  block:
+    - name: Import NVIDIA CUDA repository GPG key
+      ansible.builtin.rpm_key:
+        state: present
+        key: "https://developer.download.nvidia.com/compute/cuda/repos/{{ gpu_nvidia_cuda_repo_path }}/x86_64/{{ gpu_nvidia_cuda_gpgkey }}"
+
+    - name: Add NVIDIA CUDA repository
+      ansible.builtin.yum_repository:
+        name: "cuda-{{ gpu_nvidia_cuda_repo_path }}-x86_64"
+        description: "NVIDIA CUDA repository ({{ gpu_nvidia_cuda_repo_path }})"
+        baseurl: "https://developer.download.nvidia.com/compute/cuda/repos/{{ gpu_nvidia_cuda_repo_path }}/x86_64/"
+        enabled: true
+        gpgcheck: true
+        gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/{{ gpu_nvidia_cuda_repo_path }}/x86_64/{{ gpu_nvidia_cuda_gpgkey }}"
+
+    - name: Configure NVIDIA container toolkit repository
+      when: gpu_nvidia_container_toolkit | default(true) | bool
+      tags: ["nvidia-container-toolkit"]
+      block:
+        - name: Import NVIDIA container toolkit repository GPG key
+          ansible.builtin.rpm_key:
+            state: present
+            key: "{{ gpu_nvidia_container_repo_gpgkey }}"
+
+        - name: Add NVIDIA container toolkit repository
+          ansible.builtin.yum_repository:
+            name: nvidia-container-toolkit
+            description: "NVIDIA Container Toolkit repository (libnvidia-container)"
+            baseurl: "{{ gpu_nvidia_container_repo_baseurl }}"
+            enabled: true
+            gpgcheck: true
+            gpgkey: "{{ gpu_nvidia_container_repo_gpgkey }}"
+
+    - name: Install NVIDIA driver packages
+      ansible.builtin.dnf:
+        name: "{{ gpu_nvidia_driver_packages }}"
+        state: "{{ 'latest' if (gpu_nvidia_force_install | default(false) | bool) else 'present' }}"
+
+    - name: Install NVIDIA CUDA toolkit
+      ansible.builtin.dnf:
+        name: cuda-toolkit
+        state: present
+      when: gpu_nvidia_cuda_toolkit | default(true) | bool
+
+    - name: Install NVIDIA container toolkit
+      ansible.builtin.dnf:
+        name: nvidia-container-toolkit
+        state: present
+      when: gpu_nvidia_container_toolkit | default(true) | bool
+
+    - name: Install NVIDIA utilities
+      ansible.builtin.dnf:
+        name: "{{ gpu_nvidia_utils_packages }}"
+        state: present
+      when: gpu_nvidia_utils | default(true) | bool
+
+    - name: Configure NVIDIA CDI generation for containers
+      when: gpu_nvidia_container_toolkit | default(true) | bool
+      tags: ["nvidia-container-toolkit"]
+      block:
+        - name: Install NVIDIA CDI generation script
+          ansible.builtin.copy:
+            src: nvidia-cdi-generate.sh
+            dest: /usr/local/bin/nvidia-cdi-generate.sh
+            owner: root
+            group: root
+            mode: "0755"
+            backup: true
+
+        - name: Install NVIDIA CDI refresh service unit
+          ansible.builtin.copy:
+            src: nvidia-cdi-refresh.service
+            dest: /etc/systemd/system/nvidia-cdi-refresh.service
+            owner: root
+            group: root
+            mode: "0644"
+            backup: true
+
+        - name: Enable NVIDIA CDI refresh service
+          ansible.builtin.systemd:
+            name: nvidia-cdi-refresh
+            enabled: true
+            daemon_reload: true
+          # Intentionally left stopped: the oneshot service runs at boot and
+          # needs the NVIDIA module loaded to generate the CDI specification.
+
+    - name: Enable NVIDIA persistence daemon
+      ansible.builtin.systemd:
+        name: nvidia-persistenced
+        enabled: true
+      when: gpu_nvidia_persistenced | default(false) | bool
+
+    - name: Read current kernel command-line arguments
+      ansible.builtin.command: grubby --info=ALL
+      register: _gpu_grubby_info
+      changed_when: false
+      check_mode: false
+
+    - name: Collect per-kernel argument tokens
+      ansible.builtin.set_fact:
+        _gpu_kernel_arg_sets: >-
+          {{ _gpu_grubby_info.stdout_lines
+             | select('match', '^args="(.*)"$')
+             | map('regex_replace', '^args="(.*)"$', '\1')
+             | map('split')
+             | list }}
+
+    - name: Determine missing NVIDIA kernel arguments
+      ansible.builtin.set_fact:
+        _gpu_missing_kernel_args: "{{ _gpu_missing_kernel_args | default([]) + [item] }}"
+      loop: "{{ gpu_nvidia_kernel_args }}"
+      when: >-
+        (_gpu_kernel_arg_sets | map('intersect', [item]) | map('length') | sum)
+        < (_gpu_kernel_arg_sets | length)
+
+    - name: Apply missing NVIDIA kernel arguments
+      ansible.builtin.command:
+        argv:
+          - grubby
+          - --update-kernel=ALL
+          - --args={{ _gpu_missing_kernel_args | join(' ') }}
+      register: _gpu_grubby_update
+      when: (_gpu_missing_kernel_args | default([]) | length) > 0
+      changed_when: (_gpu_missing_kernel_args | default([]) | length) > 0
+      notify:
+        - gpu rebuild initramfs
+        - gpu flag reboot required
+
+    - name: Blacklist nouveau kernel module
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/blacklist-nouveau.conf
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+        content: |
+          blacklist nouveau
+          options nouveau modeset=0
+      notify:
+        - gpu rebuild initramfs
+        - gpu flag reboot required

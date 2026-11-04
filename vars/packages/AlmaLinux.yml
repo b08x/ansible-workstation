@@ -222,10 +222,6 @@ system_packages:
       - mock
       - fedora-packager
       - distribution-gpg-keys
-    basekit:
-      - intel-basekit
-    hpckit:
-      - intel-hpckit
   Utility:
     xdg:
       - xdg-desktop-portal
@@ -577,10 +573,6 @@ osbuild_legacy:
     - podman
     - podman-compose
     - skopeo
-
-  oneapi_packages:
-    - intel-basekit
-    - intel-hpckit
 # =============================================================================
 # User-Level Package Management (Excluded from Ansible)
 # =============================================================================

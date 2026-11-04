@@ -1,0 +1,14 @@
+---
+# handlers file for gpu
+
+- name: Rebuild initramfs
+  ansible.builtin.command: dracut -f --regenerate-all
+  changed_when: true
+  listen: gpu rebuild initramfs
+
+- name: Flag reboot required
+  ansible.builtin.file:
+    path: /var/run/reboot-required
+    state: touch
+    mode: "0644"
+  listen: gpu flag reboot required

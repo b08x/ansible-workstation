@@ -52,14 +52,6 @@
   when: tools_install_opencode | default(true) | bool
   tags: ["opencode", "agents", "tools"]
 
-- name: Include Intel drivers and oneAPI toolkit tasks
-  ansible.builtin.include_tasks: intel.yml
-  when: >-
-    (tools_install_intel | default(false) | bool) or
-    (intel_oneapi_install | default(false) | bool) or
-    (tools_install_intel_graphics | default(false) | bool)
-  tags: ["intel", "intel_oneapi", "tools"]
-
 - name: Include gitflow installation tasks
   ansible.builtin.include_tasks: gitflow.yml
   when: tools_install_gitflow | default(true) | bool

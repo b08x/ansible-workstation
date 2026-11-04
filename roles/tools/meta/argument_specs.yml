@@ -37,18 +37,6 @@ argument_specs:
         type: bool
         description: Install bun JavaScript/TypeScript runtime.
         default: true
-      tools_install_intel:
-        type: bool
-        description: Install Intel oneAPI toolkit.
-        default: false
-      tools_install_intel_graphics:
-        type: bool
-        description: Install Intel graphics drivers.
-        default: false
-      tools_intel_graphics_required:
-        type: bool
-        description: Whether Intel graphics driver failure causes a fatal error.
-        default: false
       tools_install_gitflow:
         type: bool
         description: Install gitflow tool.

@@ -1,0 +1,128 @@
+---
+# defaults file for gpu
+# Defines default configuration and feature flags for host GPU compute stacks
+# (Intel oneAPI / Intel graphics, NVIDIA CUDA driver and toolkits).
+# Both stacks are OFF by default; enable per host through the Tier 1 vars
+# `intel_oneapi_install` and `nvidia_cuda_install` (inventory host_vars).
+
+# Control pre-flight assertions (Fail-Fast Pattern)
+gpu_assert_enabled: true
+
+# -- Intel oneAPI Toolkit --
+# Lazily consumes the Tier 1 flag set on tinybot (intel_oneapi_install).
+gpu_install_intel_oneapi: "{{ intel_oneapi_install | default(false) | bool }}"
+
+# Pinned oneAPI package list (moved from roles/tools; duplicate
+# runtime-dpcpp-sycl-core entry removed). Overridable per host.
+gpu_intel_oneapi_packages:
+  - intel-oneapi-common-licensing-2025.3
+  - intel-oneapi-common-licensing-2026.0
+  - intel-oneapi-common-oneapi-vars-2025.3
+  - intel-oneapi-common-oneapi-vars-2026.0
+  - intel-oneapi-common-vars
+  - intel-oneapi-compiler-cpp-eclipse-cfg-2026.1
+  - intel-oneapi-compiler-dpcpp-cpp
+  - intel-oneapi-compiler-dpcpp-cpp-2026.1
+  - intel-oneapi-compiler-dpcpp-cpp-common-2026.1
+  - intel-oneapi-compiler-dpcpp-cpp-runtime-2026.1
+  - intel-oneapi-compiler-dpcpp-eclipse-cfg-2026.1
+  - intel-oneapi-compiler-shared-2026.1
+  - intel-oneapi-compiler-shared-common-2026.1
+  - intel-oneapi-compiler-shared-runtime-2026.1
+  - intel-oneapi-dev-utilities-2026.0
+  - intel-oneapi-dev-utilities-eclipse-cfg-2026.0
+  - intel-oneapi-dpcpp-cpp-2026.1
+  - intel-oneapi-dpcpp-ct
+  - intel-oneapi-dpcpp-ct-2025.3
+  - intel-oneapi-dpcpp-ct-eclipse-cfg-2025.3
+  - intel-oneapi-dpcpp-debugger-2026.1
+  - intel-oneapi-icc-eclipse-plugin-cpp-2026.1
+  - intel-oneapi-libdpstd-devel-2022.13
+  - intel-oneapi-mkl-classic-devel-2026.1
+  - intel-oneapi-mkl-classic-include-2026.1
+  - intel-oneapi-mkl-cluster-2026.1
+  - intel-oneapi-mkl-cluster-devel-2026.1
+  - intel-oneapi-mkl-core-2026.1
+  - intel-oneapi-mkl-core-devel-2026.1
+  - intel-oneapi-mkl-devel
+  - intel-oneapi-mkl-devel-2026.1
+  - intel-oneapi-mkl-sycl-2026.1
+  - intel-oneapi-mkl-sycl-blas-2026.1
+  - intel-oneapi-mkl-sycl-data-fitting-2026.1
+  - intel-oneapi-mkl-sycl-devel-2026.1
+  - intel-oneapi-mkl-sycl-dft-2026.1
+  - intel-oneapi-mkl-sycl-include-2026.1
+  - intel-oneapi-mkl-sycl-lapack-2026.1
+  - intel-oneapi-mkl-sycl-rng-2026.1
+  - intel-oneapi-mkl-sycl-sparse-2026.1
+  - intel-oneapi-mkl-sycl-stats-2026.1
+  - intel-oneapi-mkl-sycl-vm-2026.1
+  - intel-oneapi-openmp-2026.1
+  - intel-oneapi-openmp-common-2026.1
+  - intel-oneapi-runtime-compilers
+  - intel-oneapi-runtime-compilers-common
+  - intel-oneapi-runtime-dpcpp-sycl-core
+  - intel-oneapi-runtime-dpcpp-sycl-opencl-cpu
+  - intel-oneapi-runtime-opencl
+  - intel-oneapi-runtime-openmp
+  - intel-oneapi-runtime-tbb
+  - intel-oneapi-runtime-tcm
+  - intel-oneapi-tbb-2023.1
+  - intel-oneapi-tbb-devel-2023.1
+  - intel-oneapi-tcm-1.5
+  - intel-oneapi-umf-1.1
+
+# Force-install override for the oneAPI package set (idempotency pattern):
+# when true the pinned packages are re-evaluated with state latest instead of
+# state present, forcing an upgrade pass over the pinned set.
+gpu_intel_oneapi_force_install: false
+
+# -- Intel Graphics Drivers --
+gpu_install_intel_graphics: false
+gpu_intel_graphics_required: false
+gpu_intel_graphics_packages:
+  - intel-audio-firmware
+  - intel-gmmlib
+  - intel-gpu-firmware
+  - intel-media-driver
+  - intel-vpl-gpu-rt
+  - intel-vsc-firmware
+  - libva-intel-driver
+
+# -- NVIDIA CUDA driver, toolkit and container toolkit --
+# Lazily consumes the new Tier 1 flag (nvidia_cuda_install).
+gpu_install_nvidia: "{{ nvidia_cuda_install | default(false) | bool }}"
+
+# Force-install override for the NVIDIA driver set (idempotency pattern):
+# when true the driver packages are re-evaluated with state latest instead of
+# state present, forcing an upgrade pass over the driver set.
+gpu_nvidia_force_install: false
+
+# Component toggles (the driver packages install whenever NVIDIA is enabled)
+gpu_nvidia_cuda_toolkit: true
+gpu_nvidia_container_toolkit: true
+gpu_nvidia_utils: true
+gpu_nvidia_utils_packages:
+  - nvidia-settings
+  - nvtop
+
+# gpu_nvidia_persistenced is loaded from vars/<Distro>-<major>.yml
+# (EL defaults true, Fedora defaults false, matching the osbuild component).
+# The nvidia-persistenced package is always part of the driver set; this
+# toggle governs only the systemd service.
+
+# Kernel command-line arguments applied via grubby (osbuild nvidia component)
+gpu_nvidia_kernel_args:
+  - rd.driver.blacklist=nouveau
+  - rd.driver.blacklist=nova-core
+  - modprobe.blacklist=nouveau
+  - nvidia-drm.modeset=1
+
+# Driver packages always installed when NVIDIA is enabled
+gpu_nvidia_driver_packages:
+  - nvidia-driver
+  - nvidia-driver-cuda
+  - nvidia-driver-cuda-libs
+  - nvidia-driver-libs
+  - nvidia-gpu-firmware
+  - nvidia-persistenced
