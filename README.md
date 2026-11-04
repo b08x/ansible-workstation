@@ -1,6 +1,6 @@
-<div align="center">
+<div align="left">
 
-# Ansible Workstation
+# Ansible Collection: Development Workstation
 
 An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
 workstations. Ten roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
