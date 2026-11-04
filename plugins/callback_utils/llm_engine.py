@@ -15,8 +15,8 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import time
-from typing import Any, Optional
 import warnings
+from typing import Any, Optional
 
 __metaclass__ = type
 

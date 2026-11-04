@@ -10,7 +10,8 @@
 
 - name: Convert system extension package names to extension IDs
   ansible.builtin.set_fact:
-    desktop_ui_system_extension_ids: "{{ desktop_ui_gnome_extensions | default([]) |
+    desktop_ui_system_extension_ids:
+      "{{ desktop_ui_gnome_extensions | default([]) |
       select('in', desktop_ui_package_to_id_map) |
       map('extract', desktop_ui_package_to_id_map) | list }}"
   tags: ["gnome", "extensions", "desktop_ui"]

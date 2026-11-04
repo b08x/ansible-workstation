@@ -13,15 +13,15 @@ from typing import Any, Dict, List
 from ansible.executor.task_result import TaskResult
 from ansible.playbook.task import Task
 
+# Core Ansible Plugin Architecture Imports
+from ansible.plugins.callback import CallbackBase
+
 # Rich Library Imports for Terminal-Native Structural Serialization
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
-
-# Core Ansible Plugin Architecture Imports
-from ansible.plugins.callback import CallbackBase
 
 
 class CallbackModule(CallbackBase):

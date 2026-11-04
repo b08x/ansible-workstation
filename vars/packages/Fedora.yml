@@ -502,7 +502,6 @@ system_flatpaks:
   - io.github.flattool.Warehouse
   - io.github.dvlv.boxbuddyrs
 
-
 # =============================================================================
 # COPR Repositories (Package Sources)
 # =============================================================================
