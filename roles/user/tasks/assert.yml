@@ -73,6 +73,7 @@
       workstation user. Expected '{{ user.name }}', running as
       '{{ ansible_user_id | default('unknown') }}'.
     quiet: true
+  become: false
   tags: ["user", "assert", "always"]
 
 - name: Assert user-space destinations stay under the workstation home
@@ -95,6 +96,7 @@
       '{{ user_go_dest_dir | default('') }}'; the user role never writes
       outside user space.
     quiet: true
+  become: false
   tags: ["user", "assert", "always"]
 
 - name: Assert cargo manifest shape
