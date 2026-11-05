@@ -142,7 +142,7 @@ argument_specs:
       user_install_vscode_extensions:
         type: bool
         description: Install VS Code extensions via the resolved CLI (native code or Flatpak).
-        default: true
+        default: false
       user_vscode_command:
         type: str
         description: Optional VS Code CLI override, may contain argv; empty string auto-detects (code, then the Flatpak).

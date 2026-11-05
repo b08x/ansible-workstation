@@ -24,12 +24,12 @@ Every include is gated by `user_<feature> | default(bool) | bool` and tagged `[<
 | `go.yml` | `user_install_go` (`true`) | **Go decision tree**: probe `/usr/bin/go` → DNF `golang` fallback (single escalation) → user-space tarball to `~/.local/go` with `~/.local/bin` symlinks when the system go is absent or older than `user_go_min_version`; `user_go_force_install` bypasses the system check; a final assert pins the effective `go` to the minimum |
 | `cargo.yml` | `user_install_cargo` (`true`) | **Rust decision tree**: probe `/usr/bin/cargo` (never via PATH) → DNF `cargo` fallback (single escalation) vs `user_cargo_min_system_version` → rustup (`--no-modify-path`, skip-if-present) → DNF-preferred crates via `user_cargo_crate_dnf_map` with `cargo install --locked` fallback per crate; `user_cargo_force_install` forces rustup, `user_cargo_force_crates` forces per-crate re-attempt; TMPDIR noexec handling via `~/.cargo/tmp` |
 | `gnome-extensions.yml` | `user_install_gnome_extensions` (`{{ enable_desktop \| default(false) \| bool }}`) | Installs the configured UUID set from `user_gnome_extensions_base_url` (extensions.gnome.org) via `gnome-extensions install --force`; non-fatal per-UUID failures; monotonic-union dconf enable (never disables); `user_gnome_extensions_force_install` forces re-install |
-| `vscode-extensions.yml` | `user_install_vscode_extensions` (`true`) | CLI resolution (`user_vscode_command` → native `code` → the `com.visualstudio.code` Flatpak) → case-normalized `--list-extensions` diff → non-fatal installs; `user_vscode_force_install` forces re-install |
+| `vscode-extensions.yml` | `user_install_vscode_extensions` (`false`) | **Opt-in** extension management: CLI resolution (`user_vscode_command` → native `code` → the `com.visualstudio.code` Flatpak) → case-normalized `--list-extensions` diff → non-fatal installs; `user_vscode_force_install` forces re-install |
 
 Notes:
 
 - The dispatcher opens with a `Starting user tasks` debug tagged `["user", "always"]`, includes `assert.yml` first, and loads `vars/{{ ansible_distribution }}.yml` via an include tagged `["user", "distro"]`.
-- The VS Code **binary** is not installed here — [`roles/tools`](../tools/README.md) owns it as a real opt-in (`tools_install_vscode: false`). This task file only manages the extension list against whatever CLI is resolvable.
+- The VS Code **binary** is not installed here — [`roles/tools`](../tools/README.md) owns it as a real opt-in (`tools_install_vscode: false`), and the extension list follows the same opt-in pattern since 2026-11 (`user_install_vscode_extensions` defaults to `false`, completing the flip started in commit `25c27e7`). This task file only manages the extension list against whatever CLI is resolvable, and only when the gate is enabled.
 - Per-item resilience idiom: looped installs use `failed_when: false` with a follow-up per-failure debug report; group-level `block/rescue` prints the human-readable failure (blocks are not loopable, so the two layers are complementary).
 - `set_fact` strategy/decision split: a `set_fact` evaluates all keys up-front, so consumers of `_user_go_strategy` / `_user_cargo_strategy` live in a later task than the one that defines them ([failure point 17](../../docs/failure-points.md) — lazy evaluation).
 
@@ -64,7 +64,7 @@ Notes:
 | `user_gnome_extensions` | 4 UUID list (from yadm `gnome-extensions.txt`) | GNOME Shell extension manifest |
 | `user_gnome_extensions_force_install` | `false` | Force extension re-installation |
 | `user_gnome_extensions_base_url` | `https://extensions.gnome.org` | Metadata/bundle base URL |
-| `user_install_vscode_extensions` | `true` | Gate VS Code extension management |
+| `user_install_vscode_extensions` | `false` | Gate VS Code extension management (opt-in; flipped to match commit `25c27e7`) |
 | `user_vscode_command` | `""` | Optional CLI override (argv string); empty = auto-detect |
 | `user_vscode_force_install` | `false` | Force extension re-installation |
 | `user_vscode_extensions` | 68-entry list (from yadm `vscode-extensions.txt`) | Marketplace extension manifest |

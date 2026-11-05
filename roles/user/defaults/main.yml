@@ -113,7 +113,7 @@ user_gnome_extensions:
 
 # -- VS Code extensions (migrated from yadm bootstrap.d/91-install-vscode-extensions.sh) --
 
-user_install_vscode_extensions: true
+user_install_vscode_extensions: false
 
 # Optional CLI override; may contain argv (e.g. "flatpak run
 # com.visualstudio.code"). Empty string falls back to auto-detection:
