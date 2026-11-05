@@ -1,0 +1,4 @@
+---
+
+desktop_ui_environment: cosmic
+desktop_ui_cosmic_install_supplementary_apps: true
