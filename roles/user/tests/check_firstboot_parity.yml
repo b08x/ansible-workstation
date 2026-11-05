@@ -1,0 +1,188 @@
+---
+# Firstboot SSOT parity gate for roles/user (goal two-stage-firstboot, AC-8).
+#
+# Byte-compares the firstboot suite shipped in roles/user/files/firstboot/
+# against the osbuild SSOT and FAILS naming every drifted file with a unified
+# per-file diff, so editing one side without the other turns this gate red.
+#
+# Two reference trees:
+#
+#   * The osbuild singleton working tree — the SSOT this role's copy was
+#     synced from — resolved at runtime relative to this playbook:
+#       <workstation-repo>/../../osbuild/roles/osbuild/files/firstboot/
+#     (i.e. ../../osbuild relative to the workstation repo root). THIS is the
+#     gate: it is green today because roles/user/files/firstboot/ is synced
+#     byte-identical from the singleton working tree, and it is the line that
+#     must stay green from the re-pin onward.
+#
+#   * The vendored submodule copy vendor/osbuild/roles/osbuild/files/firstboot/.
+#     INFORMATIONAL ONLY — deliberately NOT a gate: vendor/osbuild is still
+#     pinned at the PRE-GOAL commit ad7957e, so byte parity against it is
+#     expected RED until the final submodule re-pin (plan Step 11) lands the
+#     osbuild goal commit; at that point the vendored copy becomes identical
+#     to the singleton and this block reads clean. Do not make the vendor
+#     comparison fail the run; after the re-pin, if the vendor block still
+#     reports drift, the pin is wrong — investigate the pin, not the files.
+#
+# Read-only: the playbook mutates nothing, so no --check is needed.
+#
+# Run (the -i convention shared by the repo's tests/ playbooks):
+#
+#   ansible-playbook roles/user/tests/check_firstboot_parity.yml \
+#     -i roles/user/tests/inventory
+
+- name: Verify firstboot SSOT parity for the workstation user role
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # roles/user/tests -> roles/user -> roles -> workstation repo root.
+    _parity_ws_root: "{{ playbook_dir | dirname | dirname | dirname }}"
+    _parity_role_tree: "{{ playbook_dir }}/../files/firstboot"
+    # The osbuild singleton: ../../osbuild relative to the workstation repo root.
+    _parity_singleton_tree: "{{ _parity_ws_root }}/../osbuild/roles/osbuild/files/firstboot"
+    _parity_vendor_tree: "{{ _parity_ws_root }}/vendor/osbuild/roles/osbuild/files/firstboot"
+
+  tasks:
+    - name: Load the user role firstboot suite manifest
+      # Data-driven file set: the deployment loop and this parity gate read
+      # the same 'user_firstboot_files' list from roles/user/defaults/main.yml.
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../defaults/main.yml"
+
+    - name: Locate the firstboot reference trees
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      loop:
+        - label: "osbuild singleton SSOT (gate)"
+          path: "{{ _parity_singleton_tree }}"
+        - label: "vendor/osbuild submodule (informational)"
+          path: "{{ _parity_vendor_tree }}"
+        - label: "workstation roles/user/files/firstboot (gate)"
+          path: "{{ _parity_role_tree }}"
+      loop_control:
+        label: "{{ item.label }}"
+      register: _parity_tree_stat
+
+    - name: Assert the compared firstboot trees exist
+      ansible.builtin.assert:
+        that:
+          - _parity_tree_stat.results[0].stat.exists | default(false)
+          - _parity_tree_stat.results[2].stat.exists | default(false)
+        fail_msg: >-
+          Firstboot parity needs both compared trees on disk: the osbuild
+          singleton at {{ _parity_singleton_tree }} and the user role copy at
+          {{ _parity_role_tree }}. The vendor copy (informational) may be
+          absent without failing this gate.
+        quiet: false
+
+    - name: Byte-compare every firstboot file against the osbuild singleton (GATE)
+      # diff exits 0 = identical (pass), 1 = differs (collected and failed in
+      # the next task with the per-file diff), >= 2 = diff itself errored
+      # (missing file side) and fails this task immediately.
+      ansible.builtin.command:
+        argv:
+          - diff
+          - -u
+          - --label
+          - "osbuild/roles/osbuild/files/firstboot/{{ item.src }}"
+          - "{{ _parity_singleton_tree }}/{{ item.src }}"
+          - --label
+          - "workstation/roles/user/files/firstboot/{{ item.src }}"
+          - "{{ _parity_role_tree }}/{{ item.src }}"
+      loop: "{{ user_firstboot_files }}"
+      loop_control:
+        label: "{{ item.src }}"
+      register: _parity_singleton_diffs
+      changed_when: false
+      failed_when: _parity_singleton_diffs.rc >= 2
+
+    - name: Fail with a per-file diff for every file drifted from the SSOT (GATE)
+      vars:
+        _parity_drift: >-
+          {{ _parity_singleton_diffs.results
+             | selectattr('rc', 'in', [1])
+             | map(attribute='stdout')
+             | join('\n') }}
+      ansible.builtin.assert:
+        that:
+          - _parity_singleton_diffs.results | selectattr('rc', 'in', [1]) | list | length == 0
+        fail_msg: >-
+          Firstboot SSOT parity FAILED: the following files differ between
+          roles/user/files/firstboot/ and the osbuild singleton
+          ({{ _parity_singleton_tree }}). Re-sync each drifted file
+          byte-identical from the osbuild SSOT — never edit one side only.
+
+          {{ _parity_drift }}
+        quiet: false
+
+    - name: Enumerate the files present in each compared tree
+      # Beyond per-file byte parity, neither tree may carry files the manifest
+      # does not know about (stale additions drift silently otherwise).
+      ansible.builtin.find:
+        paths: "{{ item }}"
+        file_type: file
+        recurse: false
+        hidden: true
+      loop:
+        - "{{ _parity_role_tree }}"
+        - "{{ _parity_singleton_tree }}"
+      loop_control:
+        label: "{{ item | basename }} tree"
+      register: _parity_tree_listing
+
+    - name: Assert neither firstboot tree carries undeclared files (GATE)
+      vars:
+        _parity_role_files: "{{ _parity_tree_listing.results[0].files | map(attribute='path') | map('basename') | sort }}"
+        _parity_singleton_files: "{{ _parity_tree_listing.results[1].files | map(attribute='path') | map('basename') | sort }}"
+      ansible.builtin.assert:
+        that:
+          - _parity_role_files == _parity_singleton_files
+          - _parity_singleton_files | length == user_firstboot_files | length
+        fail_msg: >-
+          The firstboot trees must hold exactly the {{ user_firstboot_files | length }}
+          declared files — no more, no fewer. roles/user/files/firstboot/:
+          {{ _parity_role_files | join(', ') }}; osbuild singleton:
+          {{ _parity_singleton_files | join(', ') }}. Sync the extra file into
+          the manifest (both sides) or delete it from the tree that grew it.
+        quiet: false
+
+    - name: Report the vendored osbuild pin (INFORMATIONAL — never a gate)
+      ansible.builtin.command:
+        argv:
+          - git
+          - -C
+          - "{{ _parity_ws_root }}/vendor/osbuild"
+          - rev-parse
+          - --short
+          - HEAD
+      register: _parity_vendor_pin
+      changed_when: false
+      failed_when: false
+
+    - name: Compare the firstboot files against the vendored copy (INFORMATIONAL — never a gate)
+      ansible.builtin.command:
+        argv:
+          - diff
+          - -q
+          - "{{ _parity_vendor_tree }}/{{ item.src }}"
+          - "{{ _parity_role_tree }}/{{ item.src }}"
+      loop: "{{ user_firstboot_files }}"
+      loop_control:
+        label: "{{ item.src }}"
+      register: _parity_vendor_diffs
+      changed_when: false
+      failed_when: false
+
+    - name: Parity summary (singleton gate; vendor expected red until the re-pin)
+      vars:
+        _parity_vendor_drift: "{{ _parity_vendor_diffs.results | selectattr('rc', 'in', [0]) | list | length }}"
+      ansible.builtin.debug:
+        msg:
+          - "Firstboot parity vs the osbuild singleton ({{ _parity_singleton_tree }}): PASS ({{ user_firstboot_files | length }} files byte-identical)."
+          - >-
+            vendor/osbuild pin: {{ _parity_vendor_pin.stdout | default('unknown', true) | trim }}
+            — {{ _parity_vendor_drift }}/{{ user_firstboot_files | length }} files
+            identical against the vendored copy. Drift here is EXPECTED until
+            the final submodule re-pin (plan Step 11; pre-goal pin ad7957e) and
+            is informational only; it must not fail this gate.
