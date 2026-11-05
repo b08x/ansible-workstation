@@ -1,6 +1,6 @@
 # Workstation Bootstrap Guide
 
-This document describes the bootstrap process for provisioning a fresh workstation across Ansible and Yadm. Prerequisites come first; the rest of the document tells one story — a three-stage lifecycle — and the three paths are simply where you enter it.
+This document describes the bootstrap process for provisioning a fresh workstation across Ansible and Yadm. Prerequisites come first; the rest of the document tells one story — converging the machine exactly once through the same pull — and the three paths are simply where you enter it.
 
 ## Prerequisites
 
@@ -30,36 +30,31 @@ This project enforces a strict boundary between immutable base images (OSBuild, 
 
 ## The Lifecycle, and Where You Enter It
 
-All three paths below end at the same place: a converged Layer 1 and a yadm-ready Layer 2. They differ only in who starts the machine and where you stand when it happens — Path 1 enters at Stage 1 from bare metal, Path 2 enters when an interactive user terminal already exists, and Path 3 converges the system layer only (its pull variant runs the system play alone; its local-playbook variant converges both plays from an existing clone).
+All three paths below end at the same place: a converged Layer 1 and a yadm-ready Layer 2. They differ only in who starts the machine and where you stand when it happens — Path 1 enters at first console login on an ISO-built machine, Path 2 enters when an interactive user terminal already exists, and Path 3 converges the system layer only (its pull variant runs the system play alone; its local-playbook variant converges both plays from an existing clone).
 
-The lifecycle they enter is a relay of three stages and two reboots: Stage 1 (`scripts/bootstrap.sh`) installs the minimal prerequisites, upgrades the system, stages the Stage 2 runner, and reboots; Stage 2 (`scripts/syncopated-bootstrap-root.sh`) runs `ansible-pull` against `local.yml` with `--tags system` and reboots into the graphical greeter; Stage 3 (`syncopated-firstboot`) hooks the first user login and clones the dotfiles via yadm.
+The lifecycle they enter is the two-stage firstboot convergence: **stage 1** is console (tty1) system convergence — network wait, `dnf upgrade`, language toolchains, and (when the image is armed) one privileged `ansible-pull` against [`local.yml`](../local.yml), which converges Layer 1 and writes the machine pull marker `~/.initial-firstboot` (the primary workstation user's home; world-readable `root:root 0644`) — then set the default target to `graphical.target` and offer a reboot; **stage 2** fires at the first graphical login via the XDG autostart entry and offers to AUTO-RUN `yadm clone --bootstrap` (the yadm bootstrap orchestrator owns the drift preflight and the step registry), silencing itself with the per-user `~/.local/state/syncopated/firstboot-stage2.done` marker. Both stages stay runnable by name (`syncopated-firstboot --stage 1|2`); the markers gate only the automatic triggers. (The legacy `scripts/` relay — `bootstrap.sh`, `syncopated-bootstrap-root.sh`, the stage-3 `scripts/syncopated-firstboot`, and `scripts/01-ansible-pull.sh` — has been retired; stock-Fedora rebuilds now use Path 2 or Path 3.)
 
-### Path 1: Staged Bootstrap Lifecycle (Recommended for Fresh / Minimal Installs)
+### Path 1: ISO Two-Stage Firstboot (Fresh Installs from an osbuild Image)
 
-This is the fully automated, multi-stage lifecycle designed for bootstrapping bare-metal machines, cloud images, or minimal VM installations from scratch — a relay in which each stage ends by handing the machine to the next and retiring: Stage 1 writes the Stage 2 runner, Stage 2 self-disables, and Stage 3 writes a sentinel and never runs again.
+This is the fully automated lifecycle for machines installed from a Syncopated ISO (layer 0 built by the osbuild repository). The kickstart boots the installed system to `multi-user.target`, so first login happens on tty1 — no curl-pipe-bash, no staged runner.
 
-```bash
-# 1. Download and run the standalone Stage 1 bootstrapper as root
-curl -fsSL https://gitlab.com/syncopatedX/workstation/-/raw/development/scripts/bootstrap.sh | sudo bash
-```
+The image already carries everything stage 1 needs:
+
+- the 7-file firstboot suite (`/usr/local/bin/syncopated-firstboot`, `-launcher`, `-toolchains`, `/etc/xdg/autostart/syncopated-firstboot.desktop`, `/etc/profile.d/syncopated-firstboot.sh`, `syncopated-path.sh`, `rbenv.sh`);
+- `/etc/syncopated-ansible-pull.conf` (`ANSIBLE_PULL_REPO=https://gitlab.com/syncopatedX/workstation.git`, `ANSIBLE_PULL_ARGS` incl. `-C development`), read by stage 1's `ansible_pull` step;
+- `/etc/syncopated-user.conf` (`WORKSTATION_USER=<name>`), read by `local.yml`'s pre-flight to resolve the install-time user deterministically.
 
 **Lifecycle Stages:**
-1. **Stage 1 (Initial Setup & Upgrade — `scripts/bootstrap.sh`)**:
-   - Validates root elevation and environment.
-   - Installs minimal bootstrapping dependencies (`git`, `ansible-core`, `ansible-collection-ansible-posix`, `ansible-collection-community-general`, `python3-dnf`, `python3-rich`).
-   - Performs a full system upgrade via `dnf upgrade -y --refresh`.
-   - Writes the Stage 2 runner (`/usr/local/sbin/syncopated-bootstrap-root.sh`) and stages a one-shot systemd service unit (`/etc/systemd/system/syncopated-bootstrap-root.service`) configured with `TimeoutSec=0` / `TimeoutStartSec=0` to prevent timeouts during extensive package transactions.
-   - Enables `syncopated-bootstrap-root.service` and triggers system reboot.
-2. **Stage 2 (Root System Provisioning — `scripts/syncopated-bootstrap-root.sh`)**:
-   - Executes automatically on reboot before display manager or login prompts.
-   - Runs `ansible-pull` targeting [`local.yml`](../local.yml) with `--tags system`.
-   - Discovers hardware capabilities, installs base packages, tunes system parameters, configures networking, container runtimes, tools, and the GNOME desktop with native Wayland GDM, setting the default target to `graphical.target`.
-   - On success, writes completion marker `/var/log/syncopated-stage2.done`, self-disables `syncopated-bootstrap-root.service`, and reboots into the graphical greeter.
-3. **Stage 3 (User Onboarding & Dotfiles — `syncopated-firstboot`)**:
-   - Deployed at the system level by [`roles/common`](../roles/common) (`/usr/local/bin/syncopated-firstboot`).
-   - Hooks into first user login via `/etc/xdg/autostart/syncopated-firstboot.desktop` (graphical session) or `/etc/profile.d/syncopated-firstboot.sh` (terminal session).
-   - Clones dotfiles using the native `yadm` package from the Syncopated COPR and executes unprivileged bootstrap hooks (`local.yml --tags user`) without prompting for `sudo`.
-   - Writes the sentinel `~/.local/state/syncopated/firstboot.done` when complete.
+
+1. **Stage 1 (tty1 system convergence — `syncopated-firstboot --stage 1`, fired by `/etc/profile.d/syncopated-firstboot.sh`)**:
+   - The hook triggers only on an interactive, non-root, non-SSH login shell on `/dev/tty1`, and only while `~/.initial-firstboot` is absent (the marker lives in the primary user's home and is world-readable, so a plain `test -f` — no `sudo` on the login hot path — and nothing under the non-root-unsearchable `/root`).
+   - Waits for the network, performs a full system upgrade via `sudo dnf -y upgrade --refresh`, and sets up the language toolchains (`syncopated-toolchains`).
+   - Runs `sudo ansible-pull -U "$ANSIBLE_PULL_REPO" $ANSIBLE_PULL_ARGS` (skipped with `RC_SKIPPED` when the conf is missing/incomplete or `ansible-pull` is not installed). The pull converges both plays of [`local.yml`](../local.yml), deploys the same 7-file firstboot suite through `roles/user`, and — on a full-tag run — writes `~/.initial-firstboot` into the primary workstation user's home (`root:root`, `0644`, one ISO-8601 timestamp). Partial-tag runs deliberately do not write the marker.
+   - Verifies the marker after a successful pull (warns when a partial-tag run left it absent), sets the default boot target to `graphical.target` when a display manager is installed, and offers a reboot when updates were installed.
+2. **Stage 2 (graphical autostart — `syncopated-firstboot --stage 2`, fired by `/etc/xdg/autostart/syncopated-firstboot.desktop` via the launcher)**:
+   - The launcher opens a terminal running stage 2 unless the per-user `~/.local/state/syncopated/firstboot-stage2.done` marker exists (the legacy `firstboot.done` marker from the single-stage splash also counts as done — read-compat only, so already-onboarded users are never nagged).
+   - Offers `Run yadm setup now` / `Show commands` / `Skip for this machine`. Running installs yadm when missing and executes exactly `yadm clone --bootstrap $DOTFILES_URL` — drift preflight, the bootstrap step registry, and retry/skip/abort handling belong to the yadm orchestrator (Layer 2), never reimplemented here.
+   - Writing the stage-2 marker (completed or declined) silences only the autostart trigger; `syncopated-firstboot --stage 2` by name always shows the offer and commands.
 
 ---
 
@@ -71,14 +66,14 @@ For systems with an interactive user terminal already configured, initiating boo
 # 1. Clone your personal dotfiles repository via Yadm
 yadm clone https://github.com/<your-username>/dotfiles.git
 
-# 2. Execute Yadm bootstrap (or automate unattended with SYNCOPATED_ANSIBLE_PULL=yes)
+# 2. Execute Yadm bootstrap
 yadm bootstrap
 ```
 
 **Execution Flow:**
 1. **Clone**: Yadm pulls dotfiles and bootstrap scripts to `~/.config/yadm/`.
-2. **Layer 1 Bridge (`01-ansible-pull.sh`)**: As its first bootstrap action, Yadm executes `01-ansible-pull.sh`, which invokes `ansible-pull` targeting [`local.yml`](../local.yml).
-3. **Layer 1 Convergence**: Ansible discovers local hardware capabilities (KVM, GPU CUDA/Vulkan, desktop target), executes fail-fast assertions, installs host RPMs (via DNF/DNF5), configures system services, Flatpaks, and host binaries.
+2. **Layer 1 Bridge (`bootstrap.d/02-ansible-pull.sh`)**: Yadm executes the consolidated `02-ansible-pull` step, which CONDITIONALLY invokes `ansible-pull` targeting [`local.yml`](../local.yml) — the step checks the machine pull marker at the top of its `main()` (plain `test -f ~/.initial-firstboot`, no sudo — the marker is world-readable in the primary user's home, and `/root` is unstat-able by non-root users): when it exists (the machine was already converged through stage 1 or an earlier bootstrap) the step logs the skip and returns `RC_SKIPPED`; when absent it runs the single privileged pull. `SYNCOPATED_ANSIBLE_PULL_FORCE=1` re-converges by name regardless of the marker.
+3. **Layer 1 Convergence**: Ansible discovers local hardware capabilities (KVM, GPU CUDA/Vulkan, desktop target), executes fail-fast assertions, installs host RPMs (via DNF/DNF5), configures system services, Flatpaks, and host binaries — and, through the `user` role, deploys the same 7-file firstboot suite an ISO path plants, then writes `~/.initial-firstboot` after a full-tag run.
 4. **Layer 2 Convergence**: Control returns to Yadm to unpack dotfiles templates, install user Rust tools via `cargo`, user gems via `rbenv`, and user-space Flatpaks.
 
 ---
@@ -166,13 +161,10 @@ sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --skip-tags 
 ```
 
 #### Integrated with Yadm Bootstrap
-Yadm's bootstrap pipeline executes `01-ansible-pull.sh` as its first step. It is an optional, prompted step:
-- Prompts with `gum confirm` in interactive terminals.
-- Can be automated via environment variables:
-  ```bash
-  SYNCOPATED_ANSIBLE_PULL=yes yadm bootstrap
-  ```
-- Pulls from `https://gitlab.com/syncopatedX/workstation.git` with `ANSIBLE_STDOUT_CALLBACK=default`.
+Yadm's bootstrap pipeline executes the consolidated `bootstrap.d/02-ansible-pull.sh` step. It is conditional on the machine pull marker `~/.initial-firstboot` (primary workstation user's home):
+- When the marker exists, the step logs `firstboot ansible-pull already completed; skipping` (naming the marker path) and returns `RC_SKIPPED` (2) — bootstrap continues its remaining steps.
+- When the marker is absent, the step computes hardware- and desktop-aware default tags (`gpu` only with a GPU, `libvirt` only with KVM, `desktop_ui,desktop` only on a graphical desktop) and runs one privileged `ansible-pull` (`--ask-become-pass`) against `https://gitlab.com/syncopatedX/workstation.git` / `local.yml`; override the tag CSV with `SYNCOPATED_ANSIBLE_TAGS`, force the desktop environment with `SYNCOPATED_DESKTOP_UI_ENVIRONMENT`.
+- `SYNCOPATED_ANSIBLE_PULL_FORCE=1` runs the pull despite the marker (re-converge by name); `SYNCOPATED_ANSIBLE_PULL_FIRSTBOOT_MARKER` overrides the marker path for testing.
 
 Choosing which yadm bootstrap steps run:
 - On a terminal, `yadm bootstrap` shows a multi-select menu of every step (preflight, shell, decrypt, alternates and each `bootstrap.d` script). All steps start selected; unselected steps are reported as "not run".

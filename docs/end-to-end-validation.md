@@ -25,12 +25,14 @@ the real disk — a smaller disk aborts the install.
   repository URL.
 - **Process** — clarify → write intent → validate intent → generate blueprint +
   build script → compile ISO → install in KVM (kickstart, zero interaction) →
-  ansible-pull converges the system → the firstboot hook hands off to yadm.
+  first console login fires firstboot stage 1, whose armed `ansible-pull`
+  converges the system → first graphical login fires stage 2, which hands off
+  to yadm.
 - **Output** — a blueprint and build script that produce `<name>-<commit>.iso`
   — bootable and zero-interaction-installable by kickstart contract and VM
   harness, with the build itself left to you; and, after installation and
   convergence, a pristine host: system layer converged, yadm installed,
-  firstboot hooks deployed, no dotfiles cloned.
+  firstboot suite deployed, no dotfiles cloned.
 - **Circumstance** — the build host is Fedora or EL 10; the role defaults to
   generate-only, so a human runs the build script; LUKS (`disk.encrypt: true`)
   makes the passphrase the installer's only prompt.
@@ -93,40 +95,49 @@ prompt is the LUKS passphrase when `disk.encrypt: true`. First login uses the
 password `syncopated`, with a forced change (`chage -d 0`); root stays locked
 unless `root.enabled`.
 
-**Stage 5a — System convergence via the staged bootstrap (validated on the
-rebuild path).** The rebuild orchestrator pushes `scripts/bootstrap.sh` over
-SSH to a stock Fedora Server install. Bootstrap step 1 (`scripts/bootstrap.sh`)
-installs prerequisites (`git`, `ansible-core`, `ansible-posix`,
-`community-general`, `python3-dnf`, `python3-rich`), runs
-`dnf upgrade -y --refresh`, writes the step-2 runner and a one-shot systemd
-unit (`TimeoutSec=0`), enables it, and reboots. Bootstrap step 2
-(`scripts/syncopated-bootstrap-root.sh`) runs `ansible-pull --tags system
-local.yml`, which probes hardware (`/dev/kvm`, default target, CUDA, Vulkan)
-and converges the repository configuration and the `common`, `tuning`,
-`gpu`, `networking`, and `tools` roles unconditionally — the `gpu` role
-installs vendor stacks only when `intel_oneapi_install` /
+**Stage 5a — System convergence via one privileged pull.** The retired staged
+bootstrap (`scripts/bootstrap.sh` → `syncopated-bootstrap-root.service`) has
+been removed; a stocked install converges through the same single pull both
+other layers use — the `user` role's stage-1 `ansible-pull` (ISO path) or
+`yadm bootstrap`'s conditional `bootstrap.d/02-ansible-pull.sh` step (vanilla
+path). The pull runs `local.yml`, which probes hardware (`/dev/kvm`, default
+target, CUDA, Vulkan) and converges the repository configuration and the
+`common`, `tuning`, `gpu`, `networking`, and `tools` roles unconditionally —
+the `gpu` role installs vendor stacks only when `intel_oneapi_install` /
 `nvidia_cuda_install` host flags are set, otherwise it makes no changes;
-`containerd` and `desktop_ui`
-unless their enable flags are overridden (both default on); and `libvirt` only
-when `/dev/kvm` is present — including installing the yadm RPM (with a
-standalone-binary fallback) and deploying the firstboot hooks — then writes
-`/var/log/syncopated-stage2.done`, self-disables, and reboots.
+`containerd` and `desktop_ui` unless their enable flags are overridden (both
+default on); and `libvirt` only when `/dev/kvm` is present — including
+installing the yadm RPM (with a standalone-binary fallback) in `common` and,
+in the user role, deploying the 7-file firstboot suite byte-identical to the
+osbuild SSOT, then writing the machine pull marker `~/.initial-firstboot` (primary workstation user's home)
+after a full-tag run.
 
-**Stage 5b — First login on an osbuild-built ISO (unvalidated composition).**
-The injected splash (`roles/osbuild/files/firstboot/syncopated-firstboot`) runs
-`sudo dnf upgrade`, sets the graphical target, and runs `ansible-pull` only if
-the image carries `/etc/syncopated-ansible-pull.conf` — which an intent-built
-image does not (see What This Does Not Validate). The osbuild-ISO convergence
-composition is not validated.
+**Stage 5b — First console login on an osbuild-built ISO.** The kickstart
+boots to `multi-user.target`, so the first interactive non-root non-SSH login
+on `/dev/tty1` fires stage 1 of the injected two-stage splash
+(`roles/osbuild/files/firstboot/syncopated-firstboot --stage 1`, gated on
+`~/.initial-firstboot`): it waits for the network, runs
+`sudo dnf -y upgrade --refresh`, sets up language toolchains, runs
+`sudo ansible-pull` armed by `/etc/syncopated-ansible-pull.conf` (baked by
+default now that `osbuild_ansible_pull_repo`/`osbuild_ansible_pull_args` role
+defaults are non-empty), verifies the machine marker, sets the default target
+to `graphical.target`, and offers a reboot when updates were installed. The
+osbuild-ISO convergence composition is not validated (see What This Does Not
+Validate).
 
-**Stage 6 — Firstboot handoff *(design; validated to the threshold)*.**
-On the validated rebuild path, the converged system becomes a yadm-ready user
-environment through `syncopated-firstboot` (`ws/scripts/syncopated-firstboot`)
-— the *firstboot* hook, so named because it runs once, at first login: it
-prompts for a dotfiles repository (default `https://github.com/b08x/dots.git`),
-validates it with `git ls-remote`, **re-prompting until the URL answers (exiting
-non-zero in auto mode)**, runs `yadm clone -f --no-bootstrap`, then
-`yadm bootstrap`, and writes `~/.local/state/syncopated/firstboot.done`.
+**Stage 6 — Stage-2 handoff at first graphical login *(design; validated to
+the threshold)*.** The rebooted system opens the graphical greeter; the XDG
+autostart entry (`/etc/xdg/autostart/syncopated-firstboot.desktop`) launches
+stage 2 unless the per-user
+`~/.local/state/syncopated/firstboot-stage2.done` marker exists (the legacy
+`firstboot.done` marker also counts as done, so already-onboarded users are
+never nagged). Stage 2 offers `Run yadm setup now` / `Show commands` /
+`Skip for this machine`; running installs yadm to `~/.local/bin` when missing
+and executes exactly `yadm clone --bootstrap https://github.com/b08x/dots.git`,
+delegating drift preflight and the step registry to the yadm bootstrap
+orchestrator; `Skip` writes the marker with a `declined` note and exits
+`RC_SKIPPED`(2). By-name runs (`syncopated-firstboot --stage 2`) always show
+the offer and commands regardless of markers.
 
 > The validated endpoint of this document is the **threshold** of Stage 6 — the
 > *pristine checkpoint*, ready for yadm — not the completed dotfiles convergence.
@@ -154,9 +165,10 @@ decide:
   only prompt).
 - They learn the three-layer model — OSBuild, Ansible, yadm — and what "pristine,
   ready for yadm" actually means: system converged, yadm installed, firstboot
-  hooks deployed, and no dotfiles cloned yet.
-- At firstboot they decide which dotfiles repository to clone, and the script
-  validates it with `git ls-remote` before cloning.
+  suite deployed, and no dotfiles cloned yet.
+- At the stage-2 offer they decide whether to run `yadm clone --bootstrap`
+  now, see the commands, or skip for this machine — and the offer never nags
+  again once decided, while staying runnable by name.
 
 ## System Architecture *(Relational Processes)*
 
@@ -166,26 +178,32 @@ backward — plus a packaging companion (`rpmbuild`) off the critical path.
 - **Layer 0 — OSBuild** (immutable base image) ← the `osbuild` repository. It
   produces the ISO and arms Layer 1 through the first-login splash it injects.
 - **Layer 1 — Ansible** (host orchestration) ← the `workstation` repository.
-  `local.yml` converges the system layer; the `common` role installs yadm and
-  deploys the firstboot hooks.
+  `local.yml` converges the system layer; the `common` role installs yadm, and
+  the `user` role owns and deploys the 7-file firstboot suite plus the machine
+  pull marker `~/.initial-firstboot` (primary workstation user's home).
 - **Layer 2 — yadm** (user dotfiles) ← the dotfiles repository (e.g.
-  `https://github.com/b08x/dots.git`). Its `01-ansible-pull.sh` bridges back into
-  Layer 1.
+  `https://github.com/b08x/dots.git`). Its `bootstrap.d/02-ansible-pull.sh`
+  bridges back into Layer 1, conditionally on the marker.
 
 How they connect:
 
-- The osbuild repository's ISO **arms** Layer 1 **through** the first-login
-  splash it injects (`roles/osbuild/files/firstboot/syncopated-firstboot` —
-  distinct from the workstation hook of the same name, which later overwrites
-  it at the same path): at first graphical login it updates the system and runs
-  `sudo ansible-pull` **only if** the image carries
-  `/etc/syncopated-ansible-pull.conf`, which no intent field can create.
-- The workstation repository's `common` role **enables** Layer 2 **by** installing
-  the yadm binary and deploying `/usr/local/bin/syncopated-firstboot` with its
-  autostart and profile.d launchers.
-- The dotfiles repository's `01-ansible-pull.sh` **re-enters** Layer 1
-  (`ansible-pull --tags user local.yml`), so Layer 2 triggers Layer 1 convergence
-  before applying user configuration.
+- The osbuild repository's ISO **arms** Layer 1 **through** the two-stage
+  first-login suite it injects (`roles/osbuild/files/firstboot/` — 7 files,
+  including `/etc/syncopated-ansible-pull.conf` baked by default from the
+  `osbuild_ansible_pull_repo`/`osbuild_ansible_pull_args` role defaults): at
+  the first console login stage 1 updates the system and runs
+  `sudo ansible-pull`; at the first graphical login stage 2 offers the
+  `yadm clone --bootstrap` handoff. When the workstation pull re-deploys the
+  suite, it lands byte-identical (parity invariant with the osbuild SSOT).
+- The workstation repository's `user` role **enables** Layer 2 **by** deploying
+  the firstboot suite (launcher, autostart entry, profile hooks) and installing
+  the toolchain surface the yadm bootstrap presupposes.
+- The dotfiles repository's `bootstrap.d/02-ansible-pull.sh` **re-enters**
+  Layer 1 (one privileged `ansible-pull` against `local.yml`) when
+  `~/.initial-firstboot` is absent, so Layer 2 triggers Layer 1 convergence
+  before applying user configuration — and skips it when the machine has
+  already converged through the same pull (ISO stage 1 or an earlier
+  bootstrap).
 - Layer ownership **holds the seams together**: Single Ownership (one
   authoritative manager per file), No Template Clobbering (Ansible never
   overwrites yadm-tracked `$HOME` files), Separation of Binaries and Dotfiles,
@@ -215,24 +233,26 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
 | Build script: repo preflight, `sudo image-builder build`, newest image, copy to `<name>-<commit>.iso` | High | `osb/roles/osbuild/templates/image-builder-build.sh.j2` (88 lines) |
 | Build hosts: `builder` = `gir` (Fedora, local, .10) + `tinybot` (AlmaLinux 10, SSH .11) | High | `osb/inventory/hosts.yml` L6–14 |
 | ISO install: zero-interaction kickstart, `%pre` disk pick (NVMe first, then largest), 30 s tty8 countdown, LUKS-only prompt | High | `osb/README.md` L249–253; `osb/roles/osbuild/README.md` L1057–1063 |
-| Injected first-login splash: `sudo dnf upgrade`, graphical target, `ansible-pull` only when `/etc/syncopated-ansible-pull.conf` is present | High | `osb/roles/osbuild/files/firstboot/syncopated-firstboot` (conf-conditional ansible-pull lines) |
+| Injected two-stage splash: stage 1 (`dnf upgrade`, toolchains, armed `ansible-pull` from `/etc/syncopated-ansible-pull.conf`, marker verify, graphical target) + stage 2 (offer `yadm clone --bootstrap`, per-user `firstboot-stage2.done` marker, legacy `firstboot.done` read-compat) | High | `osb/roles/osbuild/files/firstboot/syncopated-firstboot` (`stage1`, `stage2`, stage/marker constants) |
 | First-login password `syncopated`, forced change (`chage -d 0`), root locked unless `root.enabled` | High | `osb/roles/osbuild/defaults/main.yml` L248–261 |
+| Pull arming defaults now non-empty (`https://gitlab.com/syncopatedX/workstation.git`, `-C development -i localhost, local.yml`) — every firstboot-enabled profile bakes the pull conf | High | `osb/roles/osbuild/defaults/main.yml` L395–396 |
+| Firstboot injection idempotence: `blockinfile` marker renders once; 7 suite paths + conditional `/etc/syncopated-ansible-pull.conf` and `/etc/syncopated-user.conf` stanzas | High | `osb/roles/osbuild/tasks/blueprint.yml` (Inject first-login splash files); `osb/roles/osbuild/tests/firstboot/check_injection.py` |
 | Unattended KVM install harness: `-enable-kvm`, OVMF, NVMe disk of exactly `disk.size_gib`, `-no-reboot`, zero input; offline libguestfs + online `syncopated-scan` | High | `osb/tests/vm/run-install-test.sh` L1–55 (header), 210 lines |
-| `local.yml` two plays: system (`become: true`, tags) + user (`become: false`, tag `user`) | High | `ws/local.yml` L22–37, L410–417 |
+| `local.yml` two plays: system (`become: true`, tags) + user (`become: false`, tag `user`) | High | `ws/local.yml` L22–37, L465–473 |
 | Hardware probes (`/dev/kvm`, default target, CUDA, Vulkan) gate `libvirt`, `desktop_ui`, `containerd` enablement | High | `ws/local.yml` pre-flight capability detection block |
-| Stage 1 bootstrap: prerequisites, `dnf upgrade`, Stage 2 runner + systemd unit, enable, reboot | High | `ws/scripts/bootstrap.sh` L34–156 |
-| Stage 2: `ansible-pull --tags system local.yml`; done marker; self-disable; reboot | High | `ws/scripts/syncopated-bootstrap-root.sh` L27–43 |
+| Workstation-repo firstboot suite: data-driven 7-file deployment (root context) + stat-guarded machine marker writer gated on full-tag `ansible_run_tags` | High | `ws/roles/user/tasks/firstboot.yml` (deploy loop + marker task); gate `ws/roles/user/tasks/main.yml` (include `firstboot.yml`) |
+| `local.yml` pre-flight reads the osbuild-baked `/etc/syncopated-user.conf` (`WORKSTATION_USER=`) before the `user.name`/`b08x` fallback chain | High | `ws/local.yml` (Play 1 + Play 2 pre_tasks: probe/slurp/seed `workstation_user`) |
 | yadm installed by `common` role (RPM via DNF, standalone fallback, assert present) | High | `ws/roles/common/tasks/yadm.yml` L4–53; included at `ws/roles/common/tasks/main.yml` L70–72 |
-| Firstboot hooks deployed (`/usr/local/bin/syncopated-firstboot`, launcher, autostart `.desktop`, profile.d `.sh`), gated on `common_firstboot_enabled` default `true` | High | `ws/roles/common/tasks/firstboot.yml` L13–64; gate `ws/roles/common/tasks/main.yml` L74–77 |
-| Stage 3 firstboot: prompt dotfiles repo (default `dots.git`), `git ls-remote` validate, `yadm clone -f --no-bootstrap`, `yadm bootstrap`, `firstboot.done` marker | High | `ws/scripts/syncopated-firstboot` L17, L49–81 |
-| yadm → ansible bridge: `01-ansible-pull.sh` defaults (workstation repo, `local.yml`, `development`), opt-in `SYNCOPATED_ANSIBLE_PULL`, runs `ansible-pull --tags user local.yml` | High | `ws/scripts/01-ansible-pull.sh` L38–44, L57–66, L92–110 |
+| Stage-2 offer: `Run yadm setup now` / `Show commands` / `Skip for this machine`; auto-run delegates to `yadm clone --bootstrap $DOTFILES_URL` and relays its exit code; per-user `firstboot-stage2.done` marker (declined note on Skip) | High | `osb/roles/osbuild/files/firstboot/syncopated-firstboot` (`stage2`, `stage2_run_setup`); parity copy `ws/roles/user/files/firstboot/` |
+| Machine pull marker: `~/.initial-firstboot` (primary workstation user's home; `root:root 0644` — phase-4 amendment, `/root` is unstat-able by non-root users), single writer = workstation `roles/user` task, full-tag runs only; stage 1, the profile hook and the yadm step only `test -f` it (no sudo) | High | `ws/roles/user/tasks/firstboot.yml` (marker task); `osb/roles/osbuild/files/firstboot/syncopated-firstboot` (`MACHINE_MARKER`); `/etc/profile.d` hook (`syncopated-firstboot.sh`) |
+| yadm → ansible bridge: `bootstrap.d/02-ansible-pull.sh` checks the marker at the top of `main()` (plain `test -f`, no sudo), skips with `RC_SKIPPED`; `SYNCOPATED_ANSIBLE_PULL_FORCE`/`SYNCOPATED_ANSIBLE_PULL_FIRSTBOOT_MARKER` seams | High | dots repo `bootstrap.d/02-ansible-pull.sh` (marker block); `tests/ansible.bats` (marker-present/absent/force/env-override cases) |
 | Three-layer taxonomy + layer ownership principles | High | `ws/docs/layering-architecture.md` L1–78 |
 | `rpmbuild` repository as packaging companion (supports Layer 1, off this pipeline's critical path) | High | `ws/README.md` L144 (Companion Repositories table) |
 | `fedora-minimal-vm-rebuild` done condition (8 points, incl. idempotency `changed=0, failed=0`) | High | `ws/goals/fedora-minimal-vm-rebuild/goal.md` L9–20 |
 | Rebuild orchestrator: 8-step pipeline (teardown → kickstart → virt-install → await SSH → Stage 1 → Stage 2 → Stage 3 → verify idempotence) | High | `ws/goals/fedora-minimal-vm-rebuild/rebuild-orchestrator.sh` L1–60 (config), 417 lines |
 | `ks.cfg` unattended minimal (`@core` + `openssh-server`, Btrfs, user `b08x`, root locked) | High | `ws/goals/fedora-minimal-vm-rebuild/ks.cfg` L1–57 |
 | Vagrantfile: libvirt/KVM provider, `almalinux` (primary) + `fedora` VMs | Medium | `ws/Vagrantfile` L1–45, 231 lines |
-| A single continuous run spanning both repositories | Low (inferred) | Seams only: ISO (Stage 3), firstboot hook (Stages 4–5), ansible-pull entry (Stage 5); no single continuous-run log cited |
+| A single continuous run spanning all three repositories | Low (inferred) | Seams only: ISO install (Stage 4), tty1 stage-1 hook (Stage 5), XDG stage-2 launcher (Stage 6); no single continuous-run log cited |
 
 ## What This Does Not Validate *(negative capability)*
 
@@ -256,19 +276,20 @@ Repo prefixes: `ws/` = `/home/b08x/WorkspaceV3/Syncopated/workstation/`;
   cloned). The `fedora-minimal-vm-rebuild` goal does prove convergence,
   idempotency, and yadm bootstrap — but on a stock Fedora Server ISO, not on an
   osbuild-built one.
-- **System convergence on an osbuild-built ISO.** The intent schema has no
-  field that arms the ISO's first-login splash
-  (`/etc/syncopated-ansible-pull.conf` is written only from the
-  `osbuild_ansible_pull_repo`/`osbuild_ansible_pull_args` role variables, which
-  intents cannot set), and the staged bootstrap is validated only when the
-  rebuild orchestrator invokes it over SSH on a stock Fedora Server ISO. An
-  intent-built ISO installed by hand updates itself at first login, installs
-  yadm to `~/.local/bin`, and prints the clone/bootstrap commands — it does not
-  converge. That composition is unvalidated.
-- **The osbuild ISO does not trigger the staged bootstrap.** Nothing the
-  blueprint injects (first-login splash, Flathub, repos, release file,
-  hardening, kickstart, sudoers) runs `bootstrap.sh`; the staged bootstrap is
-  the rebuild-orchestrator's mechanism.
+- **System convergence on an osbuild-built ISO.** The pull is now armed by
+  default (`osbuild_ansible_pull_repo`/`osbuild_ansible_pull_args` role
+  defaults are non-empty, so every firstboot-enabled profile bakes
+  `/etc/syncopated-ansible-pull.conf`, and a profile may still override either
+  key per image), but the composed ISO run — install → tty1 stage-1 pull →
+  marker → graphical stage-2 offer — has not been executed end to end in one
+  continuous log. Each seam carries its own tests (osbuild bats, injection
+  checks, workstation parity), not a composed proof.
+- **The staged bootstrap relay is retired.** `scripts/bootstrap.sh`,
+  `scripts/syncopated-bootstrap-root.sh`, `scripts/syncopated-firstboot`, and
+  `scripts/01-ansible-pull.sh` no longer exist; a stocked install converges
+  through the same single pull (`local.yml` directly, or the conditional yadm
+  `02-ansible-pull.sh` step). The rebuild orchestrator goal artifacts under
+  `goals/fedora-minimal-vm-rebuild/` are historical.
 - **Remote logging.** Disabled by default; validated only when explicitly enabled
   with a URL and certificates.
 - **Root login.** Locked unless `root.enabled` is set.
@@ -285,13 +306,14 @@ The validated end state, stated plainly:
   produce `<name>-<commit>.iso` — bootable and zero-interaction-installable by
   kickstart contract and VM harness, with the build itself left to you (see
   negative capability).
-- On the validated rebuild path, an installed host converges its system layer
-  via `ansible-pull --tags system local.yml` — orchestrator-triggered over SSH
-  — and lands at a pristine checkpoint: yadm installed, firstboot hooks
-  deployed, no dotfiles cloned.
-- Idempotency verified on the rebuild path (**stock Fedora Server ISO,
-  orchestrator-driven**): a second `local.yml` pass reports `changed=0,
-  failed=0`.
+- An installed host converges its system layer via one privileged
+  `ansible-pull` run against `local.yml` — stage 1 (ISO path) or the
+  conditional `02-ansible-pull.sh` step (vanilla path) — and lands at a
+  pristine checkpoint: yadm installed, firstboot suite deployed, machine pull
+  marker written, no dotfiles cloned.
+- Idempotence verified at the seam level (two-run blueprint renders
+  byte-stable; stat-guarded marker; second pull reports zero changes at the
+  firstboot tasks), not yet by a composed ISO rebuild log.
 - The host is ready for yadm: clone your dotfiles, run `yadm bootstrap`, and
   Layer 2 takes it from there.
 

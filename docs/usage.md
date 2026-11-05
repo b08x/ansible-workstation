@@ -67,16 +67,27 @@ ansible-playbook local.yml
 
 ## Start From Bare Metal
 
-A fresh machine converges itself in three stages, fully automated from a
-minimal install — the full lifecycle is in [`bootstrap.md`](bootstrap.md).
+A fresh machine converges itself through the two-stage firstboot flow, fully
+automated from a Syncopated ISO or a stocked install — the full lifecycle is
+in [`bootstrap.md`](bootstrap.md).
 
-1. **`scripts/bootstrap.sh`** — installs `git`, `ansible-core`, runs `dnf
-   upgrade -y --refresh`, stages `syncopated-bootstrap-root.service`, reboots
-2. **`scripts/syncopated-bootstrap-root.sh`** — post-reboot systemd runner
-   (TimeoutSec=0) executing `ansible-pull --tags system local.yml`, writes
-   completion sentinel, self-disables, reboots into graphical environment
-3. **`syncopated-firstboot`** — deployed by the `common` role; triggers on first
-   user login to clone dotfiles via yadm, run unprivileged user bootstrap
+1. **Stage 1 — `syncopated-firstboot --stage 1`** (tty1 login hook
+   `/etc/profile.d/syncopated-firstboot.sh`, fired while
+   `~/.initial-firstboot` is absent) — waits for the network, runs
+   `dnf upgrade -y --refresh`, sets up language toolchains, and runs the armed
+   `ansible-pull` against `local.yml` when the image carries
+   `/etc/syncopated-ansible-pull.conf`; the pull converges the system layer
+   and writes `~/.initial-firstboot`, then the stage sets the default
+   target to `graphical.target` and offers a reboot
+2. **Stage 2 — `syncopated-firstboot --stage 2`** (XDG autostart launcher at
+   the first graphical login, gated on the per-user
+   `~/.local/state/syncopated/firstboot-stage2.done` marker) — offers to
+   auto-run `yadm clone --bootstrap`, delegating drift preflight and the
+   bootstrap step registry to the yadm orchestrator
+
+On a machine that never saw the ISO flow, `yadm bootstrap` runs the same
+privileged pull through `bootstrap.d/02-ansible-pull.sh` (conditional on the
+same marker), so both paths converge exactly once.
 
 ## Test Your Changes
 

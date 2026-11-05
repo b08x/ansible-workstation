@@ -100,36 +100,39 @@ The Layer 1 surface is five entry points:
 
 ## From bare metal to logged in
 
-The bootstrap is the repository reaching out of git and into the machine: Stage 1
-stages Stage 2, Stage 2 pulls this repository onto the host and runs it against
-itself, and Stage 3 hands off to Layer 2. Each stage writes its sentinel so the next
-stage knows what the machine has already become. (On-disk artifact names containing
-"syncopated" are historical and unchanged — they are literal file, service, and
-sentinel names, cited exactly as they exist.)
+Convergence means running the playbooks until the host matches its declared state. A
+machine gets there through the same ansible-pull contract whichever way it was born.
+ISO-built machines (layer 0: osbuild) carry the two-stage first-login flow: the
+kickstart boots to `multi-user.target`, and the first console login on tty1 fires
+stage 1 of `syncopated-firstboot` (deployed by the `user` role to
+`/usr/local/bin`, gated on the machine pull marker
+`~/.initial-firstboot` in the primary workstation user's home). Stage 1 waits for the network, upgrades the
+system with dnf, sets up the language toolchains, runs
+`sudo ansible-pull` when the image carries `/etc/syncopated-ansible-pull.conf`
+(that pull runs this repository — `local.yml` — and is the one writer of
+`~/.initial-firstboot` after a full-tag run), sets the default target to
+`graphical.target`, and offers a reboot. Stage 2 fires from the XDG autostart
+entry at the first graphical login and offers to AUTO-RUN
+`yadm clone --bootstrap` (delegating drift preflight and the step registry to
+the yadm bootstrap orchestrator), silencing itself with the per-user
+`~/.local/state/syncopated/firstboot-stage2.done` marker.
 
-Convergence means running the playbooks until the host matches its declared state. The
-staged bootstrap gets a bare machine there in three stages. Stage 1,
-[scripts/bootstrap.sh](scripts/bootstrap.sh): install git, ansible-core, the required
-collections, python3-dnf, and python3-rich; run dnf upgrade -y --refresh; stage
-the Stage 2 runner and its systemd unit (syncopated-bootstrap-root.service, with
-TimeoutSec=0); enable the unit and reboot. Stage 2,
-[scripts/syncopated-bootstrap-root.sh](scripts/syncopated-bootstrap-root.sh): run
-ansible-pull --tags system local.yml, write /var/log/syncopated-stage2.done,
-self-disable the unit, and reboot. Stage 3, syncopated-firstboot (deployed by the
-common role to /usr/local/bin): hook first login, clone the dotfiles via yadm, and
-write the sentinel ~/.local/state/syncopated/firstboot.done.
-
-The pipeline has a deliberate stopping point: the pristine checkpoint. The machine
-converges itself and then stops just before the part that is yours — build defaults
-are generate-only, and on first login syncopated-firstboot prompts for the dotfiles
-repository and validates it with git ls-remote before cloning anything.
+The pipeline has a deliberate stopping point: the pristine checkpoint. Stage 1
+converges the machine and hands the user-space work to Layer 2, and stage 2
+offers — never forces — the dotfiles clone. The bootstrap step
+`bootstrap.d/02-ansible-pull.sh` in the yadm repository is CONDITIONAL on the
+same marker: on machines already converged through stage 1 it skips, so
+`yadm bootstrap` and the ISO firstboot converge each machine exactly once,
+through the same pull.
 [docs/end-to-end-validation.md](docs/end-to-end-validation.md) traces a single request
 from spec sentence to converged host, with per-stage evidence calibration.
 
-There are three convergence paths — the staged bootstrap above; the autonomous yadm
-bootstrap, whose 01-ansible-pull.sh bridges back into Layer 1 with
-SYNCOPATED_ANSIBLE_PULL=yes for unattended runs; and standalone local convergence —
-and all three end at the same place: a converged Layer 1 and a yadm-ready Layer 2.
+There are three convergence paths — the ISO two-stage firstboot above; the
+yadm bootstrap, whose `bootstrap.d/02-ansible-pull.sh` bridges back into
+Layer 1 for a privileged pull when the machine marker is absent; and
+standalone local convergence (`ansible-playbook local.yml`) — and all three
+end at the same place: a converged Layer 1, the firstboot suite deployed by
+the `user` role, and a yadm-ready Layer 2.
 [docs/bootstrap.md](docs/bootstrap.md) is the full lifecycle.
 
 ## Converge a host in two commands

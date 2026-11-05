@@ -53,7 +53,7 @@ workstation/
 │   ├── nas.yml                # NAS playbook
 │   └── tts.yml                # Text-to-speech playbook
 ├── roles/
-│   ├── common/                # Base system, firstboot, hardening, Molecule tests
+│   ├── common/                # Base system, hardening, Molecule tests
 │   ├── tuning/                # Kernel params, zram, CPU tuning
 │   ├── networking/            # Network configuration
 │   ├── containerd/            # Container runtime
@@ -61,7 +61,7 @@ workstation/
 │   ├── desktop_ui/            # GNOME & COSMIC desktop, GDM & cosmic-greeter, theming
 │   ├── gpu/                   # Optional Intel oneAPI + NVIDIA CUDA stacks (off by default)
 │   ├── tools/                 # AI coding CLIs, IDEs, system binaries, Flatpaks
-│   ├── user/                  # User environment, shell, uv toolchains
+│   ├── user/                  # User environment, shell, uv toolchains, firstboot suite
 │   ├── nas/                   # NFS, Samba, rsync
 │   └── tts/                   # Text-to-speech services
 ├── inventory/
@@ -73,10 +73,6 @@ workstation/
 │       ├── llm_analyzer.py    # Records every play/task to a trace store
 │       └── rich_ci_formatter.py # Human-readable terminal output
 ├── scripts/
-│   ├── bootstrap.sh           # Stage 1: minimal prerequisites + reboot
-│   ├── syncopated-bootstrap-root.sh  # Stage 2: systemd runner for ansible-pull
-│   ├── syncopated-firstboot   # Stage 3: user login bootstrap
-│   ├── 01-ansible-pull.sh     # Yadm bridge to ansible-pull
 │   └── llm_trainset.py        # Builds DSPy trainset from traces
 ├── docs/
 │   ├── layering-architecture.md  # Layer 0/1/2 taxonomy
@@ -102,10 +98,12 @@ for the full taxonomy):
   managers, user Cargo crates, user Ruby gems, user Flatpaks. The one layer a
   re-image does not erase; drift is permitted under version control.
 
-Layer 2 is not passive: before user configuration is applied, yadm's first
-bootstrap step, `scripts/01-ansible-pull.sh`, bridges back down into Ansible
-(`ansible-pull --tags user local.yml`), so the top of the stack can pull its own
-floor into shape — see [`bootstrap.md`](bootstrap.md) for the bridge and
+Layer 2 is not passive: before user configuration is applied, yadm's consolidated
+bootstrap step `bootstrap.d/02-ansible-pull.sh` bridges back down into Ansible
+(one privileged `ansible-pull` against `local.yml`, conditional on the machine
+pull marker `~/.initial-firstboot` (primary workstation user's home) — already-converged machines skip), so
+the top of the stack can pull its own floor into shape — see
+[`bootstrap.md`](bootstrap.md) for the bridge and
 [`layering-architecture.md`](layering-architecture.md) for the boundary it crosses.
 
 ---
