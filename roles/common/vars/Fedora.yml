@@ -9,8 +9,8 @@ common_packages:
   - golang
   - gum
   - lm_sensors-devel
-  - nodejs
-  - npm
+  - nodejs22
+  - nodejs22-npm
   - openssh-server
   - policycoreutils-python-utils
   - tar

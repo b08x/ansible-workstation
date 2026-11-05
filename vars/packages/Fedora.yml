@@ -205,8 +205,8 @@ system_packages:
     languages:
       - python3-devel
       - python3-pip
-      - nodejs
-      - nodejs-npm
+      - nodejs22
+      - nodejs22-npm
       - rbenv
       - ruby-build-rbenv
       - bats
