@@ -1,6 +1,6 @@
 # User Role (`roles/user`)
 
-Installs and manages the **user-space developer toolchains and extension lists** for the workstation user: the uv-managed Python runtime, the Bun JS/TS runtime, the Go toolchain (system-first with a user tarball fallback), the Rust/cargo toolchain and crate set, GNOME Shell extensions, and VS Code extensions. The role runs unprivileged (`become: false`) and never escalates except for the two documented DNF fallbacks inside the Go and cargo decision trees.
+Installs and manages the **user-space developer toolchains and extension lists** for the workstation user: the uv-managed Python runtime, the Bun JS/TS runtime, the Go toolchain (system-first with a user tarball fallback), the Rust/cargo toolchain and crate set, GNOME Shell extensions, and VS Code extensions. The role executes in the workstation user's context (`become: true`, `become_user: "{{ user.name }}"`), guaranteeing unprivileged execution as the target workstation user even when `ansible-pull` or `ansible-playbook` is invoked with `--become` / `-K`. System package manager fallbacks inside the Go and cargo decision trees explicitly escalate to `become_user: root`.
 
 **Migration note (2026-11):** the task surface migrated from yadm `bootstrap.d` (behavior parity) and absorbed the divested CLI toolchains of [`roles/tools`](../tools/README.md): `bun` (now `~/.bun/bin`, user space), the Go toolchain, cargo/crates, GNOME Shell extensions, and VS Code extensions all live here now. `homebrew` was dropped entirely — no role installs it. `inxi` and `gitflow-avh` moved to [`roles/common`](../common/README.md), and the VS Code **binary** remains in [`roles/tools`](../tools/README.md) as a real opt-in (`tools_install_vscode` defaults to `false`).
 
@@ -102,7 +102,7 @@ All registrations use the `_user_*` prefix (`_user_bun_stat`, `_user_go_strategy
 ## Layer Boundary & Escalation Notes
 
 - The role writes **no shell rc files** and no `~/.cargo/config.toml` — PATH coverage comes from Tier 1 `workstation_path_dirs` (`group_vars/all.yml`) and Layer 2 dotfiles.
-- Exactly two privilege escalations exist, both `become: true` on a single DNF task inside a decision tree: the Go tree's `dnf golang` fallback and the cargo tree's DNF fallbacks (`cargo` package and DNF-preferred crate packages).
+- Exactly two privilege escalations to root exist, both `become: true` with `become_user: root` on DNF tasks inside decision trees: the Go tree's `dnf golang` fallback and the cargo tree's DNF fallbacks (`cargo` package and DNF-preferred crate packages). All other tasks run as the unprivileged workstation user.
 - Skip-if-present guards pair with `*_force_install` overrides: `user_bun_force_install`, `user_go_force_install`, `user_cargo_force_install` (rustup) + `user_cargo_force_crates` (per crate), `user_gnome_extensions_force_install`, `user_vscode_force_install`.
 - Check-mode safety: mutating blocks skip under `ansible_check_mode`; probes run with `check_mode: false`.
 
@@ -111,10 +111,11 @@ All registrations use the `_user_*` prefix (`_user_bun_stat`, `_user_go_strategy
 ```yaml
 - name: User Workstation Setup
   hosts: workstations
-  become: false
+  become: true
+  become_user: "{{ user.name }}"
   roles:
     - role: user
-      tags: ["user", "system"]
+      tags: ["user", "system", "assert"]
 ```
 
 Running a single feature:

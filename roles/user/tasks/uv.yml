@@ -6,5 +6,4 @@
     PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
   register: _user_uv_python_install
   changed_when: "'Installed Python' in _user_uv_python_install.stderr or 'Installed Python' in _user_uv_python_install.stdout"
-  become: false
   tags: ["uv", "user"]

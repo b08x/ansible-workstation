@@ -81,19 +81,22 @@
 # system packages tools/common just installed.
 - name: User Workstation Setup
   hosts: workstations
-  become: false
+  become: true
+  become_user: "{{ user.name }}"
   gather_facts: false
   vars:
     path:
-      - "{{ ansible_user }}/.local/bin"
-      - "{{ ansible_user }}/.cargo/bin"
-      - "{{ ansible_user }}/go/bin"
+      - "{{ user.home | default('/home/' ~ user.name) }}/.local/bin"
+      - "{{ user.home | default('/home/' ~ user.name) }}/.cargo/bin"
+      - "{{ user.home | default('/home/' ~ user.name) }}/go/bin"
   environment:
-    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH }}:/sbin:/bin"
+    PATH: "{{ path | join(':') }}:{{ ansible_env.PATH | default('') }}:/sbin:/bin"
   pre_tasks:
-    - name: Gather facts as unprivileged connection user
+    - name: Gather facts as workstation user
       ansible.builtin.setup:
-      tags: ["always"]
+      become: true
+      become_user: "{{ user.name }}"
+      tags: ["always", "user", "assert"]
   roles:
     - role: user
       tags: ["user", "system"]

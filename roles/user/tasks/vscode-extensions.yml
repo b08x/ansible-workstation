@@ -119,7 +119,6 @@
       register: _user_vscode_install_results
       changed_when: true
       failed_when: false
-      become: false
       when: not (ansible_check_mode | default(false))
       tags: ["vscode-extensions", "user"]
 

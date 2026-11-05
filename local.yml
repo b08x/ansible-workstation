@@ -391,16 +391,20 @@
 # ==============================================================================
 - name: Syncopated Workstation User Provisioning
   hosts: "{{ target_hosts | default('all') }}"
-  become: false
-  gather_facts: true
+  become: true
+  become_user: "{{ _local_user }}"
+  gather_facts: false
+  vars:
+    _local_user: "{{ workstation_user | default(user.name | default('b08x')) }}"
+    _local_home: "{{ user.home | default('/home/' ~ _local_user) }}"
   environment:
-    PATH: "{{ ansible_env.HOME | default('/home/' ~ ansible_user_id) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+    PATH: "{{ _local_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
   tags: ["user"]
 
   pre_tasks:
     - name: Announce local user provisioning start
       ansible.builtin.debug:
-        msg: "Starting Syncopated workstation user provisioning for {{ ansible_user_id }} on {{ inventory_hostname }}"
+        msg: "Starting Syncopated workstation user provisioning for {{ _local_user }} on {{ inventory_hostname }}"
       tags: ["user", "assert"]
 
     - name: Probe for global group variables
@@ -428,10 +432,16 @@
             (user | default({}))
             | combine({
                 'name': workstation_user,
-                'home': ansible_env.HOME | default('/home/' ~ workstation_user)
+                'home': user.home | default('/home/' ~ workstation_user)
               }, recursive=True)
           }}
       tags: ["user", "assert"]
+
+    - name: Gather facts as workstation user
+      ansible.builtin.setup:
+      become: true
+      become_user: "{{ workstation_user }}"
+      tags: ["user", "assert", "always"]
 
   tasks:
     - name: Execute user role
@@ -447,6 +457,6 @@
           - "Syncopated Workstation User Provisioning Complete (ansible-pull)"
           - "Host: {{ inventory_hostname }}"
           - "User: {{ workstation_user }}"
-          - "Home: {{ user.home | default(ansible_env.HOME) }}"
+          - "Home: {{ user.home | default('/home/' ~ workstation_user) }}"
           - "============================================================"
       tags: ["user"]

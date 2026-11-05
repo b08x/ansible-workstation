@@ -60,20 +60,37 @@
     quiet: true
   tags: ["user", "assert", "always"]
 
+- name: Verify target host effective user ID
+  ansible.builtin.command: id -u
+  register: _user_effective_uid
+  changed_when: false
+  check_mode: false
+  become: true
+  become_user: "{{ user.name }}"
+  tags: ["user", "assert", "always"]
+
+- name: Verify target host effective user name
+  ansible.builtin.command: id -un
+  register: _user_effective_user
+  changed_when: false
+  check_mode: false
+  become: true
+  become_user: "{{ user.name }}"
+  tags: ["user", "assert", "always"]
+
 - name: Assert role runs as the expected workstation user
   # User-space toolchains install into $HOME unprivileged; running as the
-  # wrong account (e.g. root with become) would scatter artifacts across
-  # home directories. Pure fact/kind check - no network or session needed.
+  # wrong account (e.g. root without become_user) would scatter artifacts across
+  # home directories. Effective user identity verified via id.
   ansible.builtin.assert:
     that:
-      - ansible_user_id == user.name
-      - user.uid is not defined or ansible_user_uid | int == user.uid | int
+      - _user_effective_user.stdout | trim == user.name
+      - user.uid is not defined or _user_effective_uid.stdout | trim | int == user.uid | int
     fail_msg: >-
-      The user role runs unprivileged and must execute as the Tier 1
-      workstation user. Expected '{{ user.name }}', running as
-      '{{ ansible_user_id | default('unknown') }}'.
+      The user role must execute as the Tier 1 workstation user.
+      Expected '{{ user.name }}' (uid: {{ user.uid | default('any') }}),
+      running as '{{ _user_effective_user.stdout | trim }}' (uid: {{ _user_effective_uid.stdout | trim }}).
     quiet: true
-  become: false
   tags: ["user", "assert", "always"]
 
 - name: Assert user-space destinations stay under the workstation home
@@ -96,7 +113,6 @@
       '{{ user_go_dest_dir | default('') }}'; the user role never writes
       outside user space.
     quiet: true
-  become: false
   tags: ["user", "assert", "always"]
 
 - name: Assert cargo manifest shape

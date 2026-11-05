@@ -12,7 +12,11 @@
   tags: ["user", "always"]
 
 - name: Pre-flight role assertions (Fail-Fast Pattern)
-  ansible.builtin.include_tasks: assert.yml
+  ansible.builtin.include_tasks:
+    file: assert.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_assert_enabled | default(true) | bool
   tags: ["user", "assert", "always"]
 
@@ -21,31 +25,55 @@
   tags: ["user", "distro"]
 
 - name: Include uv configuration tasks
-  ansible.builtin.include_tasks: uv.yml
+  ansible.builtin.include_tasks:
+    file: uv.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_uv | default(true) | bool
   tags: ["uv", "user"]
 
 - name: Include bun installation tasks
-  ansible.builtin.include_tasks: bun.yml
+  ansible.builtin.include_tasks:
+    file: bun.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_bun | default(true) | bool
   tags: ["bun", "user"]
 
 - name: Include user-space Go toolchain installation tasks
-  ansible.builtin.include_tasks: go.yml
+  ansible.builtin.include_tasks:
+    file: go.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_go | default(true) | bool
   tags: ["go", "user"]
 
 - name: Include cargo and Rust crate installation tasks
-  ansible.builtin.include_tasks: cargo.yml
+  ansible.builtin.include_tasks:
+    file: cargo.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_cargo | default(true) | bool
   tags: ["cargo", "user"]
 
 - name: Include GNOME Shell extension installation tasks
-  ansible.builtin.include_tasks: gnome-extensions.yml
+  ansible.builtin.include_tasks:
+    file: gnome-extensions.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_gnome_extensions | default(false) | bool
   tags: ["gnome-extensions", "user"]
 
 - name: Include VS Code extension installation tasks
-  ansible.builtin.include_tasks: vscode-extensions.yml
+  ansible.builtin.include_tasks:
+    file: vscode-extensions.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_install_vscode_extensions | default(true) | bool
   tags: ["vscode-extensions", "user"]

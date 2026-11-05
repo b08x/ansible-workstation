@@ -132,6 +132,7 @@
         name: cargo
         state: present
       become: true
+      become_user: root
       when: not (ansible_check_mode | default(false))
       tags: ["cargo", "user"]
 
@@ -386,6 +387,7 @@
         name: "{{ user_cargo_crate_dnf_map[item] }}"
         state: present
       become: true
+      become_user: root
       loop: "{{ _user_cargo_dnf_info_probes.results | selectattr('rc', 'eq', 0) | map(attribute='item') | list }}"
       loop_control:
         label: "{{ user_cargo_crate_dnf_map[item] | default(item) }}"
