@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# syncopated-toolchains: deterministic Ruby, Python, and Bun environments.
+# Called from syncopated-firstboot. Runs as the logged-in user.
+# Idempotent: every step checks before acting.
+#
+# Overrides (used by tests): SYNCOPATED_RUBY_VERSION,
+# SYNCOPATED_UV_PYTHON_VERSION, SYNCOPATED_SKIP_RBENV_INSTALL.
+
+set -euo pipefail
+
+RBENV_VERSION=${SYNCOPATED_RUBY_VERSION:-4.0.4}
+UV_PYTHON_VERSION=${SYNCOPATED_UV_PYTHON_VERSION:-3.14}
+
+log() { printf '  [toolchains] %s\n' "$*"; }
+err() { printf '  [toolchains] ERROR: %s\n' "$*" >&2; }
+
+# --- Ruby: rbenv global version ------------------------------------------------
+# Install Ruby via rbenv if not already present, then set it global.
+# This is the SSOT — no project-local .ruby-version is shipped in the image.
+setup_ruby() {
+  if ! command -v rbenv >/dev/null 2>&1; then
+    log "rbenv not found; skipping Ruby setup."
+    return 0
+  fi
+
+  if ! rbenv versions --bare 2>/dev/null | grep -qx "$RBENV_VERSION"; then
+    if [[ -n ${SYNCOPATED_SKIP_RBENV_INSTALL:-} ]]; then
+      log "Ruby $RBENV_VERSION not installed (skip flag set); skipping."
+      return 0
+    else
+      # Pre-flight: rbenv install compiles Ruby from source; needs gcc + make.
+      if ! command -v gcc >/dev/null 2>&1; then
+        err "gcc not found; cannot compile Ruby $RBENV_VERSION. Install gcc and retry."
+        return 1
+      fi
+      if ! command -v make >/dev/null 2>&1; then
+        err "make not found; cannot compile Ruby $RBENV_VERSION. Install make and retry."
+        return 1
+      fi
+      log "Installing Ruby $RBENV_VERSION via rbenv (this takes a few minutes)…"
+      if ! RUBY_BUILD_HTTP_CLIENT=${RUBY_BUILD_HTTP_CLIENT:-curl} \
+        RUBY_BUILD_CURL_OPTS=${RUBY_BUILD_CURL_OPTS:---retry 5 --retry-all-errors --retry-delay 2} \
+        rbenv install "$RBENV_VERSION"; then
+        err "rbenv install $RBENV_VERSION failed."
+        return 1
+      fi
+    fi
+  fi
+
+  if rbenv versions --bare 2>/dev/null | grep -qx "$RBENV_VERSION"; then
+    rbenv global "$RBENV_VERSION" || return 1
+    rbenv rehash 2>/dev/null || true
+    log "rbenv global: $(rbenv global)"
+  else
+    err "Ruby $RBENV_VERSION is not available; rbenv global not set."
+    return 1
+  fi
+
+  # Ensure gems install to ~/.gem/ruby/X.Y.0/ consistently.
+  mkdir -p "$HOME/.gem"
+  if [[ ! -f "$HOME/.gemrc" ]] || ! grep -q 'gem: --user-install' "$HOME/.gemrc" 2>/dev/null; then
+    echo 'gem: --user-install' >>"$HOME/.gemrc"
+    log "Configured ~/.gemrc with --user-install"
+  fi
+}
+
+# --- Python: uv-managed Python + pipx ------------------------------------------
+setup_python() {
+  if ! command -v uv >/dev/null 2>&1; then
+    log "uv not found; skipping Python setup."
+    return 0
+  fi
+
+  log "Installing Python $UV_PYTHON_VERSION via uv…"
+  uv python install --managed-python "$UV_PYTHON_VERSION" || return 1
+
+  # Symlink python3 → uv-managed Python in ~/.local/bin.
+  # ~/.local/bin is first in PATH (see /etc/profile.d/syncopated-path.sh),
+  # so python3 resolves to the uv-managed Python rather than /usr/bin/python3.14.
+  local uv_python_bin
+  uv_python_bin=$(uv python find --managed-python "$UV_PYTHON_VERSION" 2>/dev/null || uv python find "$UV_PYTHON_VERSION" 2>/dev/null || true)
+  if [[ -n $uv_python_bin ]]; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$uv_python_bin" "$HOME/.local/bin/python3"
+    log "Symlinked ~/.local/bin/python3 → $uv_python_bin"
+  else
+    err "Could not find uv-managed Python $UV_PYTHON_VERSION."
+    return 1
+  fi
+
+  # Install pipx via uv (per-user tool, not a system package).
+  if ! command -v pipx >/dev/null 2>&1; then
+    log "Installing pipx via uv…"
+    uv tool install pipx || return 1
+  else
+    log "pipx already installed."
+  fi
+}
+
+# --- Bun: installed via official script (not in Fedora DNF) -------------------
+# bun is not packaged in Fedora repositories; install via bun.sh.
+# Installs to ~/.bun/bin/bun, which is in PATH via syncopated-path.sh and
+# ensure_user_path().
+setup_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    log "bun already installed ($(bun --version))."
+    return 0
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    err "curl not found; cannot install bun. Install curl and retry."
+    return 1
+  fi
+
+  log "Installing bun via bun.sh…"
+  local attempt
+  for attempt in 1 2 3; do
+    if curl --retry 3 --retry-all-errors --retry-delay 2 -fsSL https://bun.sh/install | bash; then
+      break
+    fi
+    if ((attempt < 3)); then
+      log "Retrying bun installation (attempt $((attempt + 1))/3)…"
+      sleep 2
+    fi
+  done
+
+  if command -v bun >/dev/null 2>&1; then
+    log "bun installed ($(bun --version))."
+  else
+    err "bun installation failed."
+    return 1
+  fi
+}
+
+ensure_user_path() {
+  local dir
+  for dir in "$HOME/.bun/bin" "$HOME/go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "${RBENV_ROOT:-$HOME/.rbenv}/shims"; do
+    case ":$PATH:" in
+      *":$dir:"*) ;;
+      *) PATH="$dir:$PATH" ;;
+    esac
+  done
+  export PATH
+}
+
+main() {
+  # Pre-flight: refuse to run as root (writes to user-owned paths only).
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    err "Run syncopated-toolchains as your own user, not as root."
+    return 1
+  fi
+
+  # Pre-flight: HOME must be set and writable.
+  if [[ -z ${HOME:-} ]]; then
+    err "HOME is not set; cannot proceed."
+    return 1
+  fi
+  if [[ ! -w $HOME ]]; then
+    err "HOME ($HOME) is not writable."
+    return 1
+  fi
+
+  ensure_user_path
+
+  # Pre-flight: at least one toolchain manager must be available.
+  if ! command -v rbenv >/dev/null 2>&1 && ! command -v uv >/dev/null 2>&1; then
+    err "Neither rbenv nor uv is available; nothing to set up."
+    return 1
+  fi
+
+  local rc=0
+  log "Setting up language toolchains (Ruby $RBENV_VERSION, Python $UV_PYTHON_VERSION, Bun)"
+  setup_ruby || { err "Ruby setup had errors (continuing)"; rc=1; }
+  setup_python || { err "Python setup had errors (continuing)"; rc=1; }
+  setup_bun || { err "Bun setup had errors (continuing)"; rc=1; }
+  if ((rc == 0)); then
+    log "Toolchain setup complete."
+  else
+    err "Toolchain setup finished with errors."
+  fi
+  return "$rc"
+}
+
+main "$@"

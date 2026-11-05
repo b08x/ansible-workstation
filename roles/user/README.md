@@ -2,9 +2,9 @@
 
 Under the [distribution taxonomy](../../docs/layering-architecture.md), this role provisions the unprivileged developer toolchain of one workstation account: the uv-managed Python runtime, the Bun JS/TS runtime, a system-first Go toolchain with a user-space fallback, the Rust/cargo toolchain with a 10-crate manifest, 4 GNOME Shell extensions, and an opt-in 68-entry VS Code extension list.
 
-Every dispatched task runs as the workstation user via `apply: become: true, become_user: "{{ user.name }}"`, so the role stays unprivileged even under `--become` / `-K`; the only exceptions are three bounded root DNF sites in the Go and cargo decision trees (see Layer Boundary & Escalation). The user play runs after the system plays converge (`playbooks/workstation.yml:79-85`, mirroring `local.yml`), so user-space toolchains build against freshly provisioned system packages.
+Every dispatched task runs as the workstation user via `apply: become: true, become_user: "{{ user.name }}"`, so the role stays unprivileged even under `--become` / `-K`; the only exceptions are three bounded root DNF sites in the Go and cargo decision trees and the root-context firstboot include (`become: true, become_user: root`: system-path deploys plus the machine marker write — see Layer Boundary & Escalation). The user play runs after the system plays converge (`playbooks/workstation.yml:79-85`, mirroring `local.yml`), so user-space toolchains build against freshly provisioned system packages.
 
-> **Provenance.** Every fact in this README — gates, defaults, URLs, version strings, list lengths, escalation sites — was verified against the codebase at commit `ccfade8`. Anchors are file-level unless the fact itself is a location; the three root-escalation sites and the two playbook invocations carry line-level anchors as evidence.
+> **Provenance.** Every fact in this README — gates, defaults, URLs, version strings, list lengths, escalation sites — was verified against the codebase at commit `ccfade8`. Anchors are file-level unless the fact itself is a location; the three root DNF sites, the root-context firstboot include, and the two playbook invocations carry line-level anchors as evidence.
 
 ## 📜 Migration History (2026-11)
 
@@ -30,7 +30,8 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 |             Layer 1: roles/user — tasks/main.yml dispatcher              |
 |     every include applies become: true, become_user: "{{ user.name }}"    |
 |   assert · uv · bun · go · cargo · gnome-extensions · vscode-extensions   |
-|     (7 gated includes; 6 run by default on this desktop inventory —      |
+|     · firstboot                                                          |
+|     (8 gated includes; 7 run by default on this desktop inventory —      |
 |      VS Code extensions are the single opt-in `false` gate)               |
 |   go.yml / cargo.yml decision trees: probe /usr/bin/{go,cargo},          |
 |    prefer the system package, fall back to ~/.local/go or rustup          |
@@ -46,12 +47,12 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 
 ### 📐 Design Patterns
 
-1. **Task dispatcher** — `tasks/main.yml` routes to seven includes, each gated by `user_<feature> | default(...) | bool` and tagged `[<feature>, "user"]`.
+1. **Task dispatcher** — `tasks/main.yml` routes to eight includes, each gated by `user_<feature> | default(...) | bool` and tagged `[<feature>, "user"]` (the firstboot include is the dispatcher's only root-context entry).
 2. **Fail-fast assertions** — `assert.yml` validates platform, identity, and manifest shapes before any mutation.
 3. **Lazy Tier 1 consumption** — `user_install_gnome_extensions` derives its gate from `enable_desktop`.
 4. **Skip-if-present + force overrides** — the installers probe before installing — `uv` is the exception, running `uv python install` unconditionally — and a matching `*_force_install` (or `user_cargo_force_crates`) bypasses the probe.
 5. **Per-item resilience** — looped installs run with `failed_when: false` plus per-failure reports; the enclosing `block/rescue` prints group-level failures (`block` accepts no loop member).
-6. **Bounded escalation** — exactly three root DNF task sites; everything else elevates only to `user.name`.
+6. **Bounded escalation** — exactly three root DNF task sites plus one non-DNF root site (the firstboot include: system-path deploys + the marker write); everything else elevates only to `user.name`.
 7. **Two-tier scoping** — Tier 2 defaults are `user_*`, registered facts are `_user_*`.
 8. **set_fact producer-before-consumer split** — strategy facts and their consumers live in separate tasks, sequenced by placement only ([failure point 17](../../docs/failure-points.md); the inline comments in `go.yml` / `cargo.yml` are the whole enforcement).
 
@@ -59,13 +60,53 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 
 | Task file               | Gate (default)                                  | Purpose                                                                                     |
 | ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `assert.yml`            | `user_assert_enabled` (`true`)                   | Fail-fast assertions: platform, identity, manifest shapes, runs-as-expected-user            |
+| `assert.yml`            | `user_assert_enabled` (`true`)                   | Fail-fast assertions: platform, package manager, identity, manifest shapes, firstboot manifest/conf contract, runs-as-expected-user            |
 | `uv.yml`                | `user_install_uv` (`true`)                       | `uv python install {{ user_uv_python_version }}`; `uv` expected on PATH, installed elsewhere |
 | `bun.yml`               | `user_install_bun` (`true`)                      | User-space Bun at `~/.bun/bin/bun`; skip-if-present guard                                   |
 | `go.yml`                | `user_install_go` (`true`)                       | System-first Go tree, user-space `~/.local/go` fallback; go/gofmt symlinked into `~/.local/bin`; final min-version assert |
 | `cargo.yml`             | `user_install_cargo` (`true`)                    | System-first cargo tree with rustup fallback; DNF-preferred crate installs; non-fatal per-crate failures (`--locked`) |
 | `gnome-extensions.yml`  | `user_install_gnome_extensions` (lazy `enable_desktop`) | Installs the 4-UUID set from extensions.gnome.org; non-fatal per-UUID failures; skips headless hosts |
 | `vscode-extensions.yml` | `user_install_vscode_extensions` (`false`)       | Opt-in management of the 68-entry list; CLI resolution: override → native `code` → `com.visualstudio.code` Flatpak → friendly skip |
+| `firstboot.yml`         | `user_firstboot_enabled` (lazy `enable_firstboot`) | Deploys the 7-file two-stage firstboot suite (root context) and is the single writer of the machine pull marker |
+
+**Firstboot suite ownership.** `tasks/firstboot.yml` deploys the 7 files in
+`files/firstboot/` — synced byte-identical from the osbuild SSOT
+(`vendor/osbuild/roles/osbuild/files/firstboot/`) — to `/usr/local/bin` (×3),
+`/etc/xdg/autostart` (×1) and `/etc/profile.d` (×3), and writes the machine
+pull marker `~/.initial-firstboot` (the primary workstation user's home;
+root:root 0644, ISO-8601 timestamp — phase-4 amendment: root's home is
+unstat-able by the console user)
+after a full-tag pull only (`ansible_run_tags` gate; see
+`user_firstboot_marker_machine_tags`). The marker writer is stat-guarded
+(byte-stable on re-runs); `user_firstboot_marker_write: false` leaves the
+marker entirely alone, and `user_firstboot_marker_force: true` is its
+skip-if-present override — partial-tag runs never write it regardless. The
+include runs with `become: true, become_user: root` (ADR-6), unlike the rest
+of the dispatcher. The suite is `user`-scoped: `--tags firstboot,user` selects
+it (it no longer matches `common`). `assert.yml` extends the fail-fast gate to
+the firstboot surface: each `user_firstboot_files` entry must reference an
+existing source under `files/firstboot/` with an SSOT-shaped destination
+(`/usr/local/bin` 0755 or `/etc/profile.d`/`/etc/xdg/autostart` 0644), the
+marker path must be an absolute path ending in `.initial-firstboot` inside
+the workstation home — the phase-4 home-location amendment: `user.home` (or
+`/home/<user>`) is the one place the non-root console user can stat it, the
+marker being `root:root 0644` and written by the pull (`/root` is unstat-able
+by non-root users) — and, when present, `/etc/syncopated-user.conf` must parse
+a `WORKSTATION_USER=<account>` line.
+
+**Parity gate (`tests/check_firstboot_parity.yml`).** The suite must stay
+byte-identical to the osbuild SSOT; editing one side without the other turns
+this gate red with a named per-file diff:
+
+```bash
+ansible-playbook roles/user/tests/check_firstboot_parity.yml -i roles/user/tests/inventory
+```
+
+The playbook gates against the osbuild singleton working tree
+(`../../osbuild/roles/osbuild/files/firstboot/`, resolved relative to the
+playbook at runtime) and reports the pinned `vendor/osbuild` copy
+informationally only — that comparison stays red until the final submodule
+re-pin and is never a failure. The run is read-only (`--check` optional).
 
 **The two decision trees share one shape.** Each probes the system binary at `/usr/bin/go` / `/usr/bin/cargo` — never via PATH, which can mask the system one with a user-space install — probes `dnf info`, escalates once for a root DNF install, rescues, re-probes, then resolves and consumes the strategy in separate `set_fact` tasks. Go falls back to the official tarball at `~/.local/go`; cargo falls back to rustup, with a TMPDIR noexec guard that redirects builds to `~/.cargo/tmp`.
 
@@ -76,7 +117,7 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 
 ## 🔧 Key Variables
 
-All defaults live in `defaults/main.yml` with full parity with `meta/argument_specs.yml`. The table holds 23 scalar defaults plus the six list/map manifests; `user_my_variable` (`"default_value"`, printed by the opening debug) completes the 30 rows.
+All defaults live in `defaults/main.yml` with full parity with `meta/argument_specs.yml`. The table holds 28 scalar defaults plus the eight list/map manifests; `user_my_variable` (`"default_value"`, printed by the opening debug) completes the 37 rows.
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -109,6 +150,12 @@ All defaults live in `defaults/main.yml` with full parity with `meta/argument_sp
 | `user_vscode_command` | `""` | Optional CLI override; empty = auto-detect |
 | `user_vscode_force_install` | `false` | Force extension re-installation |
 | `user_vscode_extensions` | 68-entry list | Marketplace extension manifest |
+| `user_firstboot_enabled` | `{{ enable_firstboot \\| default(true) \\| bool }}` | Gate the 7-file two-stage firstboot suite (lazy Tier 1 `enable_firstboot`) |
+| `user_firstboot_files` | 7-entry list | The suite manifest (`{ src, dest, owner, group, mode }`); mirror of the osbuild SSOT injection table |
+| `user_firstboot_marker_path` | `{{ user.home \| default('/home/' ~ user.name) }}/.initial-firstboot` | Machine pull-success marker (this role is its single writer; lives in the workstation home — `/root` is unstat-able by non-root users) |
+| `user_firstboot_marker_write` | `true` | Escape hatch that leaves the marker untouched |
+| `user_firstboot_marker_force` | `false` | Skip-if-present override for the marker writer (re-stamps the timestamp) |
+| `user_firstboot_marker_machine_tags` | 11-tag list | Tag selection that counts a pull as full convergence for the marker gate |
 
 ### 🌐 Tier 1: Host & Domain Variables (`inventory/group_vars/all.yml`)
 
@@ -142,16 +189,18 @@ On the dispatched surface, every register name uses the `_user_*` prefix (`_user
 | `cargo` | Rust/cargo decision tree and crate manifest |
 | `gnome-extensions` | GNOME Shell extension management |
 | `vscode-extensions` | VS Code extension management |
+| `firstboot` | The two-stage firstboot suite (root-context include) |
 
 ## 🛡️ Layer Boundary & Escalation
 
-Escalation is bounded, not accidental — three root task sites, all on DNF inside the two decision trees, and nowhere else:
+Escalation is bounded, not accidental — three root DNF task sites inside the two decision trees, plus one non-DNF root-context include (firstboot), and nowhere else:
 
 | Site                | Package(s)               | When                                                                |
 | ------------------- | ------------------------ | -------------------------------------------------------------------- |
 | `go.yml:81-82`      | `golang`                 | System Go absent; `golang` available via DNF                        |
 | `cargo.yml:134-135` | `cargo`                  | System cargo absent; `cargo` available via DNF                      |
 | `cargo.yml:389-390` | `dua-cli`, `gitui`, `eza` | DNF-preferred crate installs from `user_cargo_crate_dnf_map`         |
+| `firstboot.yml` (dispatcher include, L83) | — (files, not packages) | Every firstboot-enabled run: the 7 system-path deploys and the `~/.initial-firstboot` marker write (`become: true, become_user: root` — the role's only non-DNF root escalation) |
 
 Every `apply` block, the dispatcher, and the assert include elevate only to `user.name`. Beyond that boundary:
 
@@ -182,7 +231,7 @@ ansible-playbook playbooks/workstation.yml --tags "bun,go"
 
 ## ⚠️ Known Limitations
 
-- **Orphan task files.** `tasks/pip.yml` (tags `pip/base`), `tasks/ranger.yml` (tags `ranger/base`; sets `become: true` with no `become_user`, so its effective user depends on the invoking play; registers the unprefixed `user_ranger_check`), and `tasks/firstboot.yml` (tags `firstboot/user`) are never dispatched by `tasks/main.yml` — documented migration residue whose tag sets can never match a play reaching the role through the dispatcher. Dispatch or delete the three files.
+- **Orphan task files.** `tasks/pip.yml` (tags `pip/base`) and `tasks/ranger.yml` (tags `ranger/base`; sets `become: true` with no `become_user`, so its effective user depends on the invoking play; registers the unprefixed `user_ranger_check`) are never dispatched by `tasks/main.yml` — documented migration residue whose tag sets can never match a play reaching the role through the dispatcher. Dispatch or delete the two files.
 - **RedHat/CentOS variance bound.** `assert.yml` admits `RedHat` and `CentOS`, but `vars/` ships only `Fedora.yml`, `AlmaLinux.yml`, `Rocky.yml`, and a near-empty `main.yml` — so the ungated `include_vars "{{ ansible_distribution }}.yml"` may fail on those distributions. A documented bound, not an observed failure.
 - **Shell rc ownership.** The claims that `~/.zshenv` sources `~/.cargo/env` and `~/.zshrc` owns PATH additions come from code comments (`cargo.yml`) and are unverifiable from this repository; verify on a provisioned host.
 

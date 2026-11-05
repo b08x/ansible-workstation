@@ -224,3 +224,42 @@ argument_specs:
           - wholroyd.jinja
           - yzane.markdown-pdf
           - zhuangtongfa.material-theme
+      user_firstboot_enabled:
+        type: bool
+        description: >-
+          Deploy the 7-file two-stage firstboot suite. Lazily consumes the
+          Tier 1 inventory knob enable_firstboot (set it false on hosts that
+          opt out); defaults to true.
+        default: "{{ enable_firstboot | default(true) | bool }}"
+      user_firstboot_files:
+        type: list
+        description: >-
+          The 7 firstboot suite entries ({ src, dest, owner, group, mode });
+          byte-identical mirror of the osbuild SSOT injection table.
+        default: []
+      user_firstboot_marker_path:
+        type: str
+        description: >-
+          Machine pull-success marker path. This role is the single writer
+          (full-tag pull runs only); stage 1 and the yadm ansible-pull step
+          only test -f it. Phase-4 amendment: it lives in the primary
+          workstation user's home (root:root 0644, world-readable), never
+          /root — non-root users cannot stat /root (0550 root:root).
+        default: "{{ user.home | default('/home/' ~ user.name) }}/.initial-firstboot"
+      user_firstboot_marker_write:
+        type: bool
+        description: Escape hatch that leaves the machine marker untouched (e.g. dev hosts).
+        default: true
+      user_firstboot_marker_force:
+        type: bool
+        description: >-
+          Skip-if-present override for the marker writer: rewrite the marker
+          timestamp even when it exists. Partial-tag runs never write the
+          marker regardless of this flag.
+        default: false
+      user_firstboot_marker_machine_tags:
+        type: list
+        elements: str
+        description: >-
+          Machine (system) tags that, together with the user tag, count a
+          tag-selection pull as full convergence for the marker gate.

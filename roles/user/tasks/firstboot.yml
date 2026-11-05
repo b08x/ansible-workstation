@@ -1,65 +1,86 @@
 ---
-# tasks file for firstboot onboarding in roles/user
+# tasks file for the two-stage firstboot suite in roles/user.
+#
+# The user role is the SOLE workstation-repo owner of the 7-file firstboot
+# suite (goal two-stage-firstboot, ADR-5), synced byte-identical from the
+# osbuild SSOT (roles/osbuild/files/firstboot/, vendored at
+# vendor/osbuild/roles/osbuild/files/firstboot/). The whole file deploys in
+# root context: the dispatcher include applies become: true / become_user:
+# root (ADR-6) because the destinations (/usr/local/bin, /etc/xdg/autostart,
+# /etc/profile.d) and the machine pull marker (~/.initial-firstboot,
+# phase-4 amendment: the primary user's home) are root-owned (the marker
+# file itself is root:root 0644).
 
-- name: Ensure /usr/local/bin directory exists
+- name: Ensure the firstboot suite destination directories exist
   ansible.builtin.file:
-    path: /usr/local/bin
+    path: "{{ item.dest | dirname }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
+  loop: "{{ user_firstboot_files }}"
+  loop_control:
+    label: "{{ item.dest | dirname }}"
   tags: ["firstboot", "user"]
 
-- name: Install syncopated-firstboot core script
+- name: Deploy the firstboot suite (byte-identical to the osbuild SSOT)
+  tags: ["firstboot", "user"]
+  block:
+    - name: Install the firstboot suite files
+      ansible.builtin.copy:
+        src: "firstboot/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.group | default('root') }}"
+        mode: "{{ item.mode }}"
+      loop: "{{ user_firstboot_files }}"
+      loop_control:
+        label: "{{ item.src }}"
+  rescue:
+    - name: Report the firstboot suite deployment failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to deploy the syncopated firstboot suite from
+          roles/user/files/firstboot/. Check that the files are synced
+          byte-identical from vendor/osbuild (run the parity check) and
+          that the play has root write access to /usr/local/bin,
+          /etc/xdg/autostart and /etc/profile.d.
+      tags: ["firstboot", "user"]
+
+    - name: Fail the firstboot suite deployment
+      ansible.builtin.fail:
+        msg: "user role firstboot suite deployment failed"
+      tags: ["firstboot", "user"]
+
+- name: Stat the pull-success machine marker
+  ansible.builtin.stat:
+    path: "{{ user_firstboot_marker_path }}"
+  register: _user_firstboot_marker_stat
+  tags: ["firstboot", "user"]
+
+# The ONE writer of ~/.initial-firstboot (ADR-3, phase-4 home-location
+# amendment): written only after a
+# full-convergence tag selection ('all', or at least one machine tag AND the
+# user tag), so a partial pull never marks the machine. Stage 1 of the
+# firstboot script and the yadm 02-ansible-pull step only test -f it.
+# Idempotence: absent markers are written once; present markers are never
+# rewritten (stat guard) unless user_firstboot_marker_force consciously
+# re-stamps them (the repo-wide skip-if-present override rule).
+- name: Write the pull-success machine marker (root:root 0644, ISO-8601 timestamp)
   ansible.builtin.copy:
-    src: firstboot/syncopated-firstboot
-    dest: /usr/local/bin/syncopated-firstboot
-    owner: root
-    group: root
-    mode: "0755"
-  tags: ["firstboot", "user"]
-
-- name: Install syncopated-firstboot desktop launcher
-  ansible.builtin.copy:
-    src: firstboot/syncopated-firstboot-launcher
-    dest: /usr/local/bin/syncopated-firstboot-launcher
-    owner: root
-    group: root
-    mode: "0755"
-  tags: ["firstboot", "user"]
-
-- name: Ensure /etc/xdg/autostart directory exists
-  ansible.builtin.file:
-    path: /etc/xdg/autostart
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  tags: ["firstboot", "user"]
-
-- name: Install desktop autostart entry for firstboot
-  ansible.builtin.copy:
-    src: firstboot/syncopated-firstboot.desktop
-    dest: /etc/xdg/autostart/syncopated-firstboot.desktop
+    content: "{{ lookup('ansible.builtin.pipe', 'date -Is') }}\n"
+    dest: "{{ user_firstboot_marker_path }}"
     owner: root
     group: root
     mode: "0644"
-  tags: ["firstboot", "user"]
-
-- name: Ensure /etc/profile.d directory exists
-  ansible.builtin.file:
-    path: /etc/profile.d
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  tags: ["firstboot", "user"]
-
-- name: Install profile.d login hook for firstboot
-  ansible.builtin.copy:
-    src: firstboot/syncopated-firstboot.sh
-    dest: /etc/profile.d/syncopated-firstboot.sh
-    owner: root
-    group: root
-    mode: "0644"
+  vars:
+    _user_firstboot_machine_tags_selected: "{{ user_firstboot_marker_machine_tags | select('in', ansible_run_tags) | list }}"
+    _user_firstboot_full_tag_run: >-
+      {{ 'all' in ansible_run_tags
+         or (('user' in ansible_run_tags)
+             and (_user_firstboot_machine_tags_selected | length > 0)) }}
+  when:
+    - user_firstboot_marker_write | default(true) | bool
+    - user_firstboot_marker_force | default(false) | bool or not (_user_firstboot_marker_stat.stat.exists | default(false))
+    - _user_firstboot_full_tag_run | bool
   tags: ["firstboot", "user"]

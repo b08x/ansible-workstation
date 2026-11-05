@@ -90,9 +90,82 @@
           "assert",
         ]
 
+    # The ISO image bakes /etc/syncopated-user.conf (WORKSTATION_USER=<name>)
+    # precisely so this non-interactive pull can resolve the install-time user
+    # deterministically; it outranks the user.name fallback chain (goal
+    # two-stage-firstboot, F-29 fix).
+    - name: Probe for the osbuild-baked workstation user conf
+      ansible.builtin.stat:
+        path: /etc/syncopated-user.conf
+      register: _preflight_syncopated_user_conf_stat
+      check_mode: false
+      tags:
+        [
+          "system",
+          "repos",
+          "common",
+          "tuning",
+          "gpu",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop_ui",
+          "desktop",
+          "tools",
+          "assert",
+        ]
+
+    - name: Read the osbuild-baked workstation user conf when present
+      ansible.builtin.slurp:
+        src: /etc/syncopated-user.conf
+      register: _preflight_syncopated_user_conf
+      when: _preflight_syncopated_user_conf_stat.stat.exists | default(false)
+      check_mode: false
+      tags:
+        [
+          "system",
+          "repos",
+          "common",
+          "tuning",
+          "gpu",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop_ui",
+          "desktop",
+          "tools",
+          "assert",
+        ]
+
+    - name: Seed the workstation user from the osbuild conf when it names one
+      ansible.builtin.set_fact:
+        workstation_user: "{{ _preflight_syncopated_user_conf_name }}"
+      when: _preflight_syncopated_user_conf_name | default('', true) | trim | length > 0
+      vars:
+        _preflight_syncopated_user_conf_name: >-
+          {{ (_preflight_syncopated_user_conf.content | default('')
+              | b64decode | regex_findall('(?m)^WORKSTATION_USER=(\S+)')
+              | first | default('', true)) | trim }}
+      tags:
+        [
+          "system",
+          "repos",
+          "common",
+          "tuning",
+          "gpu",
+          "networking",
+          "containerd",
+          "libvirt",
+          "desktop_ui",
+          "desktop",
+          "tools",
+          "assert",
+        ]
+
     - name: Resolve target workstation user account
       ansible.builtin.set_fact:
         workstation_user: "{{ user.name }}"
+      when: workstation_user is not defined
       tags:
         [
           "system",
@@ -420,10 +493,39 @@
       when: _preflight_user_group_vars_stat.stat.exists | default(false)
       tags: ["user", "assert"]
 
+    # Mirror of the Play 1 osbuild-conf seeding (runs with --tags user too,
+    # when Play 1 is skipped entirely).
+    - name: Probe for the osbuild-baked workstation user conf
+      ansible.builtin.stat:
+        path: /etc/syncopated-user.conf
+      register: _preflight_syncopated_user_conf_stat
+      check_mode: false
+      tags: ["user", "assert", "firstboot"]
+
+    - name: Read the osbuild-baked workstation user conf when present
+      ansible.builtin.slurp:
+        src: /etc/syncopated-user.conf
+      register: _preflight_syncopated_user_conf
+      when: _preflight_syncopated_user_conf_stat.stat.exists | default(false)
+      check_mode: false
+      tags: ["user", "assert", "firstboot"]
+
+    - name: Seed the workstation user from the osbuild conf when it names one
+      ansible.builtin.set_fact:
+        workstation_user: "{{ _preflight_syncopated_user_conf_name }}"
+      when: _preflight_syncopated_user_conf_name | default('', true) | trim | length > 0
+      vars:
+        _preflight_syncopated_user_conf_name: >-
+          {{ (_preflight_syncopated_user_conf.content | default('')
+              | b64decode | regex_findall('(?m)^WORKSTATION_USER=(\S+)')
+              | first | default('', true)) | trim }}
+      tags: ["user", "assert", "firstboot"]
+
     - name: Resolve unprivileged user account facts
       ansible.builtin.set_fact:
         workstation_user: "{{ user.name }}"
-      tags: ["user", "assert"]
+      when: workstation_user is not defined
+      tags: ["user", "assert", "firstboot"]
 
     - name: Ensure user dictionary is defined for user role
       ansible.builtin.set_fact:
@@ -435,7 +537,7 @@
                 'home': user.home | default('/home/' ~ workstation_user)
               }, recursive=True)
           }}
-      tags: ["user", "assert"]
+      tags: ["user", "assert", "firstboot"]
 
     - name: Gather facts as workstation user
       ansible.builtin.setup:

@@ -1,39 +1,36 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# syncopated-firstboot-launcher
-# Spawns syncopated-firstboot in a terminal window if running in a GUI session.
-# ==============================================================================
+# syncopated-firstboot-launcher: XDG autostart entry point. Opens a terminal
+# that runs stage 2 of syncopated-firstboot (the yadm dotfiles offer) as the
+# logged-in user, unless that user's stage-2 marker already exists (or the
+# legacy firstboot marker from the single-stage splash counts as done).
+# Elevated commands are not this file's business: system convergence runs in
+# the stage-1 console flow, and stage 2 hands everything to the yadm
+# orchestrator it launches. Keep this file free of any elevated-command call.
 
-set -euo pipefail
+set -u
 
-STATE_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/syncopated/firstboot.done"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/syncopated"
+stage2_marker="${SYNCOPATED_STAGE2_MARKER:-$state_dir/firstboot-stage2.done}"
+legacy_marker="$state_dir/firstboot.done"
+script="${SYNCOPATED_FIRSTBOOT:-/usr/local/bin/syncopated-firstboot}"
 
-if [[ -f "$STATE_FILE" ]]; then
-  exit 0
-fi
+[[ -f $stage2_marker || -f $legacy_marker ]] && exit 0
+[[ ${EUID:-$(id -u)} -ne 0 ]] || exit 0
 
-FIRSTBOOT_BIN="/usr/local/bin/syncopated-firstboot"
+# The script waits for Enter before exiting, so the yadm offer and its output
+# stay on screen.
+cmd="SYNCOPATED_PAUSE_ON_EXIT=1 $(printf '%q' "$script") --stage 2"
 
-if [[ ! -x "$FIRSTBOOT_BIN" ]]; then
-  exit 0
-fi
+for term in xdg-terminal-exec ptyxis kgx gnome-terminal kitty foot alacritty xterm; do
+    command -v "$term" >/dev/null 2>&1 || continue
+    case $term in
+        kitty) exec "$term" --start-as fullscreen bash -c "$cmd" ;;
+        xdg-terminal-exec | foot) exec "$term" bash -c "$cmd" ;;
+        ptyxis) exec ptyxis --new-window -- bash -c "$cmd" ;;
+        kgx | gnome-terminal) exec "$term" -- bash -c "$cmd" ;;
+        alacritty | xterm) exec "$term" -e bash -c "$cmd" ;;
+    esac
+done
 
-# If already attached to a terminal, execute directly
-if [[ -t 0 && -t 1 ]]; then
-  exec "$FIRSTBOOT_BIN" "$@"
-fi
-
-# Launch in available terminal emulator
-if command -v gnome-terminal >/dev/null 2>&1; then
-  exec gnome-terminal --wait -- "$FIRSTBOOT_BIN" "$@"
-elif command -v ptyxis >/dev/null 2>&1; then
-  exec ptyxis --new-window -- "$FIRSTBOOT_BIN" "$@"
-elif command -v kgx >/dev/null 2>&1; then
-  exec kgx -e "$FIRSTBOOT_BIN" "$@"
-elif command -v alacritty >/dev/null 2>&1; then
-  exec alacritty -e "$FIRSTBOOT_BIN" "$@"
-elif command -v xterm >/dev/null 2>&1; then
-  exec xterm -e "$FIRSTBOOT_BIN" "$@"
-else
-  exec "$FIRSTBOOT_BIN" "$@"
-fi
+echo "syncopated-firstboot-launcher: no terminal emulator found; run $script --stage 2 manually." >&2
+exit 1

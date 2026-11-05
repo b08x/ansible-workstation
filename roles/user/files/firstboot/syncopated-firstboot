@@ -1,89 +1,813 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# syncopated-firstboot
-# Stage 3: Interactive user dotfiles onboarding & unprivileged convergence
-# ==============================================================================
+# syncopated-firstboot: two-stage first-login convergence, run as the
+# logged-in user.
+#   Stage 1 (console login, fired by /etc/profile.d/syncopated-firstboot.sh):
+#             wait for network, update the system with dnf, set up language
+#             toolchains (rbenv global Ruby, uv-managed Python, pipx), run
+#             ansible-pull when the image carries an ansible-pull
+#             configuration, verify the machine pull marker, set the default
+#             boot target, offer a reboot when updates were installed, report
+#             installed tools. Stage 1 writes NO stage-2 marker.
+#   Stage 2 (graphical login, fired by the XDG autostart launcher): offers to
+#             run `yadm clone --bootstrap $DOTFILES_URL`. Stage 2 delegates
+#             to yadm's own bootstrap orchestrator (drift preflight, step
+#             registry, retry/skip/abort); it never reimplements the
+#             bootstrap steps. On completion (or an explicit Skip) a per-user
+#             stage-2 marker silences the autostart trigger.
+#   No argument: mode detection — no graphical session and no machine pull
+#             marker means stage 1; a graphical session with stage 2 not
+#             done means stage 2; otherwise a summary splash (status of both
+#             stages + the commands).
+#
+# Markers:
+#   ${HOME:-/home/<user>}/.initial-firstboot (SYNCOPATED_FIRSTBOOT_MACHINE_MARKER):
+#             machine-level pull marker, 0644 root:root with an ISO-8601
+#             timestamp, written ONCE by the workstation ansible pull after a
+#             full-tag run. It lives in the primary user's home on purpose:
+#             root's $HOME and /root are not readable by the non-root console
+#             user (stock installs /root is 0550 root:root), so a /root marker
+#             would be unstat-able and stage 1 would re-fire at every console
+#             login on a converged machine. Stage 1 and the profile hook only
+#             test -f it (plain, no sudo).
+#   $STATE_DIR/firstboot-stage2.done (SYNCOPATED_STAGE2_MARKER):
+#             per-user stage-2 completion or declination. Gates only the
+#             XDG autostart trigger, never a by-name run.
+#   $STATE_DIR/firstboot.done:
+#             legacy marker from the single-stage splash. Read-compat only:
+#             its existence counts as stage 2 complete (silent migration).
+#
+# Markers gate only the automatic triggers (profile hook, XDG autostart).
+# Running this script by name always shows the flow for the requested stage.
+#
+# Overrides (used by the bats tests): SYNCOPATED_OS_RELEASE,
+# SYNCOPATED_YADM_URL, SYNCOPATED_DOTFILES_URL, SYNCOPATED_CHECK_TOOLS,
+# SYNCOPATED_ANSIBLE_PULL_CONF (path of the ansible-pull configuration),
+# SYNCOPATED_FIRSTBOOT_MACHINE_MARKER / SYNCOPATED_STAGE2_MARKER (marker
+# paths), SYNCOPATED_NO_ANIM=1 (skip the splash reveal delay),
+# SYNCOPATED_PAUSE_ON_EXIT=1 (set by the launcher: wait for Enter before
+# exiting).
 
-set -euo pipefail
+OS_RELEASE=${SYNCOPATED_OS_RELEASE:-/etc/os-release}
+STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/syncopated
+LEGACY_MARKER=$STATE_DIR/firstboot.done
+STAGE2_MARKER=${SYNCOPATED_STAGE2_MARKER:-$STATE_DIR/firstboot-stage2.done}
+MACHINE_MARKER=${SYNCOPATED_FIRSTBOOT_MACHINE_MARKER:-${HOME:-/home/$(id -un)}/.initial-firstboot}
+YADM_URL=${SYNCOPATED_YADM_URL:-https://github.com/yadm-dev/yadm/raw/master/yadm}
+DOTFILES_URL=${SYNCOPATED_DOTFILES_URL:-https://github.com/b08x/dots.git}
+# Written into the image when osbuild_ansible_pull_repo and
+# osbuild_ansible_pull_args are set; defines ANSIBLE_PULL_REPO (string) and
+# ANSIBLE_PULL_ARGS (array). Without the file there is no ansible_pull step.
+ANSIBLE_PULL_CONF=${SYNCOPATED_ANSIBLE_PULL_CONF:-/etc/syncopated-ansible-pull.conf}
+read -r -a CHECK_TOOLS <<<"${SYNCOPATED_CHECK_TOOLS:-git yadm gum ansible podman zsh flatpak nvidia-smi ruby uv rbenv bun}"
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/syncopated"
-STATE_FILE="${STATE_DIR}/firstboot.done"
+# Step return codes.
+RC_OK=0
+RC_FAILED=1
+RC_SKIPPED=2
 
-# Exit silently if firstboot was already completed
-if [[ -f "$STATE_FILE" ]]; then
-  exit 0
+SYSTEM_STEPS=(update toolchains verify_pull_marker target)
+ANSIBLE_PULL_ENABLED=0
+if [[ -r $ANSIBLE_PULL_CONF ]]; then
+  ANSIBLE_PULL_ENABLED=1
+  SYSTEM_STEPS=(update toolchains ansible_pull verify_pull_marker target)
 fi
+# Set by update_system when dnf installed or upgraded at least one package.
+UPDATES_INSTALLED=0
+# Set by run_ansible_pull: a completed (successful) pull run happened.
+PULL_SUCCEEDED=0
+declare -A STEP_STATE=()
 
-mkdir -p "$STATE_DIR"
+# Step list drawn by draw_steps: a section title and the active step names.
+SECTION_TITLE=System
+ACTIVE_STEPS=("${SYSTEM_STEPS[@]}")
 
-DEFAULT_DOTS_REPO="https://github.com/b08x/dots.git"
+# Brand palette, sampled from the Syncopated logo: a violet mark and an ember
+# wordmark, each with a dim tone for the light glyphs. Each entry is
+# (hex for gum and 24-bit terminals, 256-color index for other terminals).
+VIOLET=('#7B4FE0' 98)
+VIOLET_DIM=('#4B3A8C' 60)
+VIOLET_LIGHT=('#A98BF0' 141)
+EMBER=('#D2601A' 166)
+EMBER_DIM=('#7A3A1C' 94)
 
-prompt_dots_repo() {
-  local prompt_text="Enter dotfiles repository URL:"
-  local repo=""
+# Theme gum's prompts with the palette. GUM_* values already set by the user win.
+export GUM_CHOOSE_HEADER_FOREGROUND=${GUM_CHOOSE_HEADER_FOREGROUND:-${VIOLET_LIGHT[0]}}
+export GUM_CHOOSE_CURSOR_FOREGROUND=${GUM_CHOOSE_CURSOR_FOREGROUND:-${EMBER[0]}}
+export GUM_CHOOSE_SELECTED_FOREGROUND=${GUM_CHOOSE_SELECTED_FOREGROUND:-${EMBER[0]}}
 
-  if [[ -n "${DOTS_REPO:-}" || "${SYNCOPATED_FIRSTBOOT_AUTO:-no}" == "yes" ]]; then
-    echo "${DOTS_REPO:-$DEFAULT_DOTS_REPO}"
+# Splash art (~/Images/brand-logo-selectionB-ascii-art.txt, trailing blanks
+# and the common 3-column indent removed). Columns before ART_SPLIT are the
+# mark; the rest is the wordmark. Glyphs in ART_DIM_GLYPHS take the dim tone.
+ART_SPLIT=42
+ART_DIM_GLYPHS=".'\`,:;^\"!Iil"
+
+mapfile -t ART <<'ART'
+                    Il
+                 "+(tt)>.
+               ,[ftfff//)I
+              <tttt\1)/\/\<
+           'i1tt/f[}_,_/\|\;
+         ,_|tt////(_<~{\|||_
+      ^<)tt//////\//\\\||((-   ..
+  ':+)tt\|////\\\\||||(((()1: ,:.                                                                                                   .``                          ``.
+`I<++i,">)\\\\\|||||((((()((_l"                                                                                                     ,))^                        ,)):
+.     ;[\\\\\||||((((()))([<+{?;                 .^,^.     ``.   .``  .``  ^"`       .^"`.       '"^'     ``  ^"`.      `"^. ``   ``l));``'     .^,"'       `"^ ^)):
+    ;{\\\\||||((((())))({+<]1{{{<              .+{}[{1+'  ^1)I   i)}. :))~]{))[,   l])11))-"  '<{)11)}>. "))+]{1)1~'  ![)1{}]))^ "111))111_   ,_}[][{-"  .<{)1{}-)):
+  .+\\|||||(((((()))1)1->-11}}}[}I             ^))-l!<:   ^))I . i){. :))+`.`[)?  <)1I'.^+[~ .])?"'',])? "))?,'':[)? l))!''"?))^  `'I)):``.  "))}~<~}))^ _){:''"-)):
+  '}|||||((((()))111)[<~}1}}}}[[[-              "i<_-[]I  ^))I   <){. :))`   +)?  [)_    ';" '))l    i)1 "))I    <)1 <)}    l)1'    :))`     l)1_<~<~>~^ })+    :)):
+  `?((((((()))1111){~<]1{}}}[[[[]]"            ;}}iI!1)-  .[){i!~{){. ;))"   -)[  ;1)]>i+))+  i))_ii-))! "))1_ii?))i ^{)}>i_{))_.   :))-><"  .?)[iIi]_^  l))]>i+{)):
+(ffrx/)()))1111{11->_{{}[[[[[]]]]]I             :~]]]+I.   `i+-_;i)}. "__`   !_>   'l_]]?<,    ^i-]]-!`  "))li?]?<,   '!-]]<`!__.   .>_---,    ;+][]+l'   "<?]?>,__^
+?j)(j())11111{{1]<~[{[[[[[]]]]]???i                         `ii!![)1.                                    ,)):
+"f)|/1)1111{{1}~>?{}[[[[]]]]????--+                         :????-_l                                     `__"
+ {||)11{{{{}}_>_}}[[]]]]]????----__`
+.}1{1{{{{}{1-<]}[]]]]]????----_____,
+,[l<{{+-}}{1{}[?_]]]_~?-+,i-_>>__;<!
+'.  ,:  I>'..;I. :~l. :l.  ,^  ;,  "
+ART
+
+# --- output ------------------------------------------------------------------
+
+have_gum() {
+  command -v gum >/dev/null 2>&1
+}
+
+# style COLOR LINE... : print lines in a foreground color (hex or 256-color).
+style() {
+  local color=$1
+  shift
+  if have_gum; then
+    gum style --foreground "$color" "$@"
+  else
+    printf '%s\n' "$@"
+  fi
+}
+
+info() { style "${VIOLET_LIGHT[0]}" "➜ $*"; }
+ok() { style "${EMBER[0]}" "✓ $*"; }
+warn() { style '#E0A030' "! $*" >&2; }
+err() { style '#D03030' "✗ $*" >&2; }
+
+# fg HEX INDEX : print the SGR sequence for a foreground color. Uses 24-bit
+# color when the terminal reports it in COLORTERM, else the 256-color index.
+fg() {
+  local hex=${1#\#}
+  if [[ ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]]; then
+    printf '\e[38;2;%d;%d;%dm' "0x${hex:0:2}" "0x${hex:2:2}" "0x${hex:4:2}"
+  else
+    printf '\e[38;5;%sm' "$2"
+  fi
+}
+
+# os_field KEY : print the value of KEY from os-release, without quotes.
+os_field() {
+  local key=$1 line value
+  [[ -r $OS_RELEASE ]] || return 1
+  while IFS= read -r line || [[ -n $line ]]; do
+    [[ $line == "$key="* ]] || continue
+    value=${line#*=}
+    value=${value#[\"\']}
+    value=${value%[\"\']}
+    printf '%s\n' "$value"
+    return 0
+  done <"$OS_RELEASE"
+  return 1
+}
+
+os_label() {
+  local name version
+  name=$(os_field NAME) || name=Linux
+  version=$(os_field VERSION_ID) || version=
+  printf '%s\n' "$name${version:+ $version}"
+}
+
+restore_terminal() {
+  [[ -t 1 ]] || return 0
+  tput sgr0 2>/dev/null
+  tput cnorm 2>/dev/null
+  return 0
+}
+
+# paint_art WIDTH : fill ART_PAINTED with the ART lines cut to WIDTH columns,
+# each glyph colored by region (mark or wordmark) and weight (dim or full).
+paint_art() {
+  local width=$1 row col line ch tone prev out
+  local -A seq=(
+    [mark]=$(fg "${VIOLET[@]}") [mark_dim]=$(fg "${VIOLET_DIM[@]}")
+    [word]=$(fg "${EMBER[@]}") [word_dim]=$(fg "${EMBER_DIM[@]}")
+  )
+  ART_PAINTED=()
+  for ((row = 0; row < ${#ART[@]}; row++)); do
+    line=${ART[row]:0:width} out='' prev=''
+    for ((col = 0; col < ${#line}; col++)); do
+      ch=${line:col:1}
+      if [[ $ch == ' ' ]]; then
+        out+=' '
+        continue
+      fi
+      # The logo image draws "{1{}" on the mark's second-to-last row in ember.
+      if ((col < ART_SPLIT)) && ! ((row == 19 && col >= 10 && col <= 13)); then
+        tone=mark
+      else
+        tone=word
+      fi
+      [[ $ART_DIM_GLYPHS == *"$ch"* ]] && tone+=_dim
+      [[ $tone == "$prev" ]] || out+=${seq[$tone]}
+      prev=$tone
+      out+=$ch
+    done
+    ART_PAINTED+=("$out"$'\e[0m')
+  done
+}
+
+# Full-screen splash: the art centered, revealed row by row, then held with a
+# pulsing "press enter to begin" until Enter. A terminal narrower than the art
+# shows the mark only. Prints the art uncolored and returns at once when stdin
+# or stdout is not a terminal. SYNCOPATED_NO_ANIM=1 skips the reveal delay.
+splash() {
+  if [[ ! -t 0 || ! -t 1 ]] || ! tput cup 0 0 >/dev/null 2>&1; then
+    printf '%s\n' "${ART[@]}"
     return 0
   fi
+  local rows cols width=0 height=${#ART[@]} line row top left prompt='press enter to begin' prow pcol lit=1 rc
+  rows=$(tput lines)
+  cols=$(tput cols)
+  for line in "${ART[@]}"; do
+    ((${#line} > width)) && width=${#line}
+  done
+  ((width > cols)) && width=$((ART_SPLIT < cols ? ART_SPLIT : cols))
+  paint_art "$width"
 
-  if command -v gum >/dev/null 2>&1; then
-    repo=$(gum input --value "$DEFAULT_DOTS_REPO" --header "$prompt_text" --placeholder "$DEFAULT_DOTS_REPO")
-  else
-    read -e -i "$DEFAULT_DOTS_REPO" -rp "${prompt_text} " repo
-  fi
+  top=$(((rows - height - 2) / 2))
+  ((top < 0)) && top=0
+  left=$(((cols - width) / 2))
+  prow=$((top + height + 2 < rows ? top + height + 2 : rows - 1))
+  pcol=$(((cols - ${#prompt}) / 2))
+  ((pcol < 0)) && pcol=0
 
-  echo "${repo:-$DEFAULT_DOTS_REPO}"
+  clear
+  tput civis 2>/dev/null
+  for ((row = 0; row < height; row++)); do
+    tput cup $((top + row)) "$left"
+    printf '%s' "${ART_PAINTED[row]}"
+    [[ -n ${SYNCOPATED_NO_ANIM:-} ]] || sleep 0.03
+  done
+  while :; do
+    tput cup "$prow" "$pcol"
+    if ((lit)); then fg "${EMBER[@]}"; else fg "${EMBER_DIM[@]}"; fi
+    printf '%s\e[0m' "$prompt"
+    lit=$((1 - lit))
+    read -r -s -t 0.8 _
+    rc=$?
+    # 0 = Enter, >128 = timeout (pulse again), anything else = EOF/error.
+    ((rc > 128)) || break
+  done
+  clear
+  tput cnorm 2>/dev/null
 }
 
-echo "============================================================"
-echo "      Syncopated Workstation Setup: Stage 3 (User Space)     "
-echo "============================================================"
-
-# Prompt with pre-filled repo and validate via git ls-remote before cloning
-TARGET_REPO=""
-while true; do
-  TARGET_REPO=$(prompt_dots_repo)
-
-  echo "--> Validating repository access: ${TARGET_REPO}..."
-  if git ls-remote --exit-code "$TARGET_REPO" HEAD >/dev/null 2>&1; then
-    echo "--> Repository validated successfully."
-    break
+banner() {
+  local label title=${1:-First login setup}
+  label=$(os_label)
+  if have_gum; then
+    gum style --border double --border-foreground "${VIOLET[0]}" --foreground "${EMBER[0]}" \
+      --align center --width 60 --padding "1 2" \
+      "SYNCOPATED" "$label" "$title"
   else
-    echo "ERROR: Unable to reach repository '${TARGET_REPO}'." >&2
-    echo "Please verify the URL and network connectivity." >&2
-    if [[ "${SYNCOPATED_FIRSTBOOT_AUTO:-no}" == "yes" ]]; then
-      exit 1
+    printf '%s\n' \
+      "============================================================" \
+      "  SYNCOPATED  |  $label  |  $title" \
+      "============================================================"
+  fi
+}
+
+# step_lines STEP... : append one "icon step (state)" line per step to LINES.
+step_lines() {
+  local step state icon
+  for step in "$@"; do
+    state=${STEP_STATE[$step]:-pending}
+    case $state in
+      ok) icon='✓' ;;
+      failed) icon='✗' ;;
+      skipped) icon='-' ;;
+      *) icon='·' ;;
+    esac
+    LINES+=("  $icon $step ($state)")
+  done
+}
+
+# draw_steps : print the active step list (SECTION_TITLE + ACTIVE_STEPS).
+draw_steps() {
+  local LINES=("$SECTION_TITLE")
+  step_lines "${ACTIVE_STEPS[@]}"
+  local lines=("${LINES[@]}")
+  if have_gum; then
+    gum style --border rounded --border-foreground "${VIOLET_DIM[0]}" --padding "0 2" "${lines[@]}"
+  else
+    printf '  %s\n' "${lines[@]}"
+  fi
+}
+
+# --- prompts -------------------------------------------------------------------
+
+# choose HEADER OPTION... : print the selected option. Fails on cancel/EOF.
+choose() {
+  local header=$1 reply opt i
+  shift
+  if have_gum; then
+    gum choose --header "$header" "$@"
+    return
+  fi
+  printf '%s\n' "$header" >&2
+  for ((i = 1; i <= $#; i++)); do
+    printf '  %d) %s\n' "$i" "${!i}" >&2
+  done
+  while :; do
+    read -r -p "Choose [1-$#]: " reply || return 1
+    if [[ $reply =~ ^[0-9]+$ ]] && ((reply >= 1 && reply <= $#)); then
+      printf '%s\n' "${!reply}"
+      return 0
+    fi
+    for opt in "$@"; do
+      [[ $reply == "$opt" ]] && { printf '%s\n' "$opt"; return 0; }
+    done
+    printf 'Enter a number from 1 to %d.\n' "$#" >&2
+  done
+}
+
+# --- markers ------------------------------------------------------------------
+
+write_stage2_marker() {
+  mkdir -p "$STATE_DIR" && date -Is >"$STAGE2_MARKER"
+}
+
+write_stage2_declined_marker() {
+  mkdir -p "$STATE_DIR" && printf 'declined %s\n' "$(date -Is)" >"$STAGE2_MARKER"
+}
+
+# stage2_done_content : print the stage-2 (or legacy) marker content, or fail.
+stage2_done_content() {
+  local marker content
+  for marker in "$STAGE2_MARKER" "$LEGACY_MARKER"; do
+    if [[ -f $marker ]]; then
+      content=$(<"$marker")
+      printf '%s\n' "$content"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# --- steps ---------------------------------------------------------------------
+
+acquire_lock() {
+  command -v flock >/dev/null 2>&1 || return 0
+  local dir=${XDG_RUNTIME_DIR:-$STATE_DIR}
+  mkdir -p "$dir" 2>/dev/null || return 0
+  exec {LOCK_FD}>"$dir/syncopated-firstboot.lock" || return 0
+  flock -n "$LOCK_FD"
+}
+
+ensure_user_path() {
+  [[ -n ${HOME:-} ]] || return 0
+  local dir
+  for dir in "$HOME/.bun/bin" "$HOME/go/bin" "$HOME/.cargo/bin" "$HOME/.local/bin" "${RBENV_ROOT:-$HOME/.rbenv}/shims"; do
+    case ":$PATH:" in
+      *":$dir:"*) ;;
+      *) PATH="$dir:$PATH" ;;
+    esac
+  done
+  export PATH
+}
+
+wait_for_network() {
+  command -v nm-online >/dev/null 2>&1 || return 0
+  info "Waiting for the network (up to 30 s)"
+  nm-online -q -t 30 || warn "The network is not online yet."
+}
+
+# Install yadm to ~/.local/bin when it is not on PATH. Returns 0 when yadm is
+# available afterwards. On failure the manual download command is printed.
+install_yadm() {
+  command -v yadm >/dev/null 2>&1 && return 0
+  local dest=$HOME/.local/bin/yadm
+  info "Installing yadm to $dest"
+  if mkdir -p "${dest%/*}" && curl -fsSL -o "$dest" "$YADM_URL" && chmod 0755 "$dest"; then
+    ok "yadm installed"
+    return 0
+  fi
+  rm -f "$dest"
+  warn "Could not download yadm from $YADM_URL. Run later:"
+  printf '  %s\n' \
+    "mkdir -p ~/.local/bin && curl -fsSL -o ~/.local/bin/yadm $YADM_URL && chmod 0755 ~/.local/bin/yadm"
+  return 1
+}
+
+# Print the command stage 2 runs for the dotfiles clone. Only this one
+# command: yadm clone --bootstrap delegates to yadm's own orchestrator.
+print_stage2_commands() {
+  info "Dotfiles (yadm): this command clones your dotfiles and runs yadm bootstrap."
+  printf '  %s\n' \
+    "yadm clone --bootstrap $DOTFILES_URL"
+}
+
+# Apply every available package update. dnf prints "Nothing to do." when
+# there is nothing to install; any other successful run installed something.
+update_system() {
+  if ! command -v dnf >/dev/null 2>&1; then
+    info "dnf not found; system update skipped."
+    return "$RC_SKIPPED"
+  fi
+  local log rc
+  log=$(mktemp) || return "$RC_FAILED"
+  info "Updating the system: sudo dnf -y upgrade --refresh"
+  sudo dnf -y upgrade --refresh 2>&1 | tee "$log"
+  rc=${PIPESTATUS[0]}
+  if ((rc != 0)); then
+    rm -f "$log"
+    err "System update failed (dnf exit $rc). Run later: sudo dnf upgrade --refresh"
+    return "$RC_FAILED"
+  fi
+  if grep -q '^Nothing to do\.' "$log"; then
+    ok "System is up to date"
+  else
+    UPDATES_INSTALLED=1
+    ok "System updated"
+  fi
+  rm -f "$log"
+  return "$RC_OK"
+}
+
+# Set up deterministic language toolchains: rbenv global Ruby, uv-managed
+# Python, pipx, Bun. Runs as the logged-in user. Skipped when the script is absent.
+setup_toolchains() {
+  if [[ ! -x /usr/local/bin/syncopated-toolchains ]]; then
+    info "syncopated-toolchains not found; toolchain setup skipped."
+    return "$RC_SKIPPED"
+  fi
+  info "Setting up language toolchains (Ruby, Python, Bun)…"
+  if /usr/local/bin/syncopated-toolchains; then
+    ok "Toolchains ready"
+    return "$RC_OK"
+  fi
+  warn "Toolchain setup had errors. Run later: /usr/local/bin/syncopated-toolchains"
+  return "$RC_FAILED"
+}
+
+# Run ansible-pull as root with the repository and arguments from
+# $ANSIBLE_PULL_CONF. Skipped when the configuration is incomplete or
+# ansible-pull is not installed.
+run_ansible_pull() {
+  local ANSIBLE_PULL_REPO='' ANSIBLE_PULL_ARGS=() rc
+  # shellcheck source=/dev/null
+  if ! source "$ANSIBLE_PULL_CONF"; then
+    err "Could not read $ANSIBLE_PULL_CONF."
+    return "$RC_FAILED"
+  fi
+  if [[ -z $ANSIBLE_PULL_REPO ]] || ((${#ANSIBLE_PULL_ARGS[@]} == 0)); then
+    info "ansible-pull repository or arguments not set in $ANSIBLE_PULL_CONF; skipped."
+    return "$RC_SKIPPED"
+  fi
+  if ! command -v ansible-pull >/dev/null 2>&1; then
+    warn "ansible-pull not found; install ansible-core in the image. Skipped."
+    return "$RC_SKIPPED"
+  fi
+  info "Running: sudo ansible-pull -U $ANSIBLE_PULL_REPO ${ANSIBLE_PULL_ARGS[*]}"
+  sudo ansible-pull -U "$ANSIBLE_PULL_REPO" "${ANSIBLE_PULL_ARGS[@]}"
+  rc=$?
+  if ((rc != 0)); then
+    err "ansible-pull failed (exit $rc). Run later: sudo ansible-pull -U $ANSIBLE_PULL_REPO ${ANSIBLE_PULL_ARGS[*]}"
+    return "$RC_FAILED"
+  fi
+  PULL_SUCCEEDED=1
+  ok "ansible-pull finished"
+  return "$RC_OK"
+}
+
+# After a successful ansible-pull run, assert the machine pull marker
+# ($MACHINE_MARKER, written by the workstation playbook) exists. A missing
+# marker means the pull used a partial tag selection; warn and continue.
+verify_pull_marker() {
+  if ! ((PULL_SUCCEEDED)); then
+    info "No successful ansible-pull run; the pull marker was not verified."
+    return "$RC_SKIPPED"
+  fi
+  if [[ -f $MACHINE_MARKER ]]; then
+    ok "Pull marker present: $MACHINE_MARKER"
+    return "$RC_OK"
+  fi
+  warn "ansible-pull reported success but $MACHINE_MARKER is missing (partial tag run?). A full pull writes it."
+  return "$RC_OK"
+}
+
+# Offer a reboot after installed updates. Returns 0 only when the reboot was
+# started. No marker is written, so the upstream hook stays silent anyway and
+# stage 2 takes over at the first graphical login.
+offer_reboot() {
+  local action
+  action=$(choose "Updates were installed. Reboot now? The graphical stage opens at the next login." \
+    "Reboot now" "Continue setup") || action="Continue setup"
+  [[ $action == "Reboot now" ]] || return 1
+  info "Rebooting. Stage 2 (yadm dotfiles) opens at the first graphical login."
+  if ! sudo systemctl reboot; then
+    warn "Could not reboot (sudo failed). Continuing setup."
+    return 1
+  fi
+}
+
+# Boot to the display manager when one is installed.
+set_graphical_target() {
+  local units
+  units=$(systemctl list-unit-files --no-legend gdm.service lightdm.service sddm.service 2>/dev/null)
+  if [[ -z $units ]]; then
+    info "No display manager installed; default target unchanged."
+    return "$RC_OK"
+  fi
+  if [[ $(systemctl get-default 2>/dev/null) == graphical.target ]]; then
+    ok "Default target is already graphical.target"
+    return "$RC_OK"
+  fi
+  if sudo systemctl set-default graphical.target; then
+    ok "Default target set to graphical.target"
+  else
+    warn "Could not set graphical.target (sudo failed). Run: sudo systemctl set-default graphical.target"
+  fi
+  return "$RC_OK"
+}
+
+prompt_switch_graphical() {
+  local units
+  units=$(systemctl list-unit-files --no-legend gdm.service lightdm.service sddm.service 2>/dev/null)
+  [[ -n $units ]] || return 0
+
+  local action
+  action=$(choose "Default boot target is now graphical.target. Switch to graphical desktop now?" \
+    "Start graphical desktop" "Stay in console") || action="Stay in console"
+  if [[ $action == "Start graphical desktop" ]]; then
+    info "Switching to graphical desktop: sudo systemctl isolate graphical.target"
+    if ! sudo systemctl isolate graphical.target; then
+      warn "Could not switch to graphical desktop (sudo failed)."
     fi
   fi
-done
-
-# Verify yadm, clone dotfiles repository, and execute yadm bootstrap
-if ! command -v yadm >/dev/null 2>&1; then
-  echo "ERROR: yadm command is not found in PATH." >&2
-  exit 1
-fi
-
-echo "--> Cloning dotfiles via yadm..."
-if ! yadm rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  yadm clone -f --no-bootstrap "$TARGET_REPO" || yadm clone -f "$TARGET_REPO"
-else
-  echo "--> yadm repository already initialized in $HOME."
-fi
-
-echo "--> Executing yadm bootstrap..."
-yadm bootstrap || {
-  echo "WARNING: yadm bootstrap completed with non-zero exit code (optional tasks skipped/failed)." >&2
 }
 
-# Create marker to prevent re-runs
-touch "$STATE_FILE"
+# run_step NAME COMMAND... : run a step, record its state, redraw the list.
+run_step() {
+  local name=$1 rc
+  shift
+  "$@"
+  rc=$?
+  case $rc in
+    "$RC_OK") STEP_STATE[$name]=ok ;;
+    "$RC_SKIPPED") STEP_STATE[$name]=skipped ;;
+    *) STEP_STATE[$name]=failed ;;
+  esac
+  draw_steps
+  return "$rc"
+}
 
-echo "============================================================"
-echo "Stage 3 complete! Workstation user space fully converged."
-echo "============================================================"
+report() {
+  local tool rows=()
+  for tool in "${CHECK_TOOLS[@]}"; do
+    if command -v "$tool" >/dev/null 2>&1; then
+      rows+=("✓ ready    $tool")
+    else
+      rows+=("✗ missing  $tool")
+    fi
+  done
+  if have_gum; then
+    gum style --border rounded --border-foreground "${EMBER_DIM[0]}" --padding "0 2" "Tool check" "${rows[@]}"
+  else
+    printf '%s\n' "Tool check" "${rows[@]/#/  }"
+  fi
+}
 
-if [[ -t 0 && -t 1 ]] && command -v gum >/dev/null 2>&1; then
-  gum format -- "🎉 **Setup Complete!** Press Enter to finish."
-  read -rp "" || true
+# --- stage 2: delegated yadm setup ---------------------------------------------
+
+# Clone the dotfiles with yadm and run its bootstrap orchestrator. Stage 2
+# delegates: drift preflight and the bootstrap step registry are yadm's own.
+clone_and_bootstrap() {
+  if ! command -v yadm >/dev/null 2>&1; then
+    err "yadm is not available; stage 2 cannot clone the dotfiles."
+    return "$RC_FAILED"
+  fi
+  info "Running: yadm clone --bootstrap $DOTFILES_URL"
+  if yadm clone --bootstrap "$DOTFILES_URL"; then
+    ok "yadm clone --bootstrap finished"
+    return "$RC_OK"
+  fi
+  local rc=$?
+  err "yadm clone --bootstrap failed (exit $rc)."
+  return "$RC_FAILED"
+}
+
+# Write the stage-2 marker and the completion notice. Registered as the
+# "report" step so the registry shows it.
+stage2_report() {
+  write_stage2_marker
+  ok "Dotfiles setup complete. Stage 2 will not open at login again. Run syncopated-firstboot --stage 2 to show the offer anytime."
+  return "$RC_OK"
+}
+
+# stage2_failure_retry MESSAGE : after a failed step offer Retry / Show
+# commands / Abort (the bootstrap failure-menu shape). Returns 0 to retry,
+# 1 to give up (printing the commands first when requested).
+stage2_failure_retry() {
+  local action
+  if ! action=$(choose "$1" "Retry" "Show commands" "Abort"); then
+    return 1
+  fi
+  case $action in
+    Retry) return 0 ;;
+    "Show commands")
+      print_stage2_commands
+      return 1
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+# Run the delegated yadm setup: install yadm, clone+bootstrap, report. A
+# failed step offers Retry / Show commands / Abort.
+stage2_run_setup() {
+  local rc
+  while :; do
+    run_step yadm install_yadm
+    rc=$?
+    if ((rc != 0)); then
+      stage2_failure_retry "yadm install failed" && continue
+      return "$RC_FAILED"
+    fi
+    run_step clone+bootstrap clone_and_bootstrap
+    rc=$?
+    if ((rc != 0)); then
+      stage2_failure_retry "yadm clone --bootstrap failed" && continue
+      return "$RC_FAILED"
+    fi
+    break
+  done
+  run_step report stage2_report
+  return "$RC_OK"
+}
+
+# --- stages ---------------------------------------------------------------------
+
+stage1() {
+  splash
+  banner
+  if [[ -f $MACHINE_MARKER ]]; then
+    info "System convergence completed before ($(<"$MACHINE_MARKER")). Running stage 1 again."
+  fi
+  draw_steps
+
+  # System setup: wait for the network, then run the step registry.
+  wait_for_network
+  run_step update update_system
+  run_step toolchains setup_toolchains
+  ((ANSIBLE_PULL_ENABLED)) && run_step ansible_pull run_ansible_pull
+  run_step verify_pull_marker verify_pull_marker
+  run_step target set_graphical_target
+  if ((UPDATES_INSTALLED)) && offer_reboot; then
+    return 0
+  fi
+  report
+  ok "Stage 1 complete. Stage 2 (yadm dotfiles) opens at the first graphical login, or run: syncopated-firstboot --stage 2"
+  prompt_switch_graphical
+}
+
+stage2() {
+  local action previous
+  SECTION_TITLE='Yadm'
+  ACTIVE_STEPS=(yadm clone+bootstrap report)
+  splash
+  banner "Dotfiles setup"
+  if previous=$(stage2_done_content); then
+    info "Yadm setup was completed before ($previous). Showing the offer again."
+  fi
+  draw_steps
+
+  if ! action=$(choose "Set up your dotfiles with yadm?" \
+    "Run yadm setup now" "Show commands" "Skip for this machine"); then
+    info "No choice made. The offer stays available; run syncopated-firstboot --stage 2 to see it again."
+    return "$RC_SKIPPED"
+  fi
+  case $action in
+    "Run yadm setup now")
+      stage2_run_setup
+      return $?
+      ;;
+    "Show commands")
+      install_yadm
+      print_stage2_commands
+      write_stage2_marker
+      ok "Setup complete. Stage 2 will not open at login again. Run syncopated-firstboot --stage 2 to show the offer anytime."
+      return "$RC_OK"
+      ;;
+    *) # Skip for this machine.
+      write_stage2_declined_marker
+      info "Skipped. Stage 2 will not open at login again. Run syncopated-firstboot --stage 2 to show the offer anytime."
+      return "$RC_SKIPPED"
+      ;;
+  esac
+}
+
+summary() {
+  local previous
+  splash
+  banner
+  if [[ -f $MACHINE_MARKER ]]; then
+    info "Stage 1 (system convergence) completed before ($(<"$MACHINE_MARKER"))."
+  else
+    info "Stage 1 (system convergence) is not done yet. Run: syncopated-firstboot --stage 1"
+  fi
+  if previous=$(stage2_done_content); then
+    info "Stage 2 (dotfiles) completed before ($previous)."
+  else
+    info "Stage 2 (dotfiles) has not run yet. Run: syncopated-firstboot --stage 2"
+  fi
+  print_stage2_commands
+}
+
+# --- argument parsing -----------------------------------------------------------
+
+# stage_arg ARGS... : print the stage from --stage 1|2 / --stage=1|2 / -1 / -2
+# and return 0; print nothing and return 1 when no stage was requested;
+# return 2 (with a message on stderr) for an invalid stage value.
+stage_arg() {
+  local i arg next
+  for ((i = 1; i <= $#; i++)); do
+    arg=${!i}
+    case $arg in
+      -1) printf '1\n'; return 0 ;;
+      -2) printf '2\n'; return 0 ;;
+      --stage=1) printf '1\n'; return 0 ;;
+      --stage=2) printf '2\n'; return 0 ;;
+      --stage)
+        next=$((i + 1))
+        if ((next > $#)); then
+          printf 'syncopated-firstboot: --stage needs a value (1 or 2)\n' >&2
+          return 2
+        fi
+        case ${!next} in
+          1) printf '1\n'; return 0 ;;
+          2) printf '2\n'; return 0 ;;
+          *)
+            printf 'syncopated-firstboot: invalid stage: %s (use 1 or 2)\n' "${!next}" >&2
+            return 2
+            ;;
+        esac
+        ;;
+    esac
+  done
+  return 1
+}
+
+# detect_stage : print 1, 2, or 0 (summary) from the session and markers.
+# The automatic triggers never rely on this; they pass the stage explicitly.
+detect_stage() {
+  if [[ -z ${DISPLAY:-} && -z ${WAYLAND_DISPLAY:-} ]] && [[ ! -f $MACHINE_MARKER ]]; then
+    printf '1\n'
+  elif [[ -n ${DISPLAY:-} || -n ${WAYLAND_DISPLAY:-} ]] && ! stage2_done_content >/dev/null; then
+    printf '2\n'
+  else
+    printf '0\n'
+  fi
+}
+
+main() {
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    err "Run syncopated-firstboot as your own user, not as root."
+    return 1
+  fi
+  if ! acquire_lock; then
+    warn "syncopated-firstboot is already running."
+    return 0
+  fi
+  ensure_user_path
+  trap restore_terminal EXIT
+
+  local stage rc
+  stage=$(stage_arg "$@")
+  rc=$?
+  if ((rc == 2)); then
+    return 1
+  fi
+  if [[ -z $stage ]]; then
+    stage=$(detect_stage)
+  fi
+  case $stage in
+    1) stage1 ;;
+    2) stage2 ;;
+    *) summary ;;
+  esac
+  return $?
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  set -uo pipefail
+  main "$@"
+  rc=$?
+  if [[ -n ${SYNCOPATED_PAUSE_ON_EXIT:-} ]] && [[ -t 0 ]]; then
+    read -rp 'Press Enter to close…' _
+  fi
+  exit "$rc"
 fi

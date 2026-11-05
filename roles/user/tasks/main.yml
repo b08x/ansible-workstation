@@ -77,3 +77,16 @@
       become_user: "{{ user.name }}"
   when: user_install_vscode_extensions | default(false) | bool
   tags: ["vscode-extensions", "user"]
+
+# Firstboot suite deployment runs in ROOT context (ADR-6): the suite lives
+# at /usr/local/bin, /etc/xdg/autostart and /etc/profile.d, and the task file
+# owns the machine pull marker ~/.initial-firstboot (ADR-3, phase-4
+# amendment: the primary user's home — /root is unstat-able by non-root users).
+- name: Include firstboot suite deployment tasks
+  ansible.builtin.include_tasks:
+    file: firstboot.yml
+    apply:
+      become: true
+      become_user: root
+  when: user_firstboot_enabled | default(true) | bool
+  tags: ["firstboot", "user"]

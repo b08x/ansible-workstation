@@ -193,3 +193,85 @@ user_vscode_extensions:
   - wholroyd.jinja
   - yzane.markdown-pdf
   - zhuangtongfa.material-theme
+
+# -- Firstboot suite: two-stage first-login convergence (roles/user is the
+#    sole workstation-repo owner; the 7 files are synced byte-identical from
+#    the osbuild SSOT at vendor/osbuild/roles/osbuild/files/firstboot/) --
+
+# Deployment gate for the firstboot suite; lazily consumes the Tier 1
+# inventory knob (set enable_firstboot: false in group_vars/host_vars to
+# opt out per host; default true when absent).
+user_firstboot_enabled: "{{ enable_firstboot | default(true) | bool }}"
+
+# The 7-file suite and its system destinations (mirror of the osbuild
+# blueprint injection table; keep in sync with the osbuild SSOT).
+user_firstboot_files:
+  - src: syncopated-firstboot
+    dest: /usr/local/bin/syncopated-firstboot
+    owner: root
+    group: root
+    mode: "0755"
+  - src: syncopated-firstboot-launcher
+    dest: /usr/local/bin/syncopated-firstboot-launcher
+    owner: root
+    group: root
+    mode: "0755"
+  - src: syncopated-firstboot.desktop
+    dest: /etc/xdg/autostart/syncopated-firstboot.desktop
+    owner: root
+    group: root
+    mode: "0644"
+  - src: syncopated-firstboot.sh
+    dest: /etc/profile.d/syncopated-firstboot.sh
+    owner: root
+    group: root
+    mode: "0644"
+  - src: syncopated-path.sh
+    dest: /etc/profile.d/syncopated-path.sh
+    owner: root
+    group: root
+    mode: "0644"
+  - src: rbenv.sh
+    dest: /etc/profile.d/rbenv.sh
+    owner: root
+    group: root
+    mode: "0644"
+  - src: syncopated-toolchains
+    dest: /usr/local/bin/syncopated-toolchains
+    owner: root
+    group: root
+    mode: "0755"
+
+# Machine pull-success marker (ADR-3, phase-4 amendment): this role is the ONE
+# writer — after a full-tag pull only; the firstboot stage-1 script and the
+# yadm 02-ansible-pull step only test -f it. It lives in the primary
+# workstation user's home (root:root 0644, world-readable deliberately,
+# content = one ISO-8601 timestamp): /root is 0550 root:root on stock
+# installs, so a marker there would be unstat-able by the non-root console
+# user and stage 1 would re-fire at every login.
+user_firstboot_marker_path: "{{ user.home | default('/home/' ~ user.name) }}/.initial-firstboot"
+
+# Escape hatch: set false to leave the marker untouched (e.g. dev hosts
+# that want to keep re-converging through bootstrap).
+user_firstboot_marker_write: true
+
+# Skip-if-present override (repo-wide *_force rule): rewrite the marker
+# timestamp even when it already exists — e.g. to re-stamp a machine after a
+# deliberate manual re-convergence. Never written by partial-tag runs
+# regardless of this flag (the full-tag gate below stays hard).
+user_firstboot_marker_force: false
+
+# Machine (system) tags whose presence in a tag-selection run, together
+# with the user tag, counts as full convergence for the marker gate.
+user_firstboot_marker_machine_tags:
+  - system
+  - repos
+  - common
+  - tuning
+  - networking
+  - gpu
+  - containerd
+  - libvirt
+  - desktop_ui
+  - desktop
+  - tools
