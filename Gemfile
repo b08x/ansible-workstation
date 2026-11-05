@@ -2,23 +2,55 @@
 
 source "https://rubygems.org"
 
-gem "decode", "~> 0.30.0", group: :development
-
-gem "bake", "~> 0.25.0", group: :development
-
-gem "rubydex", "~> 0.4.2", group: :development
-
-gem "bcrypt_pbkdf", "~> 1.1", group: :development
-
-gem "ansible_module", "~> 0.9.3"
-
+gem "ansible_module"
+gem "ansible-vault"
 gem "ansible-wrapper"
-gem "dotenv", "~> 3.2"
+gem "bake"
+gem "bcrypt_pbkdf"
+gem "decode"
+gem "dotenv"
+gem "journald-logger"
+gem "rake"
+gem "rubydex"
+gem "ratatui_ruby"
+gem "ruby_tree_sitter"
+gem "tree_sitter_language_pack"
+gem "subspace"
+gem "terrapin"
+gem "yajl-ruby", require: "yajl"
 
-gem "subspace", "~> 3.1"
+# =============================================================================
+# DEVELOPMENT & TEST DEPENDENCIES
+# =============================================================================
 
-gem "ratatui_ruby", "~> 1.5"
+group :development, :test do
+  # Debugging
+  gem "pry"
+  gem "pry-byebug"
 
-gem "lipgloss", "~> 0.2.2"
+  # Testing
+  gem "rack-test"
+  gem "rspec"
 
-gem "bubbles", "~> 0.1.1"
+  # Gherkin acceptance runner for features/*.feature (29 scenarios): the
+  # implementer/verifier gates run `bundle exec cucumber`; before this pin the
+  # gem was only installed globally, so the gates reported "not run: not in
+  # the Gemfile bundle".
+  gem "cucumber", "~> 12.0"
+
+  # Code quality
+  gem "rubocop"
+  gem "rubocop-performance"
+  gem "rubocop-rake"
+  gem "rubocop-rspec"
+  gem "rubocop-sequel"
+  gem "rubocop-shopify"
+  gem "rubocop-thread_safety"
+
+  # Developer tools
+  gem "ruby-lsp"
+  gem "solargraph"
+end
+
+
+
