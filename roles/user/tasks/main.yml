@@ -75,5 +75,5 @@
     apply:
       become: true
       become_user: "{{ user.name }}"
-  when: user_install_vscode_extensions | default(true) | bool
+  when: user_install_vscode_extensions | default(false) | bool
   tags: ["vscode-extensions", "user"]
