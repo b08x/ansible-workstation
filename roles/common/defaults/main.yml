@@ -47,9 +47,6 @@ common_disable_coredumps: true
 common_yadm_url: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
 common_yadm_force_install: false
 
-# Firstboot onboarding
-common_firstboot_enabled: true
-
 # inxi system information tool (moved from roles/tools)
 common_install_inxi: true
 

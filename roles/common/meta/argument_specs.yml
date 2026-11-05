@@ -105,10 +105,6 @@ argument_specs:
         type: bool
         description: Force standalone yadm binary installation even if already present.
         default: false
-      common_firstboot_enabled:
-        type: bool
-        description: Enable firstboot onboarding desktop scripts and hooks.
-        default: true
       common_install_inxi:
         type: bool
         description: Install inxi system information tool.

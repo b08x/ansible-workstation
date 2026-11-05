@@ -24,8 +24,6 @@ In accordance with the workstation architecture:
 - **Interactive Troubleshooting Baseline (`tasks/main.yml`, `tasks/zsh.yml`, `tasks/yadm.yml`)**:
   - Installs modern interactive CLI utilities (`zsh`, `fzf`, `gum`, `yadm`, `git`, `curl`, `openssh-server`, `tar`, `unzip`, `policycoreutils-python-utils`, `tuned`, `audit`).
   - Native RPM installation for `yadm` with automatic fallback to standalone binary download.
-- **First-Boot Onboarding Infrastructure (`tasks/firstboot.yml`)**:
-  - Deploys `syncopated-firstboot`, desktop launcher, and login hooks.
 - **Baseline Developer CLI Utilities (`tasks/inxi.yml`, `tasks/gitflow.yml`)** — moved from [`roles/tools`](../tools/README.md) (2026-11 migration):
   - `inxi` system information tool (DNF package, with a standalone upstream download fallback).
   - `gitflow-avh`: Fedora installs it through the `common_gitflow_copr_fedora` COPR; Enterprise Linux builds it from the `gitflow-avh` source into `/usr/local/bin/git-flow` (guarded by `common_gitflow_force_install`).
@@ -69,7 +67,6 @@ In accordance with the workstation architecture:
 | `common_disable_coredumps` | `true` | Prevent unauthorized core dumps in security limits. |
 | `common_yadm_url` | `"https://github.com/TheLocehiliosan/yadm/raw/master/yadm"` | Upstream download URL for standalone `yadm` fallback. |
 | `common_yadm_force_install` | `false` | Force standalone `yadm` binary installation even if present. |
-| `common_firstboot_enabled` | `true` | Enable firstboot onboarding desktop scripts and hooks. |
 | `common_install_inxi` | `true` | Install the `inxi` system information tool (moved from `roles/tools`). |
 | `common_install_gitflow` | `true` | Install `gitflow-avh` (COPR package on Fedora; source build on Enterprise Linux; moved from `roles/tools`). |
 | `common_gitflow_copr_fedora` | `"b08x/syncopated"` | COPR repository for the gitflow package on Fedora. |
@@ -96,4 +93,3 @@ In accordance with the workstation architecture:
 | `yadm` | Yadm native RPM and standalone fallback installation |
 | `inxi` | inxi system information tool (DNF with upstream download fallback) |
 | `gitflow` | gitflow-avh COPR installation (Fedora) and source build (Enterprise Linux) |
-| `firstboot` | Stage 3 firstboot onboarding scripts and hooks |

@@ -84,11 +84,6 @@
   ansible.builtin.include_tasks: yadm.yml
   tags: ["yadm", "common"]
 
-- name: Include firstboot onboarding tasks
-  ansible.builtin.include_tasks: firstboot.yml
-  when: common_firstboot_enabled | default(true) | bool
-  tags: ["firstboot", "common"]
-
 - name: Flush handlers
   ansible.builtin.meta: flush_handlers
   tags: ["common", "always"]
