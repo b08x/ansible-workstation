@@ -1,59 +1,65 @@
 ---
-# tasks file for gitflow in roles/tools
+# tasks file for gitflow installation in roles/common
 # Fedora ships gitflow through a COPR. AlmaLinux has no package in its base
 # repositories or EPEL, so it builds from source if needed.
 
 - name: Install gitflow from COPR
-  tags: ["gitflow", "tools"]
+  tags: ["gitflow", "common"]
   block:
     - name: Enable gitflow COPR repository
       community.general.copr:
-        name: "{{ tools_gitflow_copr_fedora | default('b08x/syncopated') }}"
+        name: "{{ common_gitflow_copr_fedora | default('b08x/syncopated') }}"
         state: enabled
       when: ansible_distribution == 'Fedora'
+      tags: ["gitflow", "common"]
 
     - name: Install gitflow package
       ansible.builtin.dnf:
         name: gitflow
         state: present
+      tags: ["gitflow", "common"]
 
 - name: Check if git-flow is installed
   ansible.builtin.command: which git-flow
   environment:
-    PATH: "{{ tools_user_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
-  register: tools_gitflow_check
+    PATH: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
+  register: _common_gitflow_check
   changed_when: false
   failed_when: false
   check_mode: false
-  tags: ["gitflow", "tools"]
+  tags: ["gitflow", "common"]
 
 - name: Deploy gitflow-avh from source
   when:
     - ansible_distribution != 'Fedora'
-    - (tools_gitflow_check.rc != 0) or (tools_gitflow_force_install | default(false) | bool)
-  tags: ["gitflow", "tools"]
+    - (_common_gitflow_check.rc | default(1)) != 0 or (common_gitflow_force_install | default(false) | bool)
+  tags: ["gitflow", "common"]
   block:
     - name: Ensure clean state for clone
       ansible.builtin.file:
-        path: /tmp/gitflow-avh
+        path: "{{ common_gitflow_build_dir }}"
         state: absent
+      tags: ["gitflow", "common"]
 
     - name: Clone gitflow-avh repository
       ansible.builtin.git:
         repo: https://github.com/b08x/gitflow-avh.git
-        dest: /tmp/gitflow-avh
+        dest: "{{ common_gitflow_build_dir }}"
         clone: true
         update: true
         version: develop
       become: false
+      tags: ["gitflow", "common"]
 
     - name: Install git flow-avh
       ansible.builtin.command:
         cmd: make install
-        chdir: /tmp/gitflow-avh
+        chdir: "{{ common_gitflow_build_dir }}"
         creates: /usr/local/bin/git-flow
+      tags: ["gitflow", "common"]
 
     - name: Clean up gitflow-avh clone
       ansible.builtin.file:
-        path: /tmp/gitflow-avh
+        path: "{{ common_gitflow_build_dir }}"
         state: absent
+      tags: ["gitflow", "common"]

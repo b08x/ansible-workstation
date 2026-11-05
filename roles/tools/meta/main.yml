@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: b08x
-  description: Hardware-accelerated tools and utilities
+  description: Host-level graphical desktop utilities (VS Code opt-in, system Flatpaks, input-remapper)
   company: Syncopated
 
   license: MIT
@@ -10,7 +10,9 @@ galaxy_info:
 
   galaxy_tags:
     - tools
-    - transcription
-    - bun
+    - workstation
+    - vscode
+    - flatpak
+    - inputremapper
 
 dependencies: []

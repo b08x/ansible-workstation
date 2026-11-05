@@ -65,6 +65,6 @@ overwriting the other — is the canonical case. *(Failure point 2)*
 
 Re-running a playbook against a converged host reports zero changes. Presence
 checks skip redundant installs, and every skip-if-present guard ships with a
-matching `*_force_install` override variable — `tools_bun_force_install`,
+matching `*_force_install` override variable — `user_bun_force_install`,
 `desktop_ui_theme_force_install`, and `common_yadm_force_install` are live
 examples. *(Failure points 8, 10)*

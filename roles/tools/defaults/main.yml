@@ -1,60 +1,20 @@
 ---
 # defaults file for tools
-# Defines default configuration and feature flags for host utilities and developer toolchains.
+# Defines default configuration and feature flags for host-level GUI
+# utilities. User-space toolchains moved to roles/user (bun, go, cargo,
+# gnome/vscode extensions); inxi and gitflow moved to roles/common;
+# homebrew was dropped from the migration surface entirely.
 
 # Control pre-flight assertions (Fail-Fast Pattern)
 tools_assert_enabled: true
 
-# Target user account for user-space installations
-tools_user: "{{ workstation_user | default(user.name | default(ansible_user_id)) }}"
-tools_user_home: "{{ user.home | default('/home/' ~ tools_user) }}"
-tools_user_local_bin: "{{ tools_user_home }}/.local/bin"
-tools_user_go_bin: "{{ tools_user_home }}/go/bin"
-
-# -- Developer Toolchains and Language Runtimes --
-tools_install_runtimes: true
-tools_runtime_packages:
-  - golang
-  - nodejs
-  - npm
-
-# -- System Tools (Root/System-wide in /usr/local/bin) --
-
-# Bun (standalone JS/TS runtime)
-tools_install_bun: true
-tools_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
-tools_bun_dest: "/usr/local/bin/bun"
-tools_bun_force_install: false
-
-# -- Auxiliary Developer CLIs and Toolchains --
-
-# gitflow-avh
-tools_install_gitflow: true
-tools_gitflow_copr_fedora: "b08x/syncopated"
-tools_gitflow_copr_el: "b08x/syncopated"
-tools_gitflow_force_install: false
-
-# inxi system information tool
-tools_install_inxi: true
-
-# Homebrew (Fedora only)
-tools_install_homebrew: false
-
-# -- User Tools & Toolchains (User-space in ~/.local/bin and ~/.local/go) --
-
-# Go toolchain environment validation
-tools_install_go: true
-tools_go_min_version: "1.22"
-tools_go_version: "1.27.1"
-tools_go_url: "https://go.dev/dl/go{{ tools_go_version }}.linux-amd64.tar.gz"
-tools_go_dest_dir: "{{ tools_user_home }}/.local/go"
-tools_go_force_install: false
-
 # -- Graphical Desktop Tools & Applications --
+
 tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"
 
-# Visual Studio Code
-tools_install_vscode: "{{ tools_install_gui_apps | default(true) | bool }}"
+# Visual Studio Code (REAL opt-in: install only by setting this to true;
+# the extension list lives in roles/user as user_vscode_extensions)
+tools_install_vscode: false
 tools_vscode_flatpak: false
 tools_vscode_force_install: false
 
@@ -83,11 +43,3 @@ tools_system_flatpaks:
 
 # input-remapper
 tools_install_input_remapper: "{{ tools_install_gui_apps | default(true) | bool }}"
-
-tools_skills_repos:
-  - https://github.com/NeoLabHQ/context-engineering-kit.git
-  - https://github.com/cathrynlavery/diagram-design.git
-  - https://github.com/virgiliojr94/book-to-skill.git
-  - git@github.com:oh-my-mermaid/oh-my-mermaid.git
-  - https://github.com/backnotprop/plannotator.git
-  - https://github.com/kajisho5/ffmpeg-skill

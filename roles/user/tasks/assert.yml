@@ -59,3 +59,94 @@
       '3.14.7'). Current value: '{{ user_uv_python_version | default("") }}'.
     quiet: true
   tags: ["user", "assert", "always"]
+
+- name: Assert role runs as the expected workstation user
+  # User-space toolchains install into $HOME unprivileged; running as the
+  # wrong account (e.g. root with become) would scatter artifacts across
+  # home directories. Pure fact/kind check - no network or session needed.
+  ansible.builtin.assert:
+    that:
+      - ansible_user_id == user.name
+      - user.uid is not defined or ansible_user_uid | int == user.uid | int
+    fail_msg: >-
+      The user role runs unprivileged and must execute as the Tier 1
+      workstation user. Expected '{{ user.name }}', running as
+      '{{ ansible_user_id | default('unknown') }}'.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert user-space destinations stay under the workstation home
+  # Become-model safety net: the role runs unprivileged (play become: false),
+  # so every managed destination must resolve under the workstation user's
+  # home. Tier 2 defaults derive these paths from user.home, but a host/group
+  # override pointing user_bun_dest or user_go_dest_dir at a root-owned path
+  # (e.g. /usr/local/bin) would silently break the become contract and
+  # scatter files the user cannot manage.
+  vars:
+    _user_expected_home: "{{ user.home | default('/home/' ~ user.name) }}"
+  ansible.builtin.assert:
+    that:
+      - user_bun_dest | default('') == '' or (user_bun_dest | default('')).startswith(_user_expected_home)
+      - user_go_dest_dir | default('') == '' or (user_go_dest_dir | default('')).startswith(_user_expected_home)
+    fail_msg: >-
+      user_bun_dest and user_go_dest_dir must stay under the workstation
+      home ('{{ _user_expected_home }}'). Got user_bun_dest
+      '{{ user_bun_dest | default('') }}' and user_go_dest_dir
+      '{{ user_go_dest_dir | default('') }}'; the user role never writes
+      outside user space.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert cargo manifest shape
+  ansible.builtin.assert:
+    that:
+      - user_cargo_crates | default([]) is sequence
+      - user_cargo_crates | default([]) is not string
+      - user_cargo_crates | default([]) | length > 0
+      - user_cargo_crates | default([]) | select('string') | list | length == user_cargo_crates | length
+      - user_cargo_crate_dnf_map | default({}) | list | difference(user_cargo_crates | default([])) | length == 0
+      - user_cargo_force_crates | default([]) is sequence
+      - user_cargo_min_system_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
+    fail_msg: >-
+      Invalid cargo manifest: 'user_cargo_crates' must be a non-empty list of
+      crate name strings, every 'user_cargo_crate_dnf_map' key must name a
+      crate from that list, 'user_cargo_force_crates' must be a list, and
+      'user_cargo_min_system_version' must be a version string.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert Go toolchain configuration shape
+  ansible.builtin.assert:
+    that:
+      - user_go_min_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
+      - user_go_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
+    fail_msg: >-
+      'user_go_min_version' and 'user_go_version' must be version strings
+      (e.g. '1.22', '1.27.1').
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert GNOME extension manifest shape
+  ansible.builtin.assert:
+    that:
+      - user_gnome_extensions | default([]) is sequence
+      - user_gnome_extensions | default([]) is not string
+      - user_gnome_extensions | default([]) | reject('search', '^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$') | length == 0
+    fail_msg: >-
+      'user_gnome_extensions' must be a list of extension UUIDs shaped like
+      'name@author.domain' (got: {{ user_gnome_extensions | default([]) | join(', ') }}).
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert VS Code extension manifest shape
+  ansible.builtin.assert:
+    that:
+      - user_vscode_extensions | default([]) is sequence
+      - user_vscode_extensions | default([]) is not string
+      - user_vscode_extensions | default([]) | reject('search', '^[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+$') | length == 0
+      - user_vscode_command | default('') is string
+    fail_msg: >-
+      'user_vscode_extensions' must be a list of 'publisher.name' extension
+      identifiers and 'user_vscode_command' must be a string when set.
+    quiet: true
+  tags: ["user", "assert", "always"]

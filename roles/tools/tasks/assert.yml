@@ -1,5 +1,9 @@
 ---
 # Pre-flight assertions for tools role (Fail-Fast Pattern)
+# Scope: the role owns host-level GUI utilities only (VS Code, system
+# Flatpaks, input-remapper); user-space toolchains live in roles/user and
+# baseline utilities in roles/common, so no target-user or Go toolchain
+# assertions remain here.
 
 - name: Assert Ansible facts are gathered
   ansible.builtin.assert:
@@ -38,31 +42,7 @@
     that:
       - _tools_effective_uid.stdout | trim == '0'
     fail_msg: >-
-      The tools role installs system binaries into /usr/local/bin and executes
-      delegated user installers via become_user. Ensure 'become: true' is enabled.
+      The tools role installs system packages (dnf), Flatpak remotes, and
+      the input-remapper service. Ensure 'become: true' is enabled.
     quiet: true
   tags: ["tools", "assert", "always"]
-
-- name: Assert target workstation user identity is defined
-  ansible.builtin.assert:
-    that:
-      - tools_user is defined
-      - tools_user | length > 0
-      - tools_user_home is defined
-      - tools_user_home.startswith('/')
-    fail_msg: >-
-      The tools role requires a valid target user ('tools_user') and home directory ('tools_user_home')
-      to install user-scoped toolchains.
-    quiet: true
-  tags: ["tools", "assert", "always"]
-
-- name: Assert Go toolchain configuration when enabled
-  ansible.builtin.assert:
-    that:
-      - tools_go_min_version is defined
-      - tools_go_min_version | length > 0
-    fail_msg: >-
-      Invalid Go toolchain settings. Ensure 'tools_go_min_version' is properly configured.
-    quiet: true
-  when: tools_install_go | default(true) | bool
-  tags: ["tools", "assert", "go"]

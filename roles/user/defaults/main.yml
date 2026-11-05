@@ -8,4 +8,188 @@ user_my_variable: "default_value"
 # Control pre-flight assertions (Fail-Fast Pattern)
 user_assert_enabled: true
 
-user_uv_python_version: 3.12
+# uv-managed Python version (Tier 1 override lives in group_vars/all.yml)
+user_uv_python_version: "3.12"
+
+# uv-managed Python runtime installation gate. The uv binary itself is
+# expected on PATH (installed outside this role).
+user_install_uv: true
+
+# -- Bun (user-space JS/TS runtime at ~/.bun/bin, owned by roles/user) --
+
+user_install_bun: true
+user_bun_dest: "{{ user.home | default('/home/' ~ user.name) }}/.bun/bin/bun"
+user_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
+user_bun_force_install: false
+
+# -- Go toolchain (system-first decision tree, system fallback to DNF,
+#    then user-space official tarball at ~/.local/go) --
+
+user_install_go: true
+
+# Minimum acceptable Go compiler version for the effective go in PATH.
+user_go_min_version: "1.22"
+
+# Go version installed user-space when the system go is absent or older.
+# Current stable at the time of the migration (overridable per host/group).
+user_go_version: "1.27.1"
+
+# Official binary tarball; arch mapped from ansible_architecture at use sites.
+user_go_url: "https://go.dev/dl/go{{ user_go_version }}.linux-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}.tar.gz"
+
+# User-space Go tree; go/gofmt are symlinked into ~/.local/bin (PATH-covered
+# via Tier 1 workstation_path_dirs; ~/.local/go/bin itself is NOT on PATH).
+user_go_dest_dir: "{{ user.home | default('/home/' ~ user.name) }}/.local/go"
+
+# Skip-if-present override: re-download and reinstall the user-space Go
+# toolchain even when ~/.local/go/bin/go already exists.
+user_go_force_install: false
+
+# -- Rust/cargo toolchain and crates (migrated from yadm bootstrap.d/20-cargo.sh) --
+
+user_install_cargo: true
+
+# Skip-if-present override for the rustup installer probe pair.
+user_cargo_force_install: false
+
+# Force per-crate re-installation even when the crate binary or cargo entry
+# is already present (crates named here are always attempted).
+user_cargo_force_crates: []
+
+user_cargo_rustup_url: "https://sh.rustup.rs"
+
+# Minimum acceptable SYSTEM cargo (/usr/bin/cargo) version, below which the
+# user rustup toolchain is installed into ~/.cargo. Fedora 43/44 ship Rust
+# 1.89+/1.99 (compares equal/newer; rustup stays skipped and the system
+# cargo is used), while EL 10 ships Rust 1.79 (compares older; rustup is
+# installed). Overridable per host/group.
+user_cargo_min_system_version: "1.80"
+
+# Seeded verbatim from yadm files/cargo-packages.txt
+user_cargo_crates:
+  - bottom
+  - choose
+  - git-cliff
+  - gping
+  - ripgrep_all
+  - sd
+  - gitui
+  - eza
+  - weathr
+  - dua-cli
+
+# Crate name -> command binary (startup redirection parity with 20-cargo.sh).
+user_cargo_crate_bin_map:
+  bottom: btm
+  ripgrep_all: rga
+  dua-cli: dua
+  du-dust: dust
+
+# Crate name -> DNF package (DNF-preferred install parity with 20-cargo.sh;
+# falls back to cargo compilation when the package is unavailable or fails).
+user_cargo_crate_dnf_map:
+  dua-cli: dua-cli
+  gitui: gitui
+  eza: eza
+
+# -- GNOME Shell user extensions (migrated from yadm bootstrap.d/40-gnome-extensions.sh) --
+
+# Lazy Tier 1 consumption: only managed when a desktop is enabled
+# (same pattern as gpu_install_intel_oneapi in roles/gpu).
+user_install_gnome_extensions: "{{ enable_desktop | default(false) | bool }}"
+
+# Force re-installation of every configured extension (skip-if-present override).
+user_gnome_extensions_force_install: false
+
+# extensions.gnome.org base URL (metadata queries and bundle downloads).
+user_gnome_extensions_base_url: "https://extensions.gnome.org"
+
+# Seeded verbatim from yadm files/gnome-extensions.txt (extended-release UUIDs)
+user_gnome_extensions:
+  - notification-timeout@chlumskyvaclav.gmail.com
+  - notification-configurator@exposedcat
+  - junk-notification-cleaner@murar8.github.com
+  - kando-integration@kando-menu.github.io
+
+# -- VS Code extensions (migrated from yadm bootstrap.d/91-install-vscode-extensions.sh) --
+
+user_install_vscode_extensions: true
+
+# Optional CLI override; may contain argv (e.g. "flatpak run
+# com.visualstudio.code"). Empty string falls back to auto-detection:
+# native code CLI first, then the com.visualstudio.code Flatpak.
+user_vscode_command: ""
+
+# Force re-installation of every configured extension (skip-if-present override).
+user_vscode_force_install: false
+
+# Seeded verbatim from yadm files/vscode-extensions.txt
+user_vscode_extensions:
+  - ahmadawais.shades-of-purple
+  - anseki.vscode-color
+  - anthropic.claude-code
+  - batisteo.vscode-django
+  - beardedbear.beardedicons
+  - bierner.markdown-mermaid
+  - bulletproof-sh.ctrl
+  - castwide.solargraph
+  - catppuccin.catppuccin-vsc-icons
+  - davidanson.vscode-markdownlint
+  - donjayamanne.python-environment-manager
+  - donjayamanne.python-extension-pack
+  - dracula-theme.theme-dracula
+  - dreamcatcher45.podmanager
+  - eliverlara.sweet-vscode-icons
+  - enkia.tokyo-night
+  - file-icons.file-icons
+  - github.github-vscode-theme
+  - github.vscode-github-actions
+  - google.google-antigravity
+  - hangxingliu.vscode-systemd-support
+  - johnpapa.winteriscoming
+  - kameshkotwani.google-search
+  - kevinrose.vsc-python-indent
+  - kuscamara.yamllint-fix
+  - magicstack.magicpython
+  - mechatroner.rainbow-csv
+  - miguelsolorio.fluent-icons
+  - misogi.ruby-rubocop
+  - mistralai.mistral-vibe-code
+  - ms-azuretools.vscode-containers
+  - ms-python.black-formatter
+  - ms-python.debugpy
+  - ms-python.flake8
+  - ms-python.pylint
+  - ms-python.python
+  - ms-python.vscode-pylance
+  - ms-python.vscode-python-envs
+  - ms-toolsai.jupyter
+  - ms-toolsai.jupyter-keymap
+  - ms-toolsai.jupyter-renderers
+  - ms-toolsai.vscode-jupyter-cell-tags
+  - ms-toolsai.vscode-jupyter-slideshow
+  - ms-vscode-remote.remote-containers
+  - ms-vscode.makefile-tools
+  - ms-vscode.vscode-chat-customizations-evaluations
+  - naumovs.color-highlight
+  - nefrob.vscode-just-syntax
+  - njpwerner.autodocstring
+  - onatm.open-in-new-window
+  - onlyati.quadlet-lsp
+  - openai.chatgpt
+  - redhat.ansible
+  - redhat.vscode-openshift-connector
+  - redhat.vscode-redhat-account
+  - redhat.vscode-yaml
+  - sdras.night-owl
+  - shakram02.bash-beautify
+  - shopify.ruby-lsp
+  - sst-dev.opencode
+  - takkao.open-window-tab-context
+  - tamasfe.even-better-toml
+  - teabyii.ayu
+  - tomoki1207.pdf
+  - vsls-contrib.gistfs
+  - wholroyd.jinja
+  - yzane.markdown-pdf
+  - zhuangtongfa.material-theme

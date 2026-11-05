@@ -1,55 +1,18 @@
 ---
 # tasks file for tools
-# Dispatches system utilities, developer compilers, vendor toolchains, and user-space developer toolchains.
+# Dispatches host-level GUI utilities: VS Code (real opt-in), system
+# Flatpaks, and input-remapper. User-space toolchains live in roles/user;
+# inxi/gitflow live in roles/common; homebrew was dropped.
 
 - name: Starting tools tasks
   ansible.builtin.debug:
-    msg: "Starting tools installation tasks for user {{ tools_user }}"
-  tags: ["always"]
+    msg: "Starting tools installation tasks"
+  tags: ["tools", "always"]
 
 - name: Pre-flight role assertions (Fail-Fast Pattern)
   ansible.builtin.include_tasks: assert.yml
   when: tools_assert_enabled | default(true) | bool
   tags: ["tools", "assert", "always"]
-
-- name: Include developer toolchain and runtime tasks
-  ansible.builtin.include_tasks: runtimes.yml
-  when: tools_install_runtimes | default(true) | bool
-  tags: ["runtimes", "compilers", "tools"]
-
-- name: Include bun installation tasks
-  ansible.builtin.include_tasks: bun.yml
-  when: tools_install_bun | default(true) | bool
-  tags: ["bun", "tools"]
-
-- name: Include user-space Go toolchain installation tasks
-  ansible.builtin.include_tasks: go.yml
-  when: tools_install_go | default(true) | bool
-  tags: ["go", "tools"]
-
-- name: Include gitflow installation tasks
-  ansible.builtin.include_tasks: gitflow.yml
-  when: tools_install_gitflow | default(true) | bool
-  tags: ["gitflow", "tools"]
-
-- name: Include inxi system information tasks
-  ansible.builtin.include_tasks: inxi.yml
-  when: tools_install_inxi | default(true) | bool
-  tags: ["inxi", "tools"]
-
-- name: Include Homebrew configuration tasks
-  ansible.builtin.include_tasks: homebrew.yml
-  when:
-    - tools_install_homebrew | default(false) | bool
-    - ansible_distribution == 'Fedora'
-  tags: ["homebrew", "tools"]
-
-- name: Include Visual Studio Code installation tasks
-  ansible.builtin.include_tasks: vscode.yml
-  when:
-    - tools_install_gui_apps | default(true) | bool
-    - tools_install_vscode | default(true) | bool
-  tags: ["vscode", "tools"]
 
 - name: Include Flatpak management and application tasks
   ansible.builtin.include_tasks: flatpak.yml
@@ -64,3 +27,10 @@
     - tools_install_gui_apps | default(true) | bool
     - tools_install_input_remapper | default(true) | bool
   tags: ["input-remapper", "tools"]
+
+- name: Include Visual Studio Code installation tasks
+  ansible.builtin.include_tasks: vscode.yml
+  when:
+    - tools_install_gui_apps | default(true) | bool
+    - tools_install_vscode | default(false) | bool
+  tags: ["vscode", "tools"]

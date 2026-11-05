@@ -8,7 +8,7 @@ This project adheres to the following variable precedence rules and naming conve
 
 - **Tier 2 (Role Scope)**: Role-prefixed variables (`<role>_*`) that configure specific role behavior.
   - Defined in `roles/<role>/defaults/main.yml` and `roles/<role>/vars/main.yml`.
-  - Examples: `tuning_cpupower_governor`, `common_auditd_max_log_file`, `tools_bun_dest`.
+  - Examples: `tuning_cpupower_governor`, `common_auditd_max_log_file`, `user_bun_dest`.
   - Defaults are evaluated lazily: never reference, in `defaults/`, a variable that is set via `set_fact` later in the role ([`failure point 17`](failure-points.md#17-ansible-defaults-with-jinja2-expressions-evaluate-lazily)).
 
 - **Task Registrations**: Variables created via `register:` within a task MUST use the `<role>_*` prefix.

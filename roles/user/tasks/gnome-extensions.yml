@@ -1,0 +1,347 @@
+---
+# tasks file for GNOME Shell user extension management in roles/user
+# Migrated from yadm bootstrap.d/40-gnome-extensions.sh (behavior parity):
+#   * skipped with a friendly notice when GNOME Shell / the
+#     gnome-extensions CLI is absent (script RC_SKIPPED parity)
+#   * installed UUIDs resolved from the extension directories on disk,
+#     never via `gnome-extensions list` (that needs a live Shell DBus)
+#   * extension-info queried per UUID (with shell_version first, retried
+#     once without it), download_url taken directly or resolved from the
+#     best shell_version_map match
+#   * per-UUID failures are non-fatal (warn-debug, continue)
+# Layer boundary: bundles install into ~/.local/share/gnome-shell via the
+# gnome-extensions CLI only; no Layer 2 dotfiles are touched.
+
+- name: Probe GNOME Shell version
+  ansible.builtin.command: gnome-shell --version
+  register: _user_gnome_shell_version_raw
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gnome-extensions", "user"]
+
+- name: Probe gnome-extensions CLI availability
+  ansible.builtin.command: which gnome-extensions
+  register: _user_gnome_cli_probe
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gnome-extensions", "user"]
+
+- name: Skip GNOME extension management when GNOME Shell is absent
+  ansible.builtin.debug:
+    msg: >-
+      gnome-shell or the gnome-extensions CLI was not found on
+      {{ inventory_hostname }}; skipping GNOME extension management.
+  when:
+    - (_user_gnome_shell_version_raw.rc | default(1)) != 0
+      or (_user_gnome_cli_probe.rc | default(1)) != 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve GNOME extension management availability
+  ansible.builtin.set_fact:
+    _user_gnome_available: >-
+      {{ (_user_gnome_shell_version_raw.rc | default(1)) == 0
+         and (_user_gnome_cli_probe.rc | default(1)) == 0 }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Parse the GNOME Shell version
+  ansible.builtin.set_fact:
+    _user_gnome_shell_version: >-
+      {{ _user_gnome_shell_version_raw.stdout | default('')
+         | regex_replace('^GNOME Shell ([0-9.]+).*$', '\1') | trim }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve installed extension UUIDs from the extension directories
+  ansible.builtin.find:
+    paths:
+      - "{{ user.home | default('/home/' ~ user.name) }}/.local/share/gnome-shell/extensions"
+      - /usr/share/gnome-shell/extensions
+    file_type: directory
+  register: _user_gnome_installed_dirs
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Record installed extension UUIDs
+  ansible.builtin.set_fact:
+    _user_gnome_installed: >-
+      {{ _user_gnome_installed_dirs.files | default([])
+         | map(attribute='path') | map('basename') | list }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve extensions requiring installation
+  ansible.builtin.set_fact:
+    _user_gnome_target_uuids: >-
+      {{ user_gnome_extensions if (user_gnome_extensions_force_install | default(false) | bool)
+         else (user_gnome_extensions | difference(_user_gnome_installed | default([])) | list) }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Report extensions already installed
+  ansible.builtin.debug:
+    msg: "All {{ user_gnome_extensions | length }} configured GNOME extensions are already installed."
+  when:
+    - _user_gnome_available | default(false) | bool
+    - _user_gnome_target_uuids | default([]) | length == 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Query extension metadata from extensions.gnome.org
+  ansible.builtin.uri:
+    url: "{{ user_gnome_extensions_base_url }}/extension-info/?uuid={{ item }}&shell_version={{ _user_gnome_shell_version | default('') }}"
+    return_content: true
+    timeout: 15
+  loop: "{{ _user_gnome_target_uuids | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _user_gnome_ext_info
+  check_mode: false
+  failed_when: false
+  changed_when: false
+  when:
+    - _user_gnome_available | default(false) | bool
+    - _user_gnome_shell_version | default('') | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Record usable metadata from the versioned query
+  ansible.builtin.set_fact:
+    _user_gnome_ext_info_map: >-
+      {%- set usable = namespace(list=[]) -%}
+      {%- for r in _user_gnome_ext_info.results | default([]) -%}
+      {%- set json = r.json | default({}) -%}
+      {%- if r.status | default(0) == 1
+        and ((json.download_url | default('')) != ''
+             or (json.shell_version_map | default({}) | length) > 0) -%}
+      {%- set _ = usable.list.append(r) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ dict(usable.list | map(attribute='item') | zip(usable.list | map(attribute='json'))) }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve extensions without a usable metadata result
+  ansible.builtin.set_fact:
+    _user_gnome_unresolved: >-
+      {{ _user_gnome_target_uuids | default([])
+         | difference(_user_gnome_ext_info_map | default({}) | list) }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Retry extension metadata without the shell version
+  # Script parity: when the shell_version-filtered query yields nothing
+  # usable, retry once without the parameter.
+  ansible.builtin.uri:
+    url: "{{ user_gnome_extensions_base_url }}/extension-info/?uuid={{ item }}"
+    return_content: true
+    timeout: 15
+  loop: "{{ _user_gnome_unresolved | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _user_gnome_ext_info_retry
+  check_mode: false
+  failed_when: false
+  changed_when: false
+  when:
+    - _user_gnome_available | default(false) | bool
+    - _user_gnome_unresolved | default([]) | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Merge retried metadata into the extension metadata map
+  ansible.builtin.set_fact:
+    _user_gnome_ext_info_map: >-
+      {%- set merged = namespace(map=_user_gnome_ext_info_map | default({})) -%}
+      {%- for r in _user_gnome_ext_info_retry.results | default([]) -%}
+      {%- set json = r.json | default({}) -%}
+      {%- if r.status | default(0) == 1
+        and ((json.download_url | default('')) != ''
+             or (json.shell_version_map | default({}) | length) > 0) -%}
+      {%- set _ = merged.map.update({r.item: json}) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ merged.map }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve extension bundle download targets
+  # download_url is taken directly when present; otherwise the best
+  # shell_version_map match (highest version; pk as the release tag)
+  # resolves the bundle path - mirroring the script's jq/python fallbacks.
+  ansible.builtin.set_fact:
+    _user_gnome_install_targets: >-
+      {%- set targets = namespace(list=[]) -%}
+      {%- for uuid in _user_gnome_target_uuids | default([]) -%}
+      {%- set json = (_user_gnome_ext_info_map | default({})).get(uuid, {}) -%}
+      {%- set path = json.download_url | default('', true) -%}
+      {%- if path == '' and (json.shell_version_map | default({}) | length) > 0 -%}
+      {%- set best = json.shell_version_map | dict2items | sort(attribute='value.version') | list | last | default({}) -%}
+      {%- set path = '/download-extension/' ~ uuid ~ '.shell-extension.zip?version_tag=' ~ (best.value.pk | default('') | string) -%}
+      {%- endif -%}
+      {%- if path != '' -%}
+      {%- set url = path if path.startswith('http') else (user_gnome_extensions_base_url ~ path) -%}
+      {%- set _ = targets.list.append({'uuid': uuid, 'url': url}) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ targets.list }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Report extensions without a resolvable bundle
+  ansible.builtin.debug:
+    msg: >-
+      No compatible bundle was found on extensions.gnome.org for:
+      {{ _user_gnome_target_uuids | difference(_user_gnome_install_targets | default([]) | map(attribute='uuid') | list) | join(', ') }}.
+  when:
+    - _user_gnome_available | default(false) | bool
+    - _user_gnome_target_uuids | default([]) | length > 0
+    - _user_gnome_target_uuids | difference(_user_gnome_install_targets | default([]) | map(attribute='uuid') | list) | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Install GNOME extensions from resolved bundles
+  when:
+    - _user_gnome_available | default(false) | bool
+    - _user_gnome_install_targets | default([]) | length > 0
+    - not (ansible_check_mode | default(false))
+  tags: ["gnome-extensions", "user"]
+  block:
+    - name: Create temporary directory for extension bundles
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -gnome-ext
+      register: _user_gnome_tempdir
+      tags: ["gnome-extensions", "user"]
+
+    - name: Download extension bundles
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ _user_gnome_tempdir.path }}/{{ item.uuid }}.shell-extension.zip"
+        mode: "0644"
+        timeout: 30
+      loop: "{{ _user_gnome_install_targets }}"
+      loop_control:
+        label: "{{ item.uuid }}"
+      register: _user_gnome_downloads
+      failed_when: false
+      changed_when: true
+      tags: ["gnome-extensions", "user"]
+
+    - name: Install extension bundles via the gnome-extensions CLI
+      # Per-UUID failures are non-fatal (script parity): a failed bundle
+      # never stops the remaining extensions; failures are reported below.
+      # argv form keeps manifest-driven inputs (UUID-qualified temp path)
+      # out of shell-splitting territory entirely.
+      ansible.builtin.command:
+        argv:
+          - gnome-extensions
+          - install
+          - --force
+          - "{{ _user_gnome_tempdir.path }}/{{ item.uuid }}.shell-extension.zip"
+      loop: "{{ _user_gnome_install_targets }}"
+      loop_control:
+        label: "{{ item.uuid }}"
+      register: _user_gnome_installs
+      failed_when: false
+      changed_when: true
+      tags: ["gnome-extensions", "user"]
+
+  rescue:
+    - name: Report GNOME extension installation group failure
+      ansible.builtin.debug:
+        msg: >-
+          GNOME extension installation failed on {{ inventory_hostname }};
+          individual UUID failures are listed after this notice. Re-run
+          with -vv for the exact failing task.
+      tags: ["gnome-extensions", "user"]
+
+  always:
+    - name: Clean up the extension bundle temporary directory
+      ansible.builtin.file:
+        path: "{{ _user_gnome_tempdir.path }}"
+        state: absent
+      when:
+        - _user_gnome_tempdir is defined
+        - _user_gnome_tempdir.path is defined
+      tags: ["gnome-extensions", "user"]
+
+- name: Resolve newly installed extension UUIDs
+  ansible.builtin.set_fact:
+    _user_gnome_newly_installed: >-
+      {{ _user_gnome_installs.results | default([])
+         | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
+         | map(attribute='item.uuid') | list }}
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Report failed extension downloads and installations
+  ansible.builtin.debug:
+    msg: >-
+      Failed to download or install {{ item.item.uuid }} from
+      extensions.gnome.org; it may lack a bundle compatible with GNOME Shell
+      {{ _user_gnome_shell_version | default('unknown') }}.
+  loop: >-
+    {{ _user_gnome_installs.results | default([])
+       | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list }}
+  loop_control:
+    label: "{{ item.item.uuid }}"
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Enable configured GNOME extensions via dconf
+  when: _user_gnome_available | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+  block:
+    - name: Read currently enabled extensions
+      ansible.builtin.command: dconf read /org/gnome/shell/enabled-extensions
+      register: _user_gnome_enabled_raw
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      tags: ["gnome-extensions", "user"]
+
+    - name: Parse the currently enabled extension list
+      ansible.builtin.set_fact:
+        _user_gnome_enabled_current: >-
+          {{ (_user_gnome_enabled_raw.stdout | default('') | trim
+          | regex_replace('^\[', '') | regex_replace('\]$', '')
+          | replace("'", "") | split(', ') | select | list) }}
+      tags: ["gnome-extensions", "user"]
+
+    # Monotonic union invariant: (current ∪ configured) ∩ installed.
+    # Enabled extensions are NEVER removed. This key is shared with
+    # desktop_ui's optional enable block (roles/desktop_ui/tasks/gnome/
+    # extensions.yml writes the same dconf key) - both writers only ever
+    # union, so they cannot fight over entries.
+    #
+    # Headless limitation (documented): writing dconf requires a running
+    # D-Bus session for the user; the write is advisory and extensions
+    # activate on the next login/shell restart regardless of whether it
+    # succeeded headlessly.
+    - name: Enable installed configured extensions
+      community.general.dconf:
+        key: /org/gnome/shell/enabled-extensions
+        value: >-
+          {{ _user_gnome_enabled_current
+             | union(user_gnome_extensions)
+             | intersect(_user_gnome_installed | union(_user_gnome_newly_installed | default([])))
+             | unique | to_json }}
+        state: present
+      tags: ["gnome-extensions", "user"]
+
+  rescue:
+    - name: Report dconf enable unavailability
+      ansible.builtin.debug:
+        msg: >-
+          Could not enable GNOME extensions via dconf on {{ inventory_hostname }}
+          (no D-Bus session or dconf service). The extensions are installed
+          and will be picked up on next login; they can also be enabled
+          manually with 'gnome-extensions enable'.
+      tags: ["gnome-extensions", "user"]
+
+- name: Recommend re-login when extensions were installed
+  ansible.builtin.debug:
+    msg: >-
+      {{ _user_gnome_newly_installed | default([]) | length }} GNOME
+      extension(s) were installed. A re-login (or GNOME Shell restart) is
+      recommended to load them.
+  when: _user_gnome_newly_installed | default([]) | length > 0
+  tags: ["gnome-extensions", "user"]

@@ -3,89 +3,57 @@
 
 argument_specs:
   main:
-    short_description: Tools role managing developer runtimes, utilities, vendor toolchains, and graphical desktop tools.
+    short_description: Tools role managing host-level GUI utilities (VS Code, system Flatpaks, input-remapper).
     options:
       tools_assert_enabled:
         type: bool
         description: Enable pre-flight environment, platform, and privilege assertions.
         default: true
-      tools_user:
-        type: str
-        description: Target workstation user for user-space tool installations.
-      tools_user_home:
-        type: str
-        description: Home directory of target user.
-      tools_user_local_bin:
-        type: str
-        description: User-local bin path (~/.local/bin).
-      tools_user_go_bin:
-        type: str
-        description: User go bin path (~/go/bin).
-      tools_install_runtimes:
-        type: bool
-        description: Install developer toolchains and language runtimes (golang, nodejs, npm).
-        default: true
-      tools_runtime_packages:
-        type: list
-        elements: str
-        description: List of runtime packages to install.
-      tools_install_bun:
-        type: bool
-        description: Install bun JavaScript/TypeScript runtime.
-        default: true
-      tools_install_gitflow:
-        type: bool
-        description: Install gitflow tool.
-        default: true
-      tools_gitflow_copr_fedora:
-        type: str
-        description: COPR repository for gitflow on Fedora.
-        default: "b08x/syncopated"
-      tools_gitflow_copr_el:
-        type: str
-        description: COPR repository for gitflow on Enterprise Linux.
-        default: "b08x/syncopated"
-      tools_gitflow_force_install:
-        type: bool
-        description: Force installation of gitflow from source even if present.
-        default: false
-      tools_install_inxi:
-        type: bool
-        description: Install inxi system information tool.
-        default: true
-      tools_install_homebrew:
-        type: bool
-        description: Install Homebrew on Fedora systems.
-        default: false
-      tools_install_go:
-        type: bool
-        description: Validate or configure Go toolchain.
-        default: true
       tools_install_gui_apps:
         type: bool
-        description: Enable installation of graphical desktop tools and applications.
-        default: true
+        description: Master gate for graphical desktop applications; lazily consumes the Tier 1 auto_enable_desktop flag.
+        default: "{{ auto_enable_desktop | default(true) | bool }}"
       tools_install_vscode:
         type: bool
-        description: Install Visual Studio Code.
-        default: true
+        description: Install Visual Studio Code (real opt-in - false by default; extensions live in roles/user).
+        default: false
       tools_vscode_flatpak:
         type: bool
-        description: Install VS Code via Flatpak instead of DNF repo.
+        description: Install VS Code via Flatpak instead of the native DNF repo.
         default: false
       tools_vscode_force_install:
         type: bool
-        description: Force install VS Code even if code binary exists.
+        description: Force install VS Code even if the code binary exists.
         default: false
       tools_install_flatpaks:
         type: bool
         description: Enable Flatpak package, Flathub remote, and Flatpak application installations.
-        default: true
+        default: "{{ tools_install_gui_apps | default(true) | bool }}"
       tools_system_flatpaks:
         type: list
         elements: str
         description: List of system Flatpak application IDs to install.
+        default:
+          - com.mattjakeman.ExtensionManager
+          - page.tesk.Refine
+          - com.github.tchx84.Flatseal
+          - io.github.flattool.Warehouse
+          - io.github.dvlv.boxbuddyrs
+          - com.ranfdev.DistroShelf
+          - org.easycoding.TunedSwitcher
+          - app.devsuite.Ptyxis
+          - io.github.vikdevelop.SaveDesktop
+          - io.podman_desktop.PodmanDesktop
+          - io.github.tanaybhomia.Whisp
+          - org.remmina.Remmina
+          - org.cutwire.Drift
+          - org.darktable.Darktable
+          - io.dbeaver.DBeaverCommunity
+          - com.saivert.pwvucontrol
+          - com.discordapp.Discord
+          - org.upscayl.Upscayl
+          - org.audacityteam.Audacity
       tools_install_input_remapper:
         type: bool
-        description: Install and configure input-remapper service.
-        default: true
+        description: Install and configure the input-remapper service.
+        default: "{{ tools_install_gui_apps | default(true) | bool }}"

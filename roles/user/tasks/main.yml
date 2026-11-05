@@ -4,6 +4,7 @@
 - name: Display the value of user_my_variable
   ansible.builtin.debug:
     msg: "The value of user_my_variable is {{ user_my_variable }}"
+  tags: ["user", "always"]
 
 - name: Starting user tasks
   ansible.builtin.debug:
@@ -21,11 +22,30 @@
 
 - name: Include uv configuration tasks
   ansible.builtin.include_tasks: uv.yml
+  when: user_install_uv | default(true) | bool
   tags: ["uv", "user"]
-# - name: Include pip configuration tasks
-#   ansible.builtin.include_tasks: pip.yml
-#   tags: ["pip", "user"]
 
-# - name: Include Ranger installation tasks
-#   ansible.builtin.include_tasks: ranger.yml
-#   tags: ["ranger", "user"]
+- name: Include bun installation tasks
+  ansible.builtin.include_tasks: bun.yml
+  when: user_install_bun | default(true) | bool
+  tags: ["bun", "user"]
+
+- name: Include user-space Go toolchain installation tasks
+  ansible.builtin.include_tasks: go.yml
+  when: user_install_go | default(true) | bool
+  tags: ["go", "user"]
+
+- name: Include cargo and Rust crate installation tasks
+  ansible.builtin.include_tasks: cargo.yml
+  when: user_install_cargo | default(true) | bool
+  tags: ["cargo", "user"]
+
+- name: Include GNOME Shell extension installation tasks
+  ansible.builtin.include_tasks: gnome-extensions.yml
+  when: user_install_gnome_extensions | default(false) | bool
+  tags: ["gnome-extensions", "user"]
+
+- name: Include VS Code extension installation tasks
+  ansible.builtin.include_tasks: vscode-extensions.yml
+  when: user_install_vscode_extensions | default(true) | bool
+  tags: ["vscode-extensions", "user"]

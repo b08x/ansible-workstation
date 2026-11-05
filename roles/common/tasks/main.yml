@@ -66,6 +66,16 @@
   when: ansible_virtualization_type | default('') not in ['docker', 'podman', 'container']
   tags: ["common", "sshd"]
 
+- name: Include inxi system information tasks
+  ansible.builtin.include_tasks: inxi.yml
+  when: common_install_inxi | default(true) | bool
+  tags: ["inxi", "common"]
+
+- name: Include gitflow installation tasks
+  ansible.builtin.include_tasks: gitflow.yml
+  when: common_install_gitflow | default(true) | bool
+  tags: ["gitflow", "common"]
+
 - name: Include Zsh installation verification
   ansible.builtin.include_tasks: zsh.yml
   tags: ["zsh", "common"]

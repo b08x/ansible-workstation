@@ -1,6 +1,16 @@
 ---
 # tasks file for COSMIC package installation in roles/desktop_ui
 
+- name: Ensure Cosmic Flatpak remote repository is present
+  community.general.flatpak_remote:
+    name: cosmic
+    flatpakrepo_url: https://apt.pop-os.org/cosmic/flathub.flatpakrepo
+    method: user
+    state: present
+  become: false
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["flatpak", "cosmic", "packages", "desktop_ui"]
+
 - name: Enable ryanabx/cosmic-epoch COPR repository
   community.general.copr:
     name: ryanabx/cosmic-epoch

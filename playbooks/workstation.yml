@@ -63,6 +63,22 @@
     - role: libvirt
       tags: ["libvirt", "virt"]
 
+- name: Host Tools
+  hosts: workstations
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Gather facts
+      ansible.builtin.setup:
+      tags: ["always"]
+  roles:
+    - role: tools
+      tags: ["tools", "system"]
+
+# Play ordering note: Host Tools runs BEFORE User Workstation Setup,
+# mirroring local.yml (tools in the system play, user provisioning last),
+# so user-space toolchains in roles/user can build against whichever
+# system packages tools/common just installed.
 - name: User Workstation Setup
   hosts: workstations
   become: false
@@ -81,18 +97,6 @@
   roles:
     - role: user
       tags: ["user", "system"]
-
-- name: Host Tools
-  hosts: workstations
-  become: true
-  gather_facts: false
-  pre_tasks:
-    - name: Gather facts
-      ansible.builtin.setup:
-      tags: ["always"]
-  roles:
-    - role: tools
-      tags: ["tools", "system"]
 
 - name: Post-flight Execution Assessment and Reboot Verification
   hosts: workstations

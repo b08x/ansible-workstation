@@ -1,0 +1,79 @@
+---
+# tasks file for user-space Bun runtime installation in roles/user
+# Bun installs to {{ user_bun_dest }} (~/.bun/bin/bun) in user space; PATH
+# coverage comes from Tier 1 workstation_path_dirs (group_vars/all.yml).
+# No privilege escalation anywhere in this task file.
+
+- name: Check if bun binary exists
+  ansible.builtin.stat:
+    path: "{{ user_bun_dest }}"
+  register: _user_bun_stat
+  tags: ["bun", "user"]
+
+- name: Install Bun binary into user space
+  when:
+    - not _user_bun_stat.stat.exists or (user_bun_force_install | default(false) | bool)
+    - not (ansible_check_mode | default(false))
+  tags: ["bun", "user"]
+  block:
+    - name: Create temporary directory for Bun archive
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -bun-install
+      register: _user_bun_tempdir
+      tags: ["bun", "user"]
+
+    - name: Ensure bun destination directory exists
+      ansible.builtin.file:
+        path: "{{ user_bun_dest | dirname }}"
+        state: directory
+        mode: "0755"
+      tags: ["bun", "user"]
+
+    - name: Download Bun archive
+      ansible.builtin.get_url:
+        url: "{{ user_bun_url }}"
+        dest: "{{ _user_bun_tempdir.path }}/bun-linux-x64.zip"
+        mode: "0644"
+        timeout: 60
+      tags: ["bun", "user"]
+
+    - name: Unarchive Bun
+      ansible.builtin.unarchive:
+        src: "{{ _user_bun_tempdir.path }}/bun-linux-x64.zip"
+        dest: "{{ _user_bun_tempdir.path }}"
+        remote_src: true
+      tags: ["bun", "user"]
+
+    - name: Install Bun binary to destination
+      ansible.builtin.copy:
+        src: "{{ _user_bun_tempdir.path }}/bun-linux-x64/bun"
+        dest: "{{ user_bun_dest }}"
+        mode: "0755"
+        remote_src: true
+      tags: ["bun", "user"]
+
+  rescue:
+    - name: Report Bun installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install Bun from {{ user_bun_url }} into
+          {{ user_bun_dest }}. Check network reachability of the release
+          archive; re-run with -vv for the exact failing task.
+      tags: ["bun", "user"]
+
+    - name: Fail on Bun installation failure
+      ansible.builtin.fail:
+        msg: "Bun installation failed - see the preceding task output."
+      tags: ["bun", "user"]
+
+  always:
+    - name: Clean up Bun temporary directory
+      ansible.builtin.file:
+        path: "{{ _user_bun_tempdir.path }}"
+        state: absent
+      when:
+        - _user_bun_tempdir is defined
+        - _user_bun_tempdir.path is defined
+        - not (ansible_check_mode | default(false))
+      tags: ["bun", "user"]

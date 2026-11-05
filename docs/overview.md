@@ -125,9 +125,13 @@ Ansible installs the binaries; yadm (Layer 2) owns the configs and shared
 skills. The boundary is strict — Ansible never writes into paths that
 yadm owns.
 
-Plus developer IDEs (VS Code), the system binary `bun`, Go toolchain
-validation, and system Flatpaks — all in the tools role and gated by explicit
-boolean flags (`tools_install_*`). transcribe.cpp (Whisper CLI, compiled
+Plus developer IDEs (VS Code — a real opt-in), system Flatpaks, and the
+input-remapper service — all in the tools role and gated by explicit boolean
+flags (`tools_install_*`). User-space toolchains and extension lists migrated
+to the user role: bun (`~/.bun/bin/bun`), the Go toolchain
+(system-first with a user tarball fallback), cargo crates, GNOME Shell
+extensions, and VS Code extensions, all gated by `user_install_*` flags.
+transcribe.cpp (Whisper CLI, compiled
 from source with a CUDA, Intel SYCL, or Vulkan backend chosen by hardware
 probe; GPU required by default) is built by the standalone opt-in
 [`playbooks/transcribe-cpp.yml`](../playbooks/transcribe-cpp.yml) playbook, configured

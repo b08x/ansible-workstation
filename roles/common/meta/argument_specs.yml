@@ -23,8 +23,8 @@ argument_specs:
         default: true
       common_tuned_profile:
         type: str
-        description: Active tuned profile name; defaults to hardware recommended profile if empty.
-        default: ""
+        description: Active tuned profile name; resolves lazily to the hardware-recommended profile from auto-detection.
+        default: "{{ recommended_tuned_profile | default('throughput-performance') }}"
       common_hardening_enabled:
         type: bool
         description: Enable CIS Level 2 Workstation security hardening tasks.
@@ -109,3 +109,23 @@ argument_specs:
         type: bool
         description: Enable firstboot onboarding desktop scripts and hooks.
         default: true
+      common_install_inxi:
+        type: bool
+        description: Install inxi system information tool.
+        default: true
+      common_install_gitflow:
+        type: bool
+        description: Install gitflow-avh (COPR package on Fedora, source build on Enterprise Linux).
+        default: true
+      common_gitflow_copr_fedora:
+        type: str
+        description: COPR repository for gitflow on Fedora.
+        default: "b08x/syncopated"
+      common_gitflow_force_install:
+        type: bool
+        description: Force gitflow source deployment even when git-flow is already present.
+        default: false
+      common_gitflow_build_dir:
+        type: str
+        description: Scratch directory for the gitflow-avh source build (cleaned up after install).
+        default: "/tmp/gitflow-avh"

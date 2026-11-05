@@ -15,11 +15,15 @@ common_packages:
   - fzf
   - gettext
   - git
+  - golang
   - gum
   - htop
   - iptables-nft
   - jq
+  - lm_sensors-devel
   - kernel-tools
+  - nodejs
+  - npm
   - openssh-server
   - policycoreutils-python-utils
   - tar

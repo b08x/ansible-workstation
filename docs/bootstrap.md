@@ -190,8 +190,8 @@ For remote orchestration across an inventory fleet or centralized workstation ma
 The playbook executes across four structured plays targeting the `workstations` group:
 1. **System Provisioning and Common Configuration**: Runs [`roles/common`](../roles/common) with elevated privileges (`become: true`), performs fact gathering, handles sudoers `requiretty` adjustments, and ensures system release symlinks.
 2. **System Configuration**: Applies system roles (`tuning`, `networking`, `containerd`, `desktop`, `libvirt`) with facts gathered as unprivileged connection user.
-3. **User Workstation Setup**: Executes [`roles/user`](../roles/user) as the unprivileged connection user (`become: false`) with user path environments.
-4. **Host Tools and Coding Agent Utilities**: Runs [`roles/tools`](../roles/tools) to configure system CLI binaries (`bun`); transcribe.cpp is built by the standalone [`playbooks/transcribe-cpp.yml`](../playbooks/transcribe-cpp.yml) playbook, and coding agent CLIs by [`playbooks/agent-harness/`](../playbooks/agent-harness/).
+3. **Host Tools**: Runs [`roles/tools`](../roles/tools) to configure the opt-in Visual Studio Code IDE, system Flatpaks, and input-remapper; transcribe.cpp is built by the standalone [`playbooks/transcribe-cpp.yml`](../playbooks/transcribe-cpp.yml) playbook, and coding agent CLIs by [`playbooks/agent-harness/`](../playbooks/agent-harness/).
+4. **User Workstation Setup**: Executes [`roles/user`](../roles/user) as the unprivileged connection user (`become: false`) with user path environments — after Host Tools, mirroring `local.yml`'s tools-then-user ordering, so user-space toolchains (bun, Go, cargo, GNOME/VS Code extensions) build against the freshly installed system packages.
 
 ```bash
 # Push orchestration across inventory
