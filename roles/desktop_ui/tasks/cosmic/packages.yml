@@ -4,7 +4,7 @@
 - name: Ensure Cosmic Flatpak remote repository is present
   community.general.flatpak_remote:
     name: cosmic
-    flatpakrepo_url: https://apt.pop-os.org/cosmic/flathub.flatpakrepo
+    flatpakrepo_url: https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
     method: user
     state: present
   become: false

@@ -1,121 +1,168 @@
-# User Role (`roles/user`)
+# 👤 User Role (`roles/user`)
 
-Under the [distribution taxonomy](../../docs/layering-architecture.md), this role provisions the unprivileged developer toolchain of one workstation account: the uv-managed Python runtime (the `uv` binary is expected on PATH (`defaults/main.yml:14-15`) and is invoked at exactly one call site (`uv.yml:2-7`, the role's only uv task); no install task for it exists in the audited role tree — promoting check: a repo-wide grep for a uv installer task beyond that call site returns nothing), the Bun JS/TS runtime at `~/.bun/bin/bun` (`defaults/main.yml:21`), a system-first Go toolchain with a user tarball fallback (`tasks/go.yml`), the Rust/cargo toolchain plus a 10-crate manifest (`defaults/main.yml:69-79`), 4 GNOME Shell extension UUIDs (`defaults/main.yml:108-112`), and an opt-in 68-entry VS Code extension list (`defaults/main.yml:127-195`). Every include in the dispatcher `tasks/main.yml` runs under `apply: become: true, become_user: "{{ user.name }}"` — the pairs sit at `:18-19`, `:31-32`, `:40-41`, `:49-50`, `:58-59`, `:67-68`, `:76-77` — so the role executes as the target workstation user even when `ansible-pull` or `ansible-playbook` is invoked with `--become` / `-K`; the exceptions are three `become_user: root` DNF task sites inside two decision trees — `go.yml:81-82` (dnf `golang`), `cargo.yml:134-135` (dnf `cargo`), `cargo.yml:389-390` (the DNF-preferred crate loop) — which sounds like a contradiction for a role scoped to unprivilege, but is the exact, bounded price of the system-first fallback strategy: 3 root-task sites in 7 dispatched task files, and every other task — including the assert include and the dispatcher applies themselves — escalates only to `user.name`. On this inventory, where `enable_desktop` is `true` (`inventory/group_vars/all.yml:22`), six of those seven includes run by default; the seventh, VS Code extension management, is the single opt-in `false` gate (`defaults/main.yml:116`, state as of commit `5112cec`).
+Under the [distribution taxonomy](../../docs/layering-architecture.md), this role provisions the unprivileged developer toolchain of one workstation account: the uv-managed Python runtime, the Bun JS/TS runtime, a system-first Go toolchain with a user-space fallback, the Rust/cargo toolchain with a 10-crate manifest, 4 GNOME Shell extensions, and an opt-in 68-entry VS Code extension list.
 
-**Migration note (2026-11):** this task surface migrated from yadm `bootstrap.d` with behavior parity — asserted by the code itself (`cargo.yml:2-3` names `bootstrap.d/20-cargo.sh`; the seeding comments at `defaults/main.yml:68`, `:107`, `:126` name the three source manifests) — and absorbed the CLI toolchains divested by [`roles/tools`](../tools/README.md): `bun` (now `~/.bun/bin/bun`, user space), the Go toolchain, cargo and its crates, GNOME Shell extensions, and VS Code extensions all live here now. `homebrew` was dropped entirely — recorded at `roles/tools/README.md:7-8` and the tools default comment at `roles/tools/defaults/main.yml:6` — and no role installs it; promoting check: a repo-wide grep for a brew install task finds only that recorded divestment. `inxi` and `gitflow-avh` moved to [`roles/common`](../common/README.md), and the VS Code _binary_ remains in [`roles/tools`](../tools/README.md) as a real opt-in (`tools_install_vscode` defaults to `false`). The extension lists themselves were seeded — at migration time — from the yadm `cargo-packages.txt`, `gnome-extensions.txt`, and `vscode-extensions.txt` manifests; those files no longer exist in the yadm tree (exact check: `yadm list | grep -c 'cargo-packages\.txt\|gnome-extensions\.txt\|vscode-extensions\.txt'` returns 0 on the Layer 2 checkout), so the values now in `defaults/main.yml:69-79`, `:108-112`, and `:127-195` are the live verification condition, not the historical manifests.
+Every dispatched task runs as the workstation user via `apply: become: true, become_user: "{{ user.name }}"`, so the role stays unprivileged even under `--become` / `-K`; the only exceptions are three bounded root DNF sites in the Go and cargo decision trees (see Layer Boundary & Escalation). The user play runs after the system plays converge (`playbooks/workstation.yml:79-85`, mirroring `local.yml`), so user-space toolchains build against freshly provisioned system packages.
 
-## Scope & Taxonomy
+> **Provenance.** Every fact in this README — gates, defaults, URLs, version strings, list lengths, escalation sites — was verified against the codebase at commit `ccfade8`. Anchors are file-level unless the fact itself is a location; the three root-escalation sites and the two playbook invocations carry line-level anchors as evidence.
 
-Ownership splits along three boundaries. **Ansible (`roles/user`)** owns the unprivileged binaries and extension lists: `~/.bun/bin/bun` (`defaults/main.yml:21`), `~/.local/go` with `go` and `gofmt` symlinked into `~/.local/bin` (`go.yml:224-236`), `~/.cargo` (rustup at `cargo.yml:222-273`, or the system cargo left untouched), `~/.local/share/gnome-shell/extensions`, and VS Code extension sets — and the role writes _no_ shell rc files and _no_ `~/.cargo/config.toml`, a negative capability that is code-enforced rather than merely polite: the rustup installer is invoked as `rustup-init -y --no-modify-path` at `cargo.yml:238-246`. **Yadm (Layer 2)** owns dotfiles, shell rc files, and API keys; the attribution that `~/.zshenv` sources `~/.cargo/env` and `~/.zshrc` owns PATH additions rests on code comments (`cargo.yml:5`, `cargo.yml:236`) and is checked further under _Rationed Uncertainties_. **User identity** is Tier 1 and out of scope: `user.name` (`b08x`, `inventory/group_vars/all.yml:12`), `user.home` (`/home/b08x`, `:16`), and the remaining identity facts are defined in `inventory/group_vars/all.yml` — never created or mutated by this role — while `user.home | default('/home/' ~ user.name)` is the lazy Tier 1 consumption idiom (`defaults/main.yml:21`, `:42`). PATH coverage for everything the role installs comes from Tier 1: `workstation_path_dirs` (`inventory/group_vars/all.yml:2-9`) lists 7 entries — `~/.local/bin`, `~/.cargo/bin`, `~/go/bin`, `~/.bun/bin`, `/usr/local/bin`, `/usr/bin`, `/bin` — and the `go`/`gofmt` symlinks land in `~/.local/bin` (entry 1, `all.yml:3`) and the Bun binary in `~/.bun/bin` (entry 4, `all.yml:6`) of those seven `workstation_path_dirs` entries — the last three of the seven (`all.yml:7-9`) are system directories this role never writes.
+## 📜 Migration History (2026-11)
 
-## Task Surface (`tasks/main.yml` dispatcher)
+**From yadm `bootstrap.d` — migration complete.** This task surface migrated from the yadm bootstrap scripts with behavior parity. The seed manifests (`cargo-packages.txt`, `gnome-extensions.txt`, `vscode-extensions.txt`) no longer exist in the yadm tree, so the values in `defaults/main.yml` are now the live manifests. The bootstrap-time fallback no longer exists either: `bootstrap.d/` now contains only `01-ruby.sh`, `02-ansible-pull.sh`, `03-zsh.sh`, `80-install-user-flatpaks.sh`, `85-rubymine.sh`, and `90-obsidian-flatpak-setup.sh`.
 
-Seven task files hang off the dispatcher, each include gated by `user_<feature> | default(...) | bool` and tagged `[<feature>, "user"]`, with gate and apply anchors below:
+**From [`roles/tools`](../tools/README.md).** This role absorbed the divested CLI toolchains: Bun (now `~/.bun/bin/bun`, user space), the Go toolchain, cargo and its crates, GNOME Shell extensions, and VS Code extension management. Homebrew was dropped entirely; no role installs it. `inxi` and `gitflow-avh` moved to [`roles/common`](../common/README.md). The VS Code _binary_ remains in [`roles/tools`](../tools/README.md) as a real opt-in (`tools_install_vscode: false`); this role only manages extensions, and only when its opt-in gate is enabled.
 
-| Task file               | Gate (default, anchor)                                                                                   | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ----------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assert.yml`            | `user_assert_enabled` (`true`, dispatcher `:20`)                                                         | Pre-flight fail-fast assertions (facts, platform, identity, manifest shapes, runs-as-expected-user)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `uv.yml`                | `user_install_uv` (`true`, `:33`)                                                                        | `uv python install {{ user_uv_python_version }}`; the `uv` binary is expected on PATH, installed outside this role (`defaults/main.yml:14-15`, called at `uv.yml:2-7`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `bun.yml`               | `user_install_bun` (`true`, `:42`)                                                                       | User-space Bun at `user_bun_dest` (`~/.bun/bin/bun`, `defaults/main.yml:21`); skip-if-present guard + `user_bun_force_install`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `go.yml`                | `user_install_go` (`true`, `:51`)                                                                        | _Go decision tree_: system-first Go with a user-space `~/.local/go` tarball fallback (`go.yml` throughout; single root escalation `:81-82`; go/gofmt symlinks `:224-236`; final minimum-version assert `:286-302`); `user_go_force_install` bypasses the system check at `:61` (the probe's third when-clause)                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `cargo.yml`             | `user_install_cargo` (`true`, `:60`)                                                                     | _Rust decision tree_: system-first cargo with rustup and `cargo install --locked` fallbacks (`cargo.yml` throughout; root escalation `:134-135`, crate-loop escalation `:389-390`; rustup `:222-273`, `--locked` at `:447`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `gnome-extensions.yml`  | `user_install_gnome_extensions` (`{{ enable_desktop \| default(false) \| bool }}`, `:69`)                | Installs the 4-UUID set — the same 4 introduced above — from `user_gnome_extensions_base_url` (extensions.gnome.org, `defaults/main.yml:105`) via `gnome-extensions install --force` (`:228-247`); per-UUID failures are non-fatal (`failed_when: false` at `:224` and `:243`) with a per-failure report (`:275-287`) and group rescue (`:248-255`); the dconf enable step is a monotonic union that never disables extensions (invariant comment `:309-313`); `user_gnome_extensions_force_install` flips the diff (`:74-80`); skipped when the `gnome-shell --version` or `which gnome-extensions` probe returns non-zero (`:15-21`, `:23-29`; skip `:31-39`, availability fact `:41-46`) — the practical headless case |
-| `vscode-extensions.yml` | `user_install_vscode_extensions` (`false`, `:78`; `defaults/main.yml:116`, `argument_specs.yml:142-145`) | _Opt-in_ management of the 68-entry list: CLI resolution `user_vscode_command` → native `code` → `com.visualstudio.code` Flatpak (`:28-32`, `:34-39`, `:42-49`, friendly skip `:51-58`) → case-normalized `--list-extensions` diff (`:81-95`, force `:90-92`) → non-fatal installs (`failed_when: false` at `:121`) with report (`:125-137`) and rescue (`:139-144`)                                                                                                                                                                                                                                                                                                                                                      |
+## 🗺️ Overview & Architecture
 
-Both decision trees share one shape, and the anchors trace it in execution order — _Go_ probes the system binary directly at `/usr/bin/go`, never via PATH (`go.yml:36-43`), then stats (`:46-49`), probes `dnf info` (`:52-62`), escalates once for `golang` (`:73-85`, `become` at `:81-82`), rescues (`:87-93`), re-probes (`:95-101`), and resolves the strategy (`:115-126`) that the split set_fact at `:129-154` consumes; _cargo_ mirrors it with a `~/.cargo/tmp` TMPDIR guard (`:36-73`), a system-cargo probe (`:75-83`), its own single root escalation for `dnf cargo` (`:101-155`, `:134-135`), the rustup block (`:222-273`), and the DNF-preferred crate loop (`:371-396`).
+The role runs at Layer 1 (Ansible machine orchestration) but installs strictly into user space, keeping a three-way ownership boundary: Ansible owns unprivileged binaries and extension lists; Yadm (Layer 2) owns dotfiles, shell rc files, and API keys; Tier 1 inventory owns identity and the PATH contract.
 
-Notes:
+```
++--------------------------------------------------------------------------+
+|                      Layer 2: Yadm (User Space)                          |
+|         Dotfiles, shell rc files, API keys, ~/.cargo/config.toml         |
+|   Read-only for this role: no rc writes; rustup runs --no-modify-path     |
++--------------------------------------------------------------------------+
+                                   |
+                                   | Tier 1 contract: user.name, user.home,
+                                   | enable_desktop, workstation_path_dirs
+                                   v
++--------------------------------------------------------------------------+
+|             Layer 1: roles/user — tasks/main.yml dispatcher              |
+|     every include applies become: true, become_user: "{{ user.name }}"    |
+|   assert · uv · bun · go · cargo · gnome-extensions · vscode-extensions   |
+|     (7 gated includes; 6 run by default on this desktop inventory —      |
+|      VS Code extensions are the single opt-in `false` gate)               |
+|   go.yml / cargo.yml decision trees: probe /usr/bin/{go,cargo},          |
+|    prefer the system package, fall back to ~/.local/go or rustup          |
++--------------------------------------------------------------------------+
+                                   |
+                                   | exactly 3 bounded root DNF sites
+                                   v
++--------------------------------------------------------------------------+
+|            Layer 0: System packages via DNF (become_user: root)          |
+|    golang (go.yml) · cargo (cargo.yml) · dua-cli/gitui/eza (crate loop)   |
++--------------------------------------------------------------------------+
+```
 
-- The dispatcher opens with a `Display the value of user_my_variable` debug (`tasks/main.yml:4-7`, tags `["user", "always"]`) that _precedes_ the `Starting user tasks` debug (`:9-12`); the assert include follows (`:14-21`, gate `user_assert_enabled | default(true)`, tags `user/assert/always`, apply become `user.name` at `:18-19`), and an ungated `include_vars "{{ ansible_distribution }}.yml"` runs at `:23-25`, tagged `["user", "distro"]`.
-- The VS Code _binary_ is not installed here — [`roles/tools`](../tools/README.md) owns it as a real opt-in, and the extension list follows the same pattern: `user_install_vscode_extensions` defaults to `false` (`defaults/main.yml:116`, state as of commit `5112cec`), and the task file only manages extensions against whatever CLI is resolvable, only when the gate is enabled.
-- Per-item resilience idiom: looped installs use `failed_when: false` with a follow-up per-failure debug report, while group-level `block/rescue` prints the human-readable failure — two layers, complementary because `block` accepts no loop member (ansible-doc documents no loop key on block) — which is why every looped install above carries its own `failed_when: false` while its enclosing block keeps the rescue.
-- `set_fact` strategy/decision split: one `set_fact` evaluates all of its keys up-front, so consumers of `_user_go_strategy` live in a later task than the one that defines them (`go.yml:115-126` and `:129-154`; `cargo.yml:171-182`). The inline comments (`go.yml:130-132`, `cargo.yml:186-188`) cite [failure point 17](../../docs/failure-points.md) (`failure-points.md:284`) — same family of defaults-referencing-set_fact lazy evaluation, though here the mechanism is distinct: all keys are evaluated in a single set_fact, and the producer-before-consumer sequencing holds by task placement alone — asserted by nothing; the inline comments cited above are the whole enforcement.
+### 📐 Design Patterns
 
-## Key Variables
+1. **Task dispatcher** — `tasks/main.yml` routes to seven includes, each gated by `user_<feature> | default(...) | bool` and tagged `[<feature>, "user"]`.
+2. **Fail-fast assertions** — `assert.yml` validates platform, identity, and manifest shapes before any mutation.
+3. **Lazy Tier 1 consumption** — `user_install_gnome_extensions` derives its gate from `enable_desktop`.
+4. **Skip-if-present + force overrides** — the installers probe before installing — `uv` is the exception, running `uv python install` unconditionally — and a matching `*_force_install` (or `user_cargo_force_crates`) bypasses the probe.
+5. **Per-item resilience** — looped installs run with `failed_when: false` plus per-failure reports; the enclosing `block/rescue` prints group-level failures (`block` accepts no loop member).
+6. **Bounded escalation** — exactly three root DNF task sites; everything else elevates only to `user.name`.
+7. **Two-tier scoping** — Tier 2 defaults are `user_*`, registered facts are `_user_*`.
+8. **set_fact producer-before-consumer split** — strategy facts and their consumers live in separate tasks, sequenced by placement only ([failure point 17](../../docs/failure-points.md); the inline comments in `go.yml` / `cargo.yml` are the whole enforcement).
 
-### Tier 2: Role Defaults (`defaults/main.yml`)
+## 🧩 Task Surface (`tasks/main.yml` dispatcher)
 
-All 24 scalar defaults — the 23 in the table below plus `user_my_variable` (`defaults/main.yml:6`, `"default_value"`, printed by the opening debug at `tasks/main.yml:4-7`) — carry full parity with `meta/argument_specs.yml`; six further rows — `user_cargo_force_crates`, `user_cargo_crates`, `user_cargo_crate_bin_map`, `user_cargo_crate_dnf_map`, `user_gnome_extensions`, `user_vscode_extensions` — are the list and map manifests, not scalars; anchors are `defaults/main.yml` unless stated.
+| Task file               | Gate (default)                                  | Purpose                                                                                     |
+| ----------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `assert.yml`            | `user_assert_enabled` (`true`)                   | Fail-fast assertions: platform, identity, manifest shapes, runs-as-expected-user            |
+| `uv.yml`                | `user_install_uv` (`true`)                       | `uv python install {{ user_uv_python_version }}`; `uv` expected on PATH, installed elsewhere |
+| `bun.yml`               | `user_install_bun` (`true`)                      | User-space Bun at `~/.bun/bin/bun`; skip-if-present guard                                   |
+| `go.yml`                | `user_install_go` (`true`)                       | System-first Go tree, user-space `~/.local/go` fallback; go/gofmt symlinked into `~/.local/bin`; final min-version assert |
+| `cargo.yml`             | `user_install_cargo` (`true`)                    | System-first cargo tree with rustup fallback; DNF-preferred crate installs; non-fatal per-crate failures (`--locked`) |
+| `gnome-extensions.yml`  | `user_install_gnome_extensions` (lazy `enable_desktop`) | Installs the 4-UUID set from extensions.gnome.org; non-fatal per-UUID failures; skips headless hosts |
+| `vscode-extensions.yml` | `user_install_vscode_extensions` (`false`)       | Opt-in management of the 68-entry list; CLI resolution: override → native `code` → `com.visualstudio.code` Flatpak → friendly skip |
 
-| Variable                              | Default (anchor)                                                                    | Description                                                                                                                                                                                                                                     |
-| ------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user_assert_enabled`                 | `true` (`:9`)                                                                       | Gate pre-flight assertions (`tasks/assert.yml`)                                                                                                                                                                                                 |
-| `user_uv_python_version`              | `"3.12"` (`:12`)                                                                    | Python version installed via uv (Tier 1 override `"3.14"` at `group_vars/all.yml:28`)                                                                                                                                                           |
-| `user_install_uv`                     | `true` (`:16`)                                                                      | Gate `uv python install`                                                                                                                                                                                                                        |
-| `user_install_bun`                    | `true` (`:20`)                                                                      | Gate user-space Bun installation                                                                                                                                                                                                                |
-| `user_bun_dest`                       | `{{ user.home \| default('/home/' ~ user.name) }}/.bun/bin/bun` (`:21`)             | Bun binary destination                                                                                                                                                                                                                          |
-| `user_bun_url`                        | `https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip` (`:22`) | Bun release archive URL                                                                                                                                                                                                                         |
-| `user_bun_force_install`              | `false` (`:23`)                                                                     | Skip-if-present override for bun                                                                                                                                                                                                                |
-| `user_install_go`                     | `true` (`:28`)                                                                      | Gate the Go decision tree                                                                                                                                                                                                                       |
-| `user_go_min_version`                 | `"1.22"` (`:31`)                                                                    | Minimum acceptable effective Go version                                                                                                                                                                                                         |
-| `user_go_version`                     | `"1.27.1"` (`:35`)                                                                  | User-space Go tarball version                                                                                                                                                                                                                   |
-| `user_go_url`                         | `https://go.dev/dl/go{{ user_go_version }}.linux-{{ arm64/amd64 }}.tar.gz` (`:38`)  | Go tarball URL (arch from `ansible_architecture`)                                                                                                                                                                                               |
-| `user_go_dest_dir`                    | `{{ user.home \| default(...) }}/.local/go` (`:42`)                                 | User-space Go tree (go/gofmt symlinked into `~/.local/bin`, `go.yml:224-236`)                                                                                                                                                                   |
-| `user_go_force_install`               | `false` (`:46`)                                                                     | Force the user-space Go reinstall (bypass at `go.yml:61`)                                                                                                                                                                                       |
-| `user_install_cargo`                  | `true` (`:50`)                                                                      | Gate the cargo/Rust decision tree                                                                                                                                                                                                               |
-| `user_cargo_force_install`            | `false` (`:53`)                                                                     | Force the rustup toolchain install (`cargo.yml:171-173`, `:187-191`)                                                                                                                                                                            |
-| `user_cargo_force_crates`             | `[]` (`:57`)                                                                        | Crates always re-attempted despite presence (union at `cargo.yml:345-358`)                                                                                                                                                                      |
-| `user_cargo_rustup_url`               | `https://sh.rustup.rs` (`:59`)                                                      | rustup installer URL                                                                                                                                                                                                                            |
-| `user_cargo_min_system_version`       | `"1.80"` (`:66`)                                                                    | Minimum acceptable system cargo (`/usr/bin/cargo`) version                                                                                                                                                                                      |
-| `user_cargo_crates`                   | 10-entry list (`:69-79`)                                                            | Crate manifest — bottom, choose, git-cliff, gping, ripgrep_all, sd, gitui, eza, weathr, dua-cli — seeded verbatim from yadm `cargo-packages.txt` at migration time (seeding comment `defaults/main.yml:68`); this list is now the live manifest |
-| `user_cargo_crate_bin_map`            | `bottom: btm`, `ripgrep_all: rga`, `dua-cli: dua`, `du-dust: dust` (`:82-86`)       | Crate → binary name for skip-if-present probes                                                                                                                                                                                                  |
-| `user_cargo_crate_dnf_map`            | `dua-cli`, `gitui`, `eza` (`:90-93`)                                                | Crate → DNF package (DNF-preferred install, loop at `cargo.yml:371-396`)                                                                                                                                                                        |
-| `user_install_gnome_extensions`       | `{{ enable_desktop \| default(false) \| bool }}` (`:99`)                            | Lazy Tier 1 consumption — only managed on desktops                                                                                                                                                                                              |
-| `user_gnome_extensions`               | 4-UUID list (`:108-112`)                                                            | GNOME Shell extension manifest — the same 4 UUIDs counted above                                                                                                                                                                                 |
-| `user_gnome_extensions_force_install` | `false` (`:102`)                                                                    | Force extension re-installation (diff flip at `gnome-extensions.yml:74-80`)                                                                                                                                                                     |
-| `user_gnome_extensions_base_url`      | `https://extensions.gnome.org` (`:105`)                                             | Metadata/bundle base URL                                                                                                                                                                                                                        |
-| `user_install_vscode_extensions`      | `false` (`:116`, `argument_specs.yml:142-145`)                                      | Gate VS Code extension management (opt-in, state as of commit `5112cec`)                                                                                                                                                                        |
-| `user_vscode_command`                 | `""` (`:121`)                                                                       | Optional CLI override (argv string); empty = auto-detect (`vscode-extensions.yml:28-32`)                                                                                                                                                        |
-| `user_vscode_force_install`           | `false` (`:124`)                                                                    | Force extension re-installation (`vscode-extensions.yml:90-92`)                                                                                                                                                                                 |
-| `user_vscode_extensions`              | 68-entry list (`:127-195`)                                                          | Marketplace extension manifest — the same 68 entries counted in the header                                                                                                                                                                      |
+**The two decision trees share one shape.** Each probes the system binary at `/usr/bin/go` / `/usr/bin/cargo` — never via PATH, which can mask the system one with a user-space install — probes `dnf info`, escalates once for a root DNF install, rescues, re-probes, then resolves and consumes the strategy in separate `set_fact` tasks. Go falls back to the official tarball at `~/.local/go`; cargo falls back to rustup, with a TMPDIR noexec guard that redirects builds to `~/.cargo/tmp`.
 
-### Tier 1 Host/Domain Variables (`inventory/group_vars/all.yml`)
+**Dispatcher notes.**
 
-Not role defaults — supplied by inventory:
+- The dispatcher opens with a `user_my_variable` debug and a `Starting user tasks` debug (both tagged `["user", "always"]`), then the gated assert include, then an ungated `include_vars "{{ ansible_distribution }}.yml"` tagged `["user", "distro"]`.
+- The VS Code binary is not installed here — [`roles/tools`](../tools/README.md) owns it as a real opt-in; this role manages extensions only, against whatever CLI is resolvable.
 
-| Variable                                                        | Example (anchor)      | Description                                                                                                                                                  |
-| --------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `user.name`                                                     | `b08x` (`:12`)        | Primary workstation user account name                                                                                                                        |
-| `user.home`                                                     | `/home/b08x` (`:16`)  | Home directory path (absorbed lazily via `user.home \| default('/home/' ~ user.name)`)                                                                       |
-| `user.group`, `user.shell`, `user.uid`, `user.secondary_groups` | — (same file)         | Identity facts consumed by `assert.yml`                                                                                                                      |
-| `enable_desktop`                                                | `true` (`:22`)        | Lazily consumed by `user_install_gnome_extensions` (`defaults/main.yml:99`)                                                                                  |
-| `user_uv_python_version`                                        | `"3.14"` (`:28`)      | Tier 1 override of the role default `"3.12"` (`defaults/main.yml:12`)                                                                                        |
-| `workstation_path_dirs`                                         | 7-entry list (`:2-9`) | `~/.local/bin`, `~/.cargo/bin`, `~/go/bin`, `~/.bun/bin`, `/usr/local/bin`, `/usr/bin`, `/bin` — the PATH contract the role's install destinations depend on |
+## 🔧 Key Variables
 
-### Registered variables
+All defaults live in `defaults/main.yml` with full parity with `meta/argument_specs.yml`. The table holds 23 scalar defaults plus the six list/map manifests; `user_my_variable` (`"default_value"`, printed by the opening debug) completes the 30 rows.
 
-On the dispatched surface, every register name uses the `_user_*` prefix — `_user_go_strategy` (set_fact, `go.yml:115-126`), the `_user_cargo_strategy` family (`cargo.yml:171-182`), `_user_gnome_install_targets`, `_user_vscode_targets`, and so on. That claim is _not_ total for the role directory: three orphan task files are never dispatched, and one of them registers an unprefixed fact (`tasks/ranger.yml:12`, `user_ranger_check`) — see the closing section.
+| Variable | Default | Description |
+| --- | --- | --- |
+| `user_assert_enabled` | `true` | Gate pre-flight assertions (`tasks/assert.yml`) |
+| `user_uv_python_version` | `"3.12"` | Python version installed via uv (Tier 1 override: `"3.14"`) |
+| `user_install_uv` | `true` | Gate `uv python install` |
+| `user_install_bun` | `true` | Gate user-space Bun installation |
+| `user_bun_dest` | `{{ user.home \| default('/home/' ~ user.name) }}/.bun/bin/bun` | Bun binary destination |
+| `user_bun_url` | `https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip` | Bun release archive URL |
+| `user_bun_force_install` | `false` | Skip-if-present override for Bun |
+| `user_install_go` | `true` | Gate the Go decision tree |
+| `user_go_min_version` | `"1.22"` | Minimum acceptable effective Go version |
+| `user_go_version` | `"1.27.1"` | User-space Go tarball version |
+| `user_go_url` | `https://go.dev/dl/go{{ user_go_version }}.linux-{{ arm64/amd64 }}.tar.gz` | Go tarball URL (arch from `ansible_architecture`) |
+| `user_go_dest_dir` | `{{ user.home \| default(...) }}/.local/go` | User-space Go tree (go/gofmt symlinked into `~/.local/bin`) |
+| `user_go_force_install` | `false` | Force the user-space Go reinstall |
+| `user_install_cargo` | `true` | Gate the cargo/Rust decision tree |
+| `user_cargo_force_install` | `false` | Force the rustup toolchain install |
+| `user_cargo_force_crates` | `[]` | Crates always re-attempted despite presence |
+| `user_cargo_rustup_url` | `https://sh.rustup.rs` | rustup installer URL |
+| `user_cargo_min_system_version` | `"1.80"` | Minimum acceptable system cargo version |
+| `user_cargo_crates` | 10-entry list | bottom, choose, git-cliff, gping, ripgrep_all, sd, gitui, eza, weathr, dua-cli |
+| `user_cargo_crate_bin_map` | `bottom: btm`, `ripgrep_all: rga`, `dua-cli: dua`, `du-dust: dust` | Crate → binary name for skip-if-present probes |
+| `user_cargo_crate_dnf_map` | `dua-cli`, `gitui`, `eza` | Crate → DNF package (DNF-preferred install) |
+| `user_install_gnome_extensions` | `{{ enable_desktop \| default(false) \| bool }}` | Managed only on desktops |
+| `user_gnome_extensions` | 4-UUID list | GNOME Shell extension manifest |
+| `user_gnome_extensions_force_install` | `false` | Force extension re-installation |
+| `user_gnome_extensions_base_url` | `https://extensions.gnome.org` | Metadata/bundle base URL |
+| `user_install_vscode_extensions` | `false` | Gate VS Code extension management (opt-in) |
+| `user_vscode_command` | `""` | Optional CLI override; empty = auto-detect |
+| `user_vscode_force_install` | `false` | Force extension re-installation |
+| `user_vscode_extensions` | 68-entry list | Marketplace extension manifest |
 
-## Tags
+### 🌐 Tier 1: Host & Domain Variables (`inventory/group_vars/all.yml`)
 
-Ten dispatcher tags ride `tasks/main.yml`, anchored below at each gate task; three further tag sets (`pip/base`, `ranger/base`, `firstboot/user`) exist only inside the undispatched orphan files and can never match a play that reaches this role through the dispatcher.
+Supplied by inventory, never created or mutated by this role:
 
-| Tag (dispatcher anchor)     | Purpose                                                            |
-| --------------------------- | ------------------------------------------------------------------ |
-| `user`                      | All tasks in the user role (`tasks/main.yml` throughout)           |
-| `always`                    | The two opening debugs and the assert include (`:7`, `:12`, `:21`) |
-| `assert`                    | Pre-flight assertions (`:21`)                                      |
-| `distro`                    | Ungated distribution variable loading (`:25`)                      |
-| `uv` (`:34`)                | uv Python runtime                                                  |
-| `bun` (`:43`)               | User-space Bun runtime                                             |
-| `go` (`:52`)                | Go decision tree                                                   |
-| `cargo` (`:61`)             | Rust/cargo decision tree and the 10-crate manifest                 |
-| `gnome-extensions` (`:70`)  | GNOME Shell extension management                                   |
-| `vscode-extensions` (`:79`) | VS Code extension management                                       |
+| Variable | Example | Description |
+| --- | --- | --- |
+| `user.name` | `b08x` | Primary workstation user account name |
+| `user.home` | `/home/b08x` | Home directory path (absorbed lazily via `user.home \| default('/home/' ~ user.name)`) |
+| `user.uid` | — | Optional; matched against the effective UID by `assert.yml` |
+| `user.group`, `user.shell`, `user.secondary_groups` | — | Identity facts owned by the Tier 1 inventory; not consumed by this role |
+| `enable_desktop` | `true` | Lazily consumed by `user_install_gnome_extensions` |
+| `user_uv_python_version` | `"3.14"` | Tier 1 override of the role default `"3.12"` |
+| `workstation_path_dirs` | 7-entry list | `~/.local/bin`, `~/.cargo/bin`, `~/go/bin`, `~/.bun/bin`, `/usr/local/bin`, `/usr/bin`, `/bin` — the PATH contract the role's destinations depend on |
 
-Three further tag sets — `pip/base` (`tasks/pip.yml`), `ranger/base` (`tasks/ranger.yml`), `firstboot/user` (`tasks/firstboot.yml`) — exist only inside the undispatched orphan files and can never match a play that reaches this role through `tasks/main.yml`.
+### 🏷️ Registered Variables
 
-## Layer Boundary & Escalation Notes
+On the dispatched surface, every register name uses the `_user_*` prefix (`_user_go_strategy`, the `_user_cargo_strategy` family, `_user_gnome_install_targets`, `_user_vscode_targets`). The claim is not total for the role directory: one orphan task file registers an unprefixed fact (see Known Limitations).
 
-Escalation in this role is bounded, not accidental: three root task sites, all on DNF inside the two decision trees — `go.yml:81-82` (dnf `golang`), `cargo.yml:134-135` (dnf `cargo`), and `cargo.yml:389-390` (the DNF-preferred crate loop) — while every apply block, `tasks/main.yml:18-19` through `:76-77` and the assert include included, elevates only to `user.name`; the trees pay for their system-first strategy at exactly those three sites and nowhere else.
+## 🏷️ Tags
 
-- The role writes no shell rc files and no `~/.cargo/config.toml`; the code-enforced evidence is `rustup-init -y --no-modify-path` (`cargo.yml:238-246`), and PATH coverage comes from the Tier 1 `workstation_path_dirs` contract (`inventory/group_vars/all.yml:2-9`) plus Layer 2 dotfiles.
-- Skip-if-present guards pair with `*_force_install` overrides, each with its anchor: `user_bun_force_install` (`defaults/main.yml:23`), `user_go_force_install` (`:46`; bypass at `go.yml:61`), `user_cargo_force_install` (`:53`; `cargo.yml:171-173`, `:187-191`), `user_cargo_force_crates` (`:57`; union at `cargo.yml:345-358`), `user_gnome_extensions_force_install` (`:102`; diff at `gnome-extensions.yml:74-80`), `user_vscode_force_install` (`:124`; diff at `vscode-extensions.yml:90-92`).
-- The GNOME enable step is a monotonic-union dconf write — installed extensions are enabled and never disabled (invariant comment at `gnome-extensions.yml:309-313`) — which sounds incomplete for a purge workflow, but the invariant is deliberate: removal of a UUID from the manifest leaves the installed shell extension untouched, and the file skips entirely when either probe fails (`:31-39`).
+| Tag | Purpose |
+| --- | --- |
+| `user` | All tasks in the role |
+| `always` | Opening debugs and the assert include |
+| `assert` | Pre-flight assertions |
+| `distro` | Ungated distribution variable loading |
+| `uv` | uv Python runtime |
+| `bun` | User-space Bun runtime |
+| `go` | Go decision tree |
+| `cargo` | Rust/cargo decision tree and crate manifest |
+| `gnome-extensions` | GNOME Shell extension management |
+| `vscode-extensions` | VS Code extension management |
 
-## Example Usage
+## 🛡️ Layer Boundary & Escalation
 
-The repo's invocation passes `tags: ["user", "system"]` (`playbooks/workstation.yml:101-102`); no other invocation exists, so no caller adds `assert` — promoting check: `grep -rn 'role: user' playbooks/ inventory/` returns this single site — and the include's own `always` tag (`tasks/main.yml:21`) covers it regardless.
+Escalation is bounded, not accidental — three root task sites, all on DNF inside the two decision trees, and nowhere else:
+
+| Site                | Package(s)               | When                                                                |
+| ------------------- | ------------------------ | -------------------------------------------------------------------- |
+| `go.yml:81-82`      | `golang`                 | System Go absent; `golang` available via DNF                        |
+| `cargo.yml:134-135` | `cargo`                  | System cargo absent; `cargo` available via DNF                      |
+| `cargo.yml:389-390` | `dua-cli`, `gitui`, `eza` | DNF-preferred crate installs from `user_cargo_crate_dnf_map`         |
+
+Every `apply` block, the dispatcher, and the assert include elevate only to `user.name`. Beyond that boundary:
+
+- No shell rc writes, no `~/.cargo/config.toml` — enforced by `rustup-init -y --no-modify-path` (`cargo.yml`), not convention.
+- PATH comes from Tier 1 `workstation_path_dirs` plus Layer 2 rc files: go/gofmt symlinks land in `~/.local/bin`, Bun in `~/.bun/bin`.
+- Force-override pairs gate every skip-if-present probe: `user_bun_force_install`, `user_go_force_install`, `user_cargo_force_install`, `user_cargo_force_crates`, `user_gnome_extensions_force_install`, `user_vscode_force_install`.
+- The GNOME dconf enable step is a monotonic union: extensions are enabled, never disabled; a UUID removed from the manifest leaves the installed extension untouched — deliberate, not an oversight.
+
+## 🚀 Playbook Integration & Usage
+
+The role has two callers: `local.yml:447-450`, the repo-root playbook that `ansible-pull` runs as part of the firstboot bootstrap sequence (it invokes the role via `include_role` with `tags: ["user", "assert"]`), and `playbooks/workstation.yml:101-102`, typically run from the primary workstation (the controller host), passing `tags: ["user", "system"]`. The assert include's `always` tag covers both callers.
 
 ```yaml
 - name: User Workstation Setup
@@ -127,15 +174,22 @@ The repo's invocation passes `tags: ["user", "system"]` (`playbooks/workstation.
       tags: ["user", "system"]
 ```
 
-Running a single feature (illustrative — the tag string itself appears nowhere in the repo, but the `bun` and `go` tag gates live at `tasks/main.yml:42` and `:51`):
+Running a single feature (illustrative — the `bun` and `go` gates live in `tasks/main.yml`):
 
 ```bash
 ansible-playbook playbooks/workstation.yml --tags "bun,go"
 ```
 
-## Rationed Uncertainties
+## ⚠️ Known Limitations
 
-- **Orphan task files.** `tasks/pip.yml` (`become: false`, tags `pip/base`), `tasks/ranger.yml` (`become: false`; `ranger.yml:20` sets `become: true` with _no_ `become_user`, so its effective user depends on the invoking play; `:12` registers the unprefixed `user_ranger_check`; tags `ranger/base`), and `tasks/firstboot.yml` (tags `firstboot/user`) are never dispatched by `tasks/main.yml` — I suspect they are migration residue, since the dispatcher's seven includes name no other file. Exact check: grep `tasks/main.yml` for these filenames (they are absent); dispatch or delete the three files to make the `_user_*` registration claim total, and run a `--check` pass under a bounded-become play to observe `ranger.yml:20`'s effective user.
-- **RedHat/CentOS variance bound.** `assert.yml:18-19` admits `RedHat` and `CentOS` while `vars/` ships only `Fedora.yml`, `AlmaLinux.yml`, `Rocky.yml`, and a near-empty `main.yml` — so the ungated `include_vars "{{ ansible_distribution }}.yml"` at `tasks/main.yml:23-25` _may_ fail on those two distributions; I note this as a documented bound rather than an observed failure. Exact check: provision one RedHat or CentOS host and run the role, or add `vars/RedHat.yml` / gate the include, then re-run the assert to confirm.
-- **Shell rc ownership.** The claims that `~/.zshenv` sources `~/.cargo/env` and `~/.zshrc` owns PATH additions are asserted by code comments (`cargo.yml:5`, `cargo.yml:236`) but are unverifiable from this repo — no `.zshenv` or `.zshrc` exists in the yadm tree here. Exact check: on a provisioned host, `grep -n 'cargo/env' ~/.zshenv` and inspect `~/.zshrc`'s PATH lines in the Layer 2 dotfiles.
-- **Yadm fallback residue.** Whether the yadm `bootstrap.d` scripts still exist and still run as the bootstrap-time fallback is unverifiable from this repo, which vendors no yadm tree — the migration comments name them (`20-cargo.sh`, `cargo.yml:3`; `40-gnome-extensions.sh`, `defaults/main.yml:95`; `91-install-vscode-extensions.sh`, `defaults/main.yml:114`) but pin history, not current existence; exact check: list `bootstrap.d` in the Layer 2 yadm checkout on a provisioned host and reconcile its entries against the dispatcher's seven includes (`tasks/main.yml:14-79`).
+- **Orphan task files.** `tasks/pip.yml` (tags `pip/base`), `tasks/ranger.yml` (tags `ranger/base`; sets `become: true` with no `become_user`, so its effective user depends on the invoking play; registers the unprefixed `user_ranger_check`), and `tasks/firstboot.yml` (tags `firstboot/user`) are never dispatched by `tasks/main.yml` — documented migration residue whose tag sets can never match a play reaching the role through the dispatcher. Dispatch or delete the three files.
+- **RedHat/CentOS variance bound.** `assert.yml` admits `RedHat` and `CentOS`, but `vars/` ships only `Fedora.yml`, `AlmaLinux.yml`, `Rocky.yml`, and a near-empty `main.yml` — so the ungated `include_vars "{{ ansible_distribution }}.yml"` may fail on those distributions. A documented bound, not an observed failure.
+- **Shell rc ownership.** The claims that `~/.zshenv` sources `~/.cargo/env` and `~/.zshrc` owns PATH additions come from code comments (`cargo.yml`) and are unverifiable from this repository; verify on a provisioned host.
+
+## 📄 License
+
+MIT (`meta/main.yml`)
+
+## 👥 Author Information
+
+b08x — Syncopated
