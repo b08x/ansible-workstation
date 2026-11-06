@@ -2,7 +2,6 @@
 # SPDX-FileCopyrightText:  2022 Joel Drapper
 # SPDX-License-Identifier: MIT
 ---
-
 plugins:
   - rubocop-performance
   - rubocop-rake
@@ -56,7 +55,6 @@ RSpec/NamedSubject:
 
 RSpec/MultipleMemoizedHelpers:
   Max: 10
-
 
 Layout/ArgumentAlignment:
   Enabled: true

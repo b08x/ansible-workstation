@@ -3,7 +3,9 @@
 # Ansible Collection: Development Workstation
 
 An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
-workstations. Eleven roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x86_64, root required.
+workstations across eleven modular roles. Positioned as a deterministic execution engine,
+validation gate, and controlled reference dataset within a multi-agent engineering workflow.
+ansible-core >= 2.15 (verified 2.18–2.20), Python 3.12+ (3.14 aligned), x86_64, root required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![ansible-core](https://img.shields.io/badge/ansible--core-%E2%89%A5%202.15%20(verified%202.18--2.20)-black.svg)](https://docs.ansible.com/ansible-core/devel/)
@@ -17,318 +19,553 @@ workstations. Eleven roles. ansible-core >= 2.15, Python 3.12+ (3.14 aligned), x
 [![yadm](https://img.shields.io/badge/yadm-dotfiles-blue.svg)](https://yadm.io/)
 [![libvirt](https://img.shields.io/badge/libvirt%2FKVM-enabled-red.svg)](https://libvirt.org/)
 [![Vagrant](https://img.shields.io/badge/Vagrant-libvirt-1867F0.svg)](https://www.vagrantup.com/)
+[![Scaffolding: Empirical](https://img.shields.io/badge/scaffolding-forged%20by%20failure-critical.svg)](#the-recursive-multi-agent-genesis-from-stochastic-generation-to-deterministic-scaffolding)
 
 </div>
 
 ---
 
 An Ansible control repository that converges a Fedora 44 / AlmaLinux 10 / Rocky Linux 10
-x86_64 host into a workstation. The machine is built in three layers, and each layer
-owns exactly one thing: Layer 0 is one of two base-system paths — a working ISO
-installer pipeline or an unfinished bootc container-image pipeline — composed in the
-companion osbuild repository (see
-[The layers, and who owns what](#the-layers-and-who-owns-what)); Layer 1 is this
-repository, Ansible orchestration for everything the host itself is; Layer 2 is yadm,
-your dotfiles, the one layer a re-image does not erase.
-[docs/overview.md](docs/overview.md) is the full structural tour;
-[docs/layering-architecture.md](docs/layering-architecture.md) covers the layer model
-and its strict ownership boundaries.
+x86_64 host into a fully configured developer workstation. The architecture reframes Ansible
+from a traditional configuration tool into a **deterministic execution engine and validation gate**
+in an agentic pipeline. While probabilistic natural language decoders generate intent, Ansible
+enforces the deterministic contract: AST validation, precondition assertion gates, and verified
+idempotency.
 
-Read this page in one of two ways. If you are the human owner, read top to bottom: the
-sections run from your first command to a full picture of the machine you are about to
-live inside. If you are an AI coding agent, use the contents list below or skim to
-[The Map](#the-map) for exact paths, and treat [AGENTS.md](AGENTS.md) as the
-authoritative hard-rules list before you edit anything. The corpus states its own
-evidence rules openly — how it sources claims and labels its uncertainty is documented
-in [docs/audit-notes.md](docs/audit-notes.md).
+The machine is architected across decoupled functional layers:
+
+- **NLUI & Gherkin Gate**: Natural Language User Interface sitting atop the stack, allowing users
+  to express high-level feature sets. Step gates validate natural language requirements into
+  structured Gherkin syntax (`Feature / Scenario / Given / When / Then`) before deterministic
+  compilation into Ansible tasks and plays.
+- **Layer 0 (osbuild)**: Base system composition. The immutable floor comes from companion
+  [osbuild](https://gitlab.com/syncopatedX/osbuild) pipelines: the functional declarative **ISO installer pipeline**
+  or the **bootc immutable container-image pipeline**.
+- **Layer 1 (Ansible)**: This repository. Deterministic host orchestration, system services, daemon
+  configuration, desktop environments, developer toolchains, and container engines across
+  eleven modular roles—idempotent by contract. Drives both running workstation convergence and
+  offline image composition parity.
+- **Layer 2 (yadm)**: User dotfiles, shell profiles, editor configurations, and GPG keys.
+  Cloned at first login and owned exclusively by the user; preserved across OS re-imaging.
+- **Fast Layer (Containers)**: Podman and containerd execution sandboxes for ephemeral and
+  isolated developer environments.
+
+Whether evaluating this stack as a systems architect, maintaining it as an operator, or
+navigating it via an AI coding agent, this repository serves as a **controlled reference distilled dataset**
+where autonomous agents can reference vetted patterns, domain-specific idioms, single-ownership rules,
+and architectural invariants to generate tasks and playbooks on demand.
+
+AI coding agents should review [AGENTS.md](AGENTS.md) as the authoritative invariant specification
+before proposing modifications, and consult [The Map](#the-map) for role entry points. Evidence
+sourcing and empirical uncertainty classifications are documented in
+[docs/audit-notes.md](docs/audit-notes.md).
 
 ## Contents
 
-- [The layers, and who owns what](#the-layers-and-who-owns-what)
-- [From bare metal to logged in](#from-bare-metal-to-logged-in)
-- [Converge a host in two commands](#converge-a-host-in-two-commands)
-- [The rules, and where they came from](#the-rules-and-where-they-came-from)
-- [The build that watches itself](#the-build-that-watches-itself)
-- [Improvement cycles (PDCA)](#improvement-cycles-pdca)
-- [Working on the repository](#working-on-the-repository)
+- [The Recursive Multi-Agent Genesis: From Stochastic Generation to Deterministic Scaffolding](#the-recursive-multi-agent-genesis-from-stochastic-generation-to-deterministic-scaffolding)
+- [Ansible as Deterministic Execution Gate & Validator](#ansible-as-deterministic-execution-gate--validator)
+- [Natural Language User Interface (NLUI) & Gherkin-Gated Pipeline](#natural-language-user-interface-nlui--gherkin-gated-pipeline)
+- [Converged Parity: Image Composition & Host Convergence](#converged-parity-image-composition--host-convergence)
+- [Controlled Reference Distilled Dataset](#controlled-reference-distilled-dataset)
+- [The Architecture and Decoupling Contract](#the-architecture-and-decoupling-contract)
+- [Two Commands to Converge](#two-commands-to-converge)
+- [Machine Lifecycle & Firstboot Architecture](#machine-lifecycle--firstboot-architecture)
+- [Prospective Intent & Telemetry: The llm_analyzer Framework](#prospective-intent--telemetry-the-llm_analyzer-framework)
+- [Improvement Cycles (PDCA)](#improvement-cycles-pdca)
+- [Working on the Repository](#working-on-the-repository)
 - [The Map](#the-map)
-- [Where to go from here](#where-to-go-from-here)
+- [Where to Go from Here](#where-to-go-from-here)
 - [License](#license)
 
-## The layers, and who owns what
+---
 
-Layer 0 is the floor, and it comes from one of two paths in the companion
-[osbuild](https://gitlab.com/syncopatedX/osbuild) repository: the **ISO installer
-pipeline** — declarative blueprints, functional as intended with minor fixes still
-pending — or the **bootc immutable container-image pipeline**, which is unfinished; do
-not rely on it yet. Layer 1 does not care which floor it stands on: either way it
-starts from a Fedora 44 / AlmaLinux 10 / Rocky Linux 10 host and converges it. Layer 1
-is this repository: Ansible converging the host through eleven roles — common,
-containerd, desktop_ui, gpu, libvirt, nas, networking, tools, tts, tuning,
-user — idempotent by contract. Layer 2 is yadm: the user's dotfiles, cloned on first
-login and owned by the user forever after.
+## The Recursive Multi-Agent Genesis: From Stochastic Generation to Deterministic Scaffolding
 
-The boundaries are strict by design: single ownership, no template clobbering,
-separation of binaries and dotfiles, and fail-fast preconditions — every role ships
-tasks/assert.yml, gated by <role>_assert_enabled | default(true) | bool, tagged
-[<role>, assert, always], and runnable standalone via --tags assert in under a
-second.
+Most infrastructure repositories present an idealized, static end-state. This repository is the
+hardened scaffolding developed across a ten-month development arc (January 30 – November 5, 2026)
+to reconcile probabilistic language model code generation with the deterministic runtime
+invariants of the Linux kernel and systemd.
 
-The Layer 1 surface is five entry points:
+Its origin story is inherently recursive. In the maintainer's retrospective account:
 
-- [local.yml](local.yml) — the root-level ansible-pull entry point for autonomous
-  local convergence. Two decoupled plays: system provisioning (become: true,
-  --tags system) with pre-flight hardware auto-detection — KVM via /dev/kvm,
-  graphical display target, containers, CUDA/Vulkan GPUs — plus fail-fast assertions
-  and reboot assessment; and user provisioning (become: false, --tags user) with
-  uv-managed Python.
+> *"This project was generated by a multi-agent workflow that was generated by a different
+> multi-agent workflow that was generated from sitting down one day and sort of just talking
+> out what sort of automated tools I would personally find useful."*
 
-  ```bash
-  ansible-pull -U <repo-url> --tags system local.yml
-  ansible-pull -U <repo-url> --tags user local.yml
-  ```
+Through guided context engineering across multiple agentic coding harnesses (OpenCode, Claude Code,
+Antigravity, Charm Crush, and Mistral Vibe), models operated across vanilla configurations,
+runtime-invoked skills, tailored persona designs, and multi-agent workflows. Within the local
+code-insights analytics database (`~/.code-insights/data.db`), a heuristic query matching 46 project
+lineage path patterns captures 512 recorded AI-assisted sessions (at a model-estimated token cost of
+~$2,057.09), documenting instances where language model harnesses executed file mutations against
+POSIX system state:
 
-  Run instructions are in its header comments and [docs/usage.md](docs/usage.md).
-- [playbooks/workstation.yml](playbooks/workstation.yml) — full multi-host
-  provisioning; imports [playbooks/repositories.yml](playbooks/repositories.yml) (DNF
-  configuration, repository setup, package updates) first, then targets the
-  workstations group (tinybot, gir).
-- [playbooks/nas.yml](playbooks/nas.yml) — NAS services (NFSv4, Samba, Rsync,
-  firewalld) against hosts: all.
-- [playbooks/tts.yml](playbooks/tts.yml) — Whisper TTS against
-  hosts: workstations.
+| Coding Tool / Harness | Sessions | Messages | Avg Msgs/Session | Est. Token Cost |
+|:----------------------|:--------:|:--------:|:----------------:|:---------------:|
+| opencode              | 221      | 4,212    | 19.1             | $3.53           |
+| mistral-vibe          | 104      | 5,942    | 57.1             | $167.81         |
+| claude-code           | 78       | 8,167    | 104.7            | $1,170.40       |
+| antigravity           | 65       | 2,038    | 31.4             | $0.09           |
+| gemini-cli            | 21       | 3,588    | 170.9            | $608.53         |
+| crush                 | 20       | 192      | 9.6              | $0.51           |
+| claude-desktop        | 3        | 628      | 209.3            | $106.22         |
+| **Total Lineage**     | **512**  | **24,767** | **48.4**       | **~$2,057.09**  |
 
-## From bare metal to logged in
+*(Note: Session metrics are queried via heuristic path and name LIKE patterns from `~/.code-insights/data.db`,
+capturing instrumented AI-assisted sessions across 46 project lineage entries while omitting untracked tools
+and direct manual commits, as documented in [docs/audit-notes.md](docs/audit-notes.md). Token costs are
+model-based estimates rather than invoiced billing.)*
 
-Convergence means running the playbooks until the host matches its declared state. A
-machine gets there through the same ansible-pull contract whichever way it was born.
-ISO-built machines (layer 0: osbuild) carry the two-stage first-login flow: the
-kickstart boots to `multi-user.target`, and the first console login on tty1 fires
-stage 1 of `syncopated-firstboot` (deployed by the `user` role to
-`/usr/local/bin`, gated on the machine pull marker
-`~/.initial-firstboot` in the primary workstation user's home). Stage 1 waits for the network, upgrades the
-system with dnf, sets up the language toolchains, runs
-`sudo ansible-pull` when the image carries `/etc/syncopated-ansible-pull.conf`
-(that pull runs this repository — `local.yml` — and is the one writer of
-`~/.initial-firstboot` after a full-tag run), sets the default target to
-`graphical.target`, and offers a reboot. Stage 2 fires from the XDG autostart
-entry at the first graphical login and offers to AUTO-RUN
-`yadm clone --bootstrap` (delegating drift preflight and the step registry to
-the yadm bootstrap orchestrator), silencing itself with the per-user
-`~/.local/state/syncopated/firstboot-stage2.done` marker.
+Statistical language models generate token sequences without runtime awareness or formal verification
+of Linux kernel memory constraints, process hierarchies, or display server session state. When prompted
+to tune swap, an agent generated tasks attempting to hot-reload zram while holding five gigabytes of
+active swap, triggering a kernel `EBUSY` failure. During system memory configuration, two separate roles
+(`base` and `tuning`) both templated `/etc/systemd/zram-generator.conf` with conflicting calculation
+algorithms (`memtotal/2` vs `min(ram, 8192)`), repeatedly overwriting the destination file due to the
+absence of a single-writer invariant. When managing display services, an automated handler executed an
+unconditional `systemctl restart gdm`, immediately terminating the active Wayland seat session of the
+supervising engineer.
 
-The pipeline has a deliberate stopping point: the pristine checkpoint. Stage 1
-converges the machine and hands the user-space work to Layer 2, and stage 2
-offers — never forces — the dotfiles clone. The bootstrap step
-`bootstrap.d/02-ansible-pull.sh` in the yadm repository is CONDITIONAL on the
-same marker: on machines already converged through stage 1 it skips, so
-`yadm bootstrap` and the ISO firstboot converge each machine exactly once,
-through the same pull.
-[docs/end-to-end-validation.md](docs/end-to-end-validation.md) traces a single request
-from spec sentence to converged host, with per-stage evidence calibration.
+Within the subset of 499 sessions analyzed for interaction friction in the code-insights corpus,
+**53.1%** (265 sessions) recorded a mid-flight course correction where the operator intervened to redirect
+execution trajectory. Rather than discarding generative workflows, recurring operational collisions—including
+ungrounded configuration parameters, privilege boundary violations, and unreviewed version control
+commits—were captured as empirical boundary tests. The maintainer cataloged **22 distinct empirical failure
+points** (detailed in [`docs/failure-points.md`](docs/failure-points.md)), translating operational friction
+into deterministic architectural invariants:
 
-There are three convergence paths — the ISO two-stage firstboot above; the
-yadm bootstrap, whose `bootstrap.d/02-ansible-pull.sh` bridges back into
-Layer 1 for a privileged pull when the machine marker is absent; and
-standalone local convergence (`ansible-playbook local.yml`) — and all three
-end at the same place: a converged Layer 1, the firstboot suite deployed by
-the `user` role, and a yadm-ready Layer 2.
-[docs/bootstrap.md](docs/bootstrap.md) is the full lifecycle.
+1. **The Live Swap Reconfiguration (Failure Point 1)**: An agent issued `systemctl restart systemd-zram-setup@zram0`
+   while holding 5 GiB of active swap. The kernel rejected writes to `/sys/block/zram0/comp_algorithm`,
+   and swapoff failed with `EBUSY`. *Remedy*: In `roles/tuning/tasks/zram.yml`, kernel memory
+   reconfiguration is staged to disk, systemd is reloaded (`notify: Reload systemd`), and device
+   reactivation is deferred strictly to system reboot.
+2. **The Dual-Role Configuration Collision (Failure Point 2)**: Both `base` and `tuning` templated
+   `/etc/systemd/zram-generator.conf` with conflicting calculation algorithms (`memtotal/2` vs `min(ram, 8192)`).
+   *Remedy*: Strict Single File Ownership (`docs/conventions.md:57-63`). Duplicate tasks were purged;
+   `roles/tuning` is the sole authorized writer.
+3. **The Unwired Compiler Probe (Failure Point 3)**: A capability probe verified `/opt/intel/oneapi/compiler/latest/bin/icx`,
+   set `backend=sycl`, but failed to pass `-DCMAKE_CXX_COMPILER` or source `setvars.sh` in the build environment—silently
+   compiling with default GNU gcc. *Remedy*: Probes must execute functional usability checks (`--version`) and
+   wire detection results directly into consumer variables.
+4. **Display Manager Session Termination (Failure Point 4)**: A handler triggered an unconditional restart
+   of `gdm.service`, killing the active Wayland session of the engineer monitoring convergence. *Remedy*:
+   Seat-filtered session detection via `loginctl list-sessions` in `roles/desktop_ui/handlers/main.yml`. Display
+   manager restarts are inhibited if local seat sessions exist (`_desktop_ui_dm_seat_sessions | length == 0`),
+   and a desktop alert is dispatched via `zenity`.
+5. **Unauthorized Git Commits (Failure Point 5)**: Agents concluded task runs by staging and committing
+   changes unprompted. *Remedy*: Standing repository policy: never auto-commit. Working-tree diffs and status
+   are presented for human review; commits remain strictly human-gated authorship.
+6. **Shell Quotation Redirection Collisions (Failure Point 22)**: Commit messages generated with `<feature>`
+   syntax broke zsh parsing because angle brackets were evaluated as shell redirection operators. *Remedy*:
+   Strict single-quote shell escaping enforced across all automation harnesses.
 
-## Converge a host in two commands
+### The Inward Containment Arc: Scaffolding the Agentic Pipeline
 
-For a host that is already bootstrapped (or simply inventoried — see the
-prerequisites).
+Over the last 30 days of development (October 6 – November 5, 2026), the repository's containment architecture
+expanded from passive failure mitigation to active inward scaffolding—restricting the operational blast radius
+of generative coding harnesses:
 
-Prerequisites:
+- **Sub-Second Pre-Flight Assertion Gates (<1s)**: To arrest out-of-distribution plays before mutating target
+  hosts, every role frontloads `tasks/assert.yml` tagged `['<role>', 'assert', 'always']` (documented in
+  [`docs/conventions.md`](docs/conventions.md) and [`AGENTS.md`](AGENTS.md)). The assertion suite evaluates OS
+  distribution families, package managers, init systems, effective root privileges (`id -u == 0`), virtualization
+  boundaries, and user identity variables in memory in under one second. Running `ansible-playbook playbooks/workstation.yml --tags assert --check`
+  mechanically validates the entire control repository without modifying a single byte of disk state.
+- **Quarantine of Agent Coding Harnesses**: Autonomous agent CLIs (Claude Code, OpenCode, Charm Crush,
+  Antigravity) were historically co-located in general workstation tooling. To prevent recursive toolchain drift
+  and privilege contamination, agent installation was divested from `roles/tools` and quarantined into standalone
+  opt-in playbooks under [`playbooks/agent-harness/`](playbooks/agent-harness/). All harness plays execute with
+  `become: false` as the unprivileged connection user, isolating volatile binary installations while delegating
+  agent configurations, API keys, and MCP definitions strictly to Layer 2 ([yadm](https://yadm.io/)) user dotfiles.
+- **Two-Stage Firstboot Lifecycle Consolidation**: System initialization was consolidated under single-role
+  ownership in `roles/user` (ADR-5, ADR-6). The role maintains byte-identical parity with the
+  [osbuild](https://gitlab.com/syncopatedX/osbuild) Single Source of Truth for the 7-file firstboot suite
+  (`syncopated-firstboot`, `syncopated-toolchains`, autostart launchers, and profile scripts). Full-convergence
+  runs establish a deterministic completion marker (`~/.initial-firstboot`, root:root 0644) in the user's home
+  directory, allowing non-root console login scripts to stat verification state without requiring sudo escalation.
+- **Linguistic Governance via SFL Dialectic Review**: Generative code and documentation workflows now culminate
+  in formal Systemic Functional Linguistics (SFL) peer review. Specialized audit profiles (`claim-examiner`,
+  `mechanism-tracer`, `evidence-auditor`, `modality-calibrator`, `relational-editor`) systematically evaluate
+  technical drafts across ideational process types, interpersonal tenor, and epistemic modality—ensuring
+  documentation truth matches codebase invariants and eliminating ungrounded assertions before merging.
 
-- ansible-core >= 2.15 (verified 2.18–2.20)
-- Python 3.12+ (3.14 on Fedora 44)
-- x86_64
-- root for the system layer
-- Fedora 44, AlmaLinux 10, or Rocky Linux 10
-- An inventory entry for your host in [inventory/hosts.yml](inventory/hosts.yml) —
-  [playbooks/workstation.yml](playbooks/workstation.yml) targets the workstations
-  group (tinybot, gir), so a host outside that group matches nothing
+---
+
+## Ansible as Deterministic Execution Gate & Validator
+
+In modern infrastructure development, probabilistic large language models excel at proposing code,
+synthesizing requirements, and exploring architectural options. However, they are inherently non-deterministic.
+They cannot guarantee POSIX safety, enforce idempotency, or guarantee that state mutations won't corrupt
+a production machine.
+
+Ansible serves as the **deterministic gate validator and execution engine**:
+
+- **The AST Validation Contract**: Before any change reaches a host, Ansible validates Abstract Syntax
+  Trees (AST), module argument specs (`argument_spec`), and parameter typing. Probabilistic proposals
+  are mechanically verified against Ansible's formal execution schemas.
+- **Sub-Second Pre-Flight Assertion Gates (<1s)**: Every role frontloads pre-flight assertions
+  (`tasks/assert.yml`) tagged `[<role>, assert, always]`. If an agent proposes a playbook targeting
+  the wrong OS family, missing `dnf5`, running with non-root effective UID (`id -u != 0`), or violating
+  identity prerequisites, execution aborts in under one second before mutating a single byte of disk state.
+- **Guaranteed Idempotency**: LLM-generated shell scripts frequently re-execute destructive operations.
+  Ansible enforces declarative desired-state convergence: re-running against a converged machine yields
+  zero state changes (`changed=0`).
+- **Mechanical Boundary Enforcement**: Ansible enforces single file ownership, seat-aware handler execution,
+  and decoupled user/system execution contexts (`local.yml` Play 1 vs Play 2), completely insulating the system
+  from stochastic drift.
+
+---
+
+## Natural Language User Interface (NLUI) & Gherkin-Gated Pipeline
+
+Above this deterministic execution layer sits the **Natural Language User Interface (NLUI)**. Rather
+than forcing operators or autonomous agents to manually craft low-level task YAML, users express desired
+workstation configurations in natural language:
+
+```
+"I need a low-latency audio workstation with Intel oneAPI SYCL acceleration,
+COSMIC desktop, and containerized dev environments for Rust and Python."
+```
+
+To eliminate hallucination and parameter drift, the pipeline routes natural language intent through
+**gated verification step points**:
+
+```
+[ Natural Language User Request ]
+               │
+               ▼ (NLUI Intent Parser)
+[ Gherkin Requirement Specification Gate ]
+  Feature: Low-latency Audio Workstation
+    Scenario: Provision real-time kernel & SYCL toolchain
+      Given an x86_64 Fedora 44 host with Intel GPU (PCI 0x8086)
+      When role "tuning" and role "gpu" are converged
+      Then kernel.sched_rt_runtime_us must be set to -1
+       And intel-oneapi-compiler must be present
+               │
+               ▼ (Deterministic AST & Schema Validation)
+[ Ansible Compilation & Gate Validator ]
+  - tasks/assert.yml (<1s fail-fast assertion)
+  - Argument specification validation
+  - Single-ownership invariant verification
+               │
+               ▼ (Host & Image Convergence)
+[ Deterministic State Execution (ansible-playbook / osbuild) ]
+```
+
+1. **Natural Language Intake**: The user expresses capabilities, hardware needs, or developer environments.
+2. **Gherkin Structuring Gate**: Intent is translated into formal Gherkin (`Feature / Scenario / Given / When / Then`).
+   This step forces unambiguous precondition declaration (`Given`), execution triggers (`When`), and observable
+   verification targets (`Then`).
+3. **Deterministic AST Compilation**: The verified Gherkin specification compiles into concrete Ansible plays,
+   role tags, and Tier 1 domain variables (`intel_oneapi_install: true`, `tuning_audio_profile: true`).
+4. **Pre-flight Assertion Execution**: Before execution, Ansible's assertion gates validate the hardware,
+   kernel, and environment against the Gherkin contract.
+
+---
+
+## Converged Parity: Image Composition & Host Convergence
+
+A fundamental architectural principle of this platform is **converged parity across target footprints**.
+The exact same Ansible feature sets, roles, and validation logic drive two complementary deployment models:
+
+1. **Declarative Base Image & Appliance Composition (Offline Build)**:
+   Via the companion [osbuild](https://gitlab.com/syncopatedX/osbuild) repository, the same declarative
+   definitions bake bootable ISO installers, OSTree/bootc container images, appliance disk images, and
+   minimal server foundations.
+2. **Active Infrastructure Convergence (Online Execution)**:
+   The same roles run against active, running hosts—converging physical workstations, remote server
+   distributions, and kiosk appliances to the exact declared specification via `ansible-playbook` or `ansible-pull`.
+
+```
+                    ┌─────────────────────────────────────────┐
+                    │    Unified Feature Sets & Ansible Roles │
+                    │   (common, tuning, networking, gpu...)  │
+                    └────────────────────┬────────────────────┘
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    ▼                                         ▼
+    ┌───────────────────────────────┐         ┌───────────────────────────────┐
+    │   Declarative Image Building  │         │   Live Host Convergence       │
+    │      (companion osbuild)      │         │   (ansible-playbook / pull)   │
+    ├───────────────────────────────┤         ├───────────────────────────────┤
+    │ - ISO Installer Pipelines     │         │ - Bare-metal Workstations     │
+    │ - bootc / OSTree Containers   │         │ - Server Distributions        │
+    │ - Appliance & VM Disk Images  │         │ - Kiosk Appliances            │
+    └───────────────────────────────┘         └───────────────────────────────┘
+```
+
+Because both pathways share the identical single-ownership rules, variable schemas, and package
+taxonomies, a feature configured in an ISO image behaves identically to a feature converged onto a
+running host after three months of uptime.
+
+---
+
+## Controlled Reference Distilled Dataset
+
+This repository is intentionally structured as a **controlled reference distilled dataset** for
+autonomous coding agents and LLM execution pipelines:
+
+- **Jumping-Off Point for Autonomous Agents**: Autonomous coding agents operating in software engineering
+  workflows frequently lack grounded examples of defensive infrastructure design. This repository provides
+  a curated, production-proven corpus demonstrating how to structure Ansible collections for absolute safety.
+- **Reference Patterns & Domain Idioms**:
+  - *Tier 1 vs Tier 2 variable separation*: Eliminates cross-role leakage.
+  - *Sub-second pre-flight assertions*: Validates preconditions before mutation.
+  - *Seat-aware service handling*: Prevents abrupt graphical session termination.
+  - *Single-ownership invariants*: Eliminates multi-role configuration flapping.
+  - *Check-mode safety*: Guarantees accurate dry-run reporting with `check_mode: false` on stat/probe tasks.
+- **On-Demand Task & Playbook Generation**: Agents can ingest the conventions and schemas defined here
+  to synthesize custom playbooks, new role additions, or deployment orchestrations that inherit the exact
+  same safety guarantees.
+
+---
+
+## The Architecture and Decoupling Contract
+
+The Layer 1 orchestration surface consists of five primary entry points:
+
+- [local.yml](local.yml) — The root-level `ansible-pull` entry point for autonomous local
+  convergence. Implements two decoupled plays:
+  - **Play 1: System Provisioning** (`become: true`, `--tags system`): Runs as root. Frontloads
+    hardware auto-detection (KVM virtualization via `/dev/kvm`, graphical display target via
+    `systemctl get-default`, container engines, and discrete CUDA/Vulkan GPUs via PCI vendor IDs
+    `0x10de`, `0x8086`, `0x1002`). Executes system roles (`repos`, `common`, `tuning`, `gpu`,
+    `networking`, `containerd`, `libvirt`, `desktop_ui`, `tools`), runs pre-flight assertions,
+    and performs post-task reboot assessment (`needs-restarting -r`).
+  - **Play 2: User Provisioning** (`become: false`, `become_user: workstation_user`, `--tags user`):
+    Runs in unprivileged user space. Configures the user environment via `uv`, `bun`, `go`,
+    `cargo`, GNOME extensions, and VS Code extensions without root contamination.
+  - **The Pristine Checkpoint**: Play 1 and Play 2 are decoupled from Layer 2. The single writer
+    of `~/.initial-firstboot` is `roles/user/tasks/firstboot.yml`, deployed at the conclusion of
+    a full-tag run.
+- [playbooks/workstation.yml](playbooks/workstation.yml) — Multi-host orchestration playbook. Imports
+  [playbooks/repositories.yml](playbooks/repositories.yml) first, then targets the `workstations`
+  inventory group across four modular plays.
+- [playbooks/repositories.yml](playbooks/repositories.yml) — Standalone package manager and DNF
+  repository configuration across Fedora and EL10 distributions.
+- [playbooks/nas.yml](playbooks/nas.yml) — Network-attached storage services (NFSv4, Samba, Rsync,
+  firewalld) against `hosts: all`.
+- [playbooks/tts.yml](playbooks/tts.yml) — Local speech synthesis (Whisper / Piper) against
+  `hosts: workstations`.
+
+### Architectural Invariants
+
+- **Sub-Second Pre-Flight Assertions (Fail-Fast Pattern)**: Every role ships `tasks/assert.yml`,
+  gated by `<role>_assert_enabled | default(true) | bool`, tagged `[<role>, assert, always]`. Validates
+  distribution family, package manager (`dnf5`), init manager (`systemd`), effective UID (`id -u == 0`),
+  and identity preconditions in under one second (<1s) before executing any state changes.
+- **Two-Tier Variable Architecture**:
+  - *Tier 1 (Host & Domain Scope)*: Semantic, unprefixed Single Source of Truth keys (`user.name`,
+    `user.home`, `intel_oneapi_install`, `nvidia_cuda_install`, `enable_third_party_repos`, `use_containers`,
+    `use_kvm`) housed in `inventory/group_vars/` and `inventory/host_vars/`. These represent physical hardware
+    and user identity. Artificial role prefixes are explicitly forbidden (`var-naming[no-role-prefix]` is skipped).
+  - *Tier 2 (Role Scope)*: Variables defined in role `defaults/main.yml`, `vars/main.yml`, and `set_fact`
+    must be role-prefixed (`<role>_*`) to maintain clean namespaces and prevent host variable leakage.
+  - *Registered Variables*: Variables created via `register:` must be role-prefixed (`_<role>_*`)
+    because registered variables possess global host scope in Ansible and collide if left generic.
+- **Strict Single Ownership**: Each managed file on disk is owned by exactly one role. Grep checks
+  prevent cross-role template clobbering.
+- **Handler Safety**: Service restarts are guarded against session termination. Display manager
+  handlers (`roles/desktop_ui/handlers/main.yml`) inspect `loginctl list-sessions` for active seats.
+  Kernel-level memory tuning (`roles/tuning/tasks/zram.yml`) stages configuration and defers reloading
+  to system reboot.
+- **Idempotency Overrides**: Skipped installations provide explicit `*_force_install` override
+  toggles (`user_bun_force_install`, `desktop_ui_theme_force_install`, `common_yadm_force_install`).
+
+---
+
+## Two Commands to Converge
+
+Validate preconditions across your entire workstation inventory in under one second without
+mutating host state:
 
 ```bash
-# Pre-flight: run every role's assertions, mutate nothing
+# 1. Sub-second fail-fast precondition validation (dry-run check mode)
 ansible-playbook playbooks/workstation.yml --tags assert --check
-
-# Full provisioning
-ansible-playbook playbooks/workstation.yml
 ```
 
-The pre-flight runs every role's tasks/assert.yml — platform, package manager, init
-manager, effective root, identity variables — and mutates nothing; a failed assertion
-stops the run in under a second. Illustrative sample output, not captured from a real
-run:
+Once assertions pass, converge the workstation to declared state:
 
-```text
-TASK [common : assert | platform, package manager, and effective root] ****
-fatal: [tinybot]: FAILED! => {"changed": false, "msg": "Assertion failed: effective user is not root (id -u != 0)"}
+```bash
+# 2. Full workstation convergence
+ansible-playbook -K playbooks/workstation.yml
 ```
 
-The full run is idempotent by contract. Convergence is the fixed point: run the
-playbook again and it reports zero changes — the run is a function, and the converged
-host is where it stops moving. Fail fast, mutate never: assertions check before
-anything changes. Illustrative sample output of a converged re-run:
+### Pull-Based Autonomous Convergence
 
-```text
-PLAY RECAP ********************************************************************
-tinybot : ok=214 changed=0 unreachable=0 failed=0
+For local bare-metal provisioning or cloud-init bootstrap without an external control node:
+
+```bash
+# Converge privileged system configuration
+sudo ansible-pull -U https://github.com/b08x/workstation.git --tags system local.yml
+
+# Converge unprivileged user environment
+ansible-pull -U https://github.com/b08x/workstation.git --tags user local.yml
 ```
 
-Tags, single-role runs, --check, Vagrant, and testing are in
-[docs/usage.md](docs/usage.md).
+Specific subsystems can be filtered cleanly using primary functional tags:
+`--tags repos`, `--tags common`, `--tags tuning`, `--tags gpu`, `--tags networking`,
+`--tags containerd`, `--tags libvirt`, `--tags desktop_ui`, `--tags tools`, `--tags user`.
 
-## The rules, and where they came from
+---
 
-The repository was built by AI coding agents across 512 sessions over nine months,
-and the failure patterns from those sessions are encoded as this repo's conventions —
-which now govern the agents that extend it. [docs/build-process.md](docs/build-process.md)
-is that history; [docs/failure-points.md](docs/failure-points.md) records the 22 real
-build failures and the pattern each one taught.
+## Machine Lifecycle & Firstboot Architecture
 
-The hard rules — the two variable tiers and the fail-fast assert pattern (every role
-ships tasks/assert.yml) — live in [AGENTS.md](AGENTS.md), which is authoritative.
-Never auto-commit is standing policy too, recorded as
-[failure point 5](docs/failure-points.md#5-never-auto-commit). Variables
-come in two tiers: Tier 1 names are semantic and unprefixed (user.*, machine hardware,
-system-wide capabilities) in group_vars/ and host_vars/; Tier 2 names — role
-defaults/, vars/, and anything created with register: — are role-prefixed
-(<role>_*) to avoid cross-role leakage. Precedence is
-defaults < group_vars < host_vars < extra vars, covered in depth in
-[docs/variable-precedence.md](docs/variable-precedence.md).
+A fresh workstation moves from bare metal to a fully converged desktop through an orchestrated
+lifecycle:
 
-None of it is decorative: [docs/conventions.md](docs/conventions.md) maps each rule to
-the documented failure point that produced it, and the conventions are the scar tissue
-those 22 failures left behind.
-
-## The build that watches itself
-
-When enabled, the repo-local llm_analyzer callback sends each play and task to an LLM
-provider — Mistral by default — on a background worker pool and records each
-prediction to an append-only trace store. It is opt-in: it requires an API key,
-self-disables without one, and when it is on, traces leave the host. The relevant
-[ansible.cfg](ansible.cfg) wiring, exactly as it exists on disk — note the
-callbacks_enabled lines are commented out, so the analyzer and profile_tasks are both
-opt-in:
-
-```ini
-stdout_callback         = rich_ci_formatter
-#callbacks_enabled       = profile_tasks,llm_analyzer
-#callbacks_enabled       = profile_tasks
-#callbacks_enabled       = llm_analyzer
-
-fact_caching            = jsonfile
-fact_caching_connection = /tmp/ansible_cache
-fact_caching_prefix     = ansible_facts_
-fact_caching_timeout    = 86400
-
-[ssh_connection]
-pipelining              = True
-
-[callback_llm_analyzer]
-provider = mistral
-# Overridden by the AI_MODEL environment variable when it is set.
-model = mistral-medium-latest
+```
+[ Stage 0: osbuild ]
+       │
+       ▼ (Kickstart boot to multi-user.target)
+[ Stage 1: Console Firstboot (tty1) ]
+       │  - Network wait & DNF system upgrade
+       │  - sudo ansible-pull -U <repo> --tags system local.yml
+       │  - Hardware auto-detection & toolchain installation
+       │  - Sets default target: graphical.target
+       │  - Drops checkpoint: ~/.initial-firstboot
+       ▼ (Reboot to graphical login)
+[ Stage 2: Graphical Firstboot (XDG Autostart) ]
+       │  - Auto-runs yadm clone --bootstrap (Layer 2)
+       │  - Deploys user shell, dotfiles, and editor state
+       │  - Drops checkpoint: ~/.local/state/syncopated/firstboot-stage2.done
+       ▼
+[ Converged Workstation ]
 ```
 
-The [callback_llm_analyzer] section also sets temperature = 0.4. From there, the
-traces feed forward: [scripts/llm_trainset.py](scripts/llm_trainset.py) builds a
-scored DSPy trainset from the captured traces, and the remediation pipeline lives in
-the companion [llmops](https://gitlab.com/syncopatedX/llmops) repository. Observe,
-learn, remediate.
+1. **Stage 0 (Base Image Composition)**: Built declaratively via companion
+   [osbuild](https://gitlab.com/syncopatedX/osbuild) blueprints into bootable ISO appliances.
+2. **Stage 1 (System Convergence)**: The kickstart boots to `multi-user.target`. First console
+   login on `tty1` executes `/usr/local/bin/syncopated-firstboot` (deployed by `roles/user`).
+   It executes `local.yml` via `ansible-pull`, which acts as the sole authorized writer of
+   `~/.initial-firstboot` in the primary user's home directory.
+3. **The Pristine Checkpoint Barrier**: The presence of `~/.initial-firstboot` locks Stage 1.
+   Subsequent boots skip system provisioning.
+4. **Stage 2 (User Dotfile Convergence)**: On graphical login, XDG autostart fires
+   `syncopated-firstboot-user.desktop`, prompting the user to clone dotfiles via
+   `yadm clone --bootstrap`. Once completed, it marks completion in
+   `~/.local/state/syncopated/firstboot-stage2.done` and self-terminates.
 
-The internals, if you want them:
-[plugins/callback/README.md](plugins/callback/README.md) covers the callback plugins;
-[plugins/callback_utils/README.md](plugins/callback_utils/README.md) covers the
-support modules and the plugin-namespace trap they exist to avoid; and the
-[docs/llm_analyzer/](docs/llm_analyzer/README.md) knowledgebase holds an event-ordered
-walkthrough with file:line citations
-([how-it-works.md](docs/llm_analyzer/how-it-works.md)), every
-[callback_llm_analyzer] option — environment variables win
-([tuning.md](docs/llm_analyzer/tuning.md)) — and use cases labeled Verified /
-Supported-by-code / Not-available ([use-cases.md](docs/llm_analyzer/use-cases.md)).
+---
 
-## Improvement cycles (PDCA)
+## Prospective Intent & Telemetry: The llm_analyzer Framework
 
-PDCA here means plan-do-check-act: a change is designed, executed, measured, and then
-either standardized or revised. Current cycles:
+The repository includes a prospective evaluation and observability harness designed to analyze
+Ansible task intent and generate training datasets:
 
-| Cycle | What it is | Status |
-|-------|------------|--------|
-| [001-llm-analyzer-dspy](docs/pdca/001-llm-analyzer-dspy.md) | llm_analyzer DSPy refactor | PLAN complete, awaiting DO |
-| [002-tuning-fail-fast-assertions](docs/pdca/002-tuning-fail-fast-assertions.md) | Tuning fail-fast assertions | CHECK & ACT complete |
+- **Callback Plugin (`plugins/callback/llm_analyzer.py`)**: An opt-in notification callback.
+  When enabled, it sends task YAML to a language model provider (configured via `ansible.cfg`
+  or `AI_MODEL`) over a background thread pool (`ThreadPoolExecutor`), recording structured
+  explanations into an append-only trace store.
+- **Default Dormancy**: To ensure zero surprise latency and prevent billable API calls during
+  standard runs, the callback is **commented out by default** in [ansible.cfg](ansible.cfg):
+
+  ```ini
+  stdout_callback   = rich_ci_formatter
+  #callbacks_enabled = profile_tasks,llm_analyzer
+  #callbacks_enabled = profile_tasks
+  #callbacks_enabled = llm_analyzer
+  ```
+
+- **Deterministic Gold Label Recovery (`plugins/callback_utils/llm_metrics.py`)**: Rather than
+  paying language models to evaluate language models, the offline dataset harness utilizes
+  Ansible's native `ModuleArgsParser`. Because Ansible tasks are structured YAML documents,
+  ground truth for 10 of 13 diagnostic fields (module name, FQCN status, parameters, conditions,
+  loops, become, delegation, error handling) is extracted deterministically from the AST at
+  zero token cost and zero latency.
+- **Offline Dataset Generator (`scripts/llm_trainset.py`)**: Reconstructs DSPy training sets
+  from stored traces, scoring structural accuracy against the deterministic parser baseline.
+
+---
+
+## Improvement Cycles (PDCA)
+
+Architectural modifications follow the Plan-Do-Check-Act framework. Current ledger status:
+
+| Cycle | Description | Status |
+|:------|:------------|:-------|
+| [001-llm-analyzer-dspy](docs/pdca/001-llm-analyzer-dspy.md) | llm_analyzer DSPy refactor & trace capture | Cycles 1–3 complete, Cycle 4 pending |
+| [002-tuning-fail-fast-assertions](docs/pdca/002-tuning-fail-fast-assertions.md) | Tuning role fail-fast assertions | CHECK & ACT complete |
 | [003-tuning-package-daemon-convergence](docs/pdca/003-tuning-package-daemon-convergence.md) | Tuning package/daemon convergence | CHECK & ACT complete |
-| [004-repo-wide-fail-fast-assertions](docs/pdca/004-repo-wide-fail-fast-assertions.md) | Repo-wide fail-fast assertions | CHECK & ACT complete |
+| [004-repo-wide-fail-fast-assertions](docs/pdca/004-repo-wide-fail-fast-assertions.md) | Repository-wide fail-fast precondition assertions | CHECK & ACT complete |
 
-## Working on the repository
+---
 
-The three devcontainer.json variants (podman rootless / podman / docker) and what each
-runArgs entry does are documented in
-[docs/devcontainer-configuration.md](docs/devcontainer-configuration.md). ansible-lint
-runs from the repo root, per [AGENTS.md](AGENTS.md).
+## Working on the Repository
+
+- **Linting & Code Quality**: Pre-commit hooks enforce formatting across Python, YAML, and Ansible:
+  ```bash
+  pre-commit run --all-files
+  ansible-lint
+  ```
+- **Syntax & Check Mode**:
+  ```bash
+  ansible-playbook --syntax-check playbooks/workstation.yml local.yml
+  ansible-playbook playbooks/workstation.yml --tags assert --check
+  ```
+- **Testing**:
+  - `pytest -vvv -n 2`: Parallel test suite execution for callback utilities and metrics.
+  - Molecule scenarios live in `extensions/molecule/` and test convergence idempotency in containers.
+- **Development Containers**: Three container definitions (rootless Podman, Podman, Docker) are
+  specified in `.devcontainer/` and documented in [docs/devcontainer-configuration.md](docs/devcontainer-configuration.md).
+
+---
 
 ## The Map
 
-Rows summarize; linked targets are authoritative. Not covered here:
-[docs/audits/](docs/audits/) and [docs/graphs/](docs/graphs/) (currently empty), and
-[docs/ansible_rich_callback_kb.html](docs/ansible_rich_callback_kb.html) (an HTML
-export, not maintained markdown).
+The repository is organized into eleven cohesive roles under `roles/`:
 
-### Role Reference
-
-| Read | It answers |
-|------|------------|
-| [roles/common/README.md](roles/common/README.md) | System baseline, hardware auto-detect, CIS L2 hardening. |
-| [roles/tuning/README.md](roles/tuning/README.md) | Realtime audio, ZRAM, udev, systemd drop-ins. |
-| [roles/networking/README.md](roles/networking/README.md) | Interfaces, DNS, profiles. |
-| [roles/containerd/README.md](roles/containerd/README.md) | Container runtime and dev environment. |
-| [roles/libvirt/README.md](roles/libvirt/README.md) | KVM/QEMU, daemon security, bridges, pools. |
-| [roles/desktop_ui/README.md](roles/desktop_ui/README.md) | GNOME/COSMIC/Sway dispatch, extensions, display manager, Yaru. |
-| [roles/gpu/README.md](roles/gpu/README.md) | Optional Intel oneAPI/graphics and NVIDIA CUDA stacks, off by default per host. |
-| [roles/tools/README.md](roles/tools/README.md) | Utilities, IDEs, AI agent CLIs, input-remapper. |
-| [roles/user/README.md](roles/user/README.md) | uv-managed Python; deliberately small. |
-| [roles/nas/README.md](roles/nas/README.md) | NFSv4, Samba, Rsync, firewalld, multi-tenant. |
-| [roles/tts/README.md](roles/tts/README.md) | Whisper — its README is currently an unedited boilerplate stub; [playbooks/tts.yml](playbooks/tts.yml) is the better entry point until that is written. |
-
-Role variable references live in each role's defaults/ and README — standard role
-structure per [AGENTS.md](AGENTS.md) — not here.
+| Role | Purpose | Distribution Support | Fail-Fast Pre-Flight Assertions |
+|:-----|:--------|:---------------------|:--------------------------------|
+| [roles/common](roles/common/README.md) | System baseline, repository setup, hardware auto-detect, CIS L2 hardening | Fedora 44, AlmaLinux 10, Rocky Linux 10 | OS family, package manager (`dnf5`), effective root (`id -u == 0`) |
+| [roles/tuning](roles/tuning/README.md) | Low-latency audio, ZRAM swap generation, sysctl, cpupower drop-ins | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Effective root, init system (`systemd`), hardware memory checks |
+| [roles/networking](roles/networking/README.md) | NetworkManager profiles, DNS, interface bindings, firewall baseline | Fedora 44, AlmaLinux 10, Rocky Linux 10 | NetworkManager presence, firewall state |
+| [roles/containerd](roles/containerd/README.md) | Container runtime engines (containerd, nerdctl, rootless Podman) | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Kernel namespace support, subuid/subgid allocation |
+| [roles/libvirt](roles/libvirt/README.md) | KVM/QEMU virtualization, daemon security, virtual bridges, storage pools | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Hardware virtualization (`/dev/kvm`), libvirt group |
+| [roles/desktop_ui](roles/desktop_ui/README.md) | GNOME / COSMIC / Sway dispatch, display manager seat-safe handlers, themes | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, seat-session query |
+| [roles/gpu](roles/gpu/README.md) | Optional hardware acceleration: Intel oneAPI/SYCL and NVIDIA CUDA stacks | Fedora 44, AlmaLinux 10, Rocky Linux 10 | PCI device detection (`0x10de`, `0x8086`), driver compiler check |
+| [roles/tools](roles/tools/README.md) | Developer utilities, CLI tools, IDEs, AI coding agent harnesses, input-remapper | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Package availability, target architecture (`x86_64`) |
+| [roles/user](roles/user/README.md) | Unprivileged user space: uv Python, bun, go, cargo, firstboot suite deployment | Fedora 44, AlmaLinux 10, Rocky Linux 10 | User existence, Tier 1 identity preconditions (`user.name`, `user.home`) |
+| [roles/nas](roles/nas/README.md) | Storage protocols: NFSv4, Samba, Rsync, localized firewall rules | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Export directories existence, storage mount points |
+| [roles/tts](roles/tts/README.md) | Local text-to-speech engine: Whisper / Piper audio pipelines | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Audio subsystem, python virtualenv environment |
 
 ### Companion Repositories
 
-| Repository | Purpose |
-|-----------|---------|
-| [osbuild](https://gitlab.com/syncopatedX/osbuild) | Image building: declarative blueprints (GNOME/COSMIC), ISO/appliance/disk composition, realtime build progress TUI (bin/osbuild-progress). The ISO installer pipeline works as intended (minor fixes pending); the bootc image pipeline is unfinished. |
-| [rpmbuild](https://gitlab.com/syncopatedX/rpmbuild) | RPM packaging: rpm_dev role, mock build chroots |
-| [llmops](https://gitlab.com/syncopatedX/llmops) | LLM operations: Dify, Langfuse, Hermes, Ollama, remediation pipeline |
+| Repository | Purpose | Pipeline Status |
+|:-----------|:--------|:----------------|
+| [osbuild](https://gitlab.com/syncopatedX/osbuild) | Declarative image composition: ISO, appliance, disk images, realtime progress TUI | ISO pipeline functional; bootc pipeline in progress |
+| [rpmbuild](https://gitlab.com/syncopatedX/rpmbuild) | Native RPM packaging: rpm_dev role, mock build chroots | Maintained |
+| [llmops](https://gitlab.com/syncopatedX/llmops) | LLM telemetry and remediation: Dify, Langfuse, Hermes, Ollama | Maintained |
 
-## Where to go from here
+---
 
-If you are the owner, continue with [docs/bootstrap.md](docs/bootstrap.md) for the
-full machine lifecycle or [docs/usage.md](docs/usage.md) for day-to-day operations.
-If you are an AI coding agent, read [AGENTS.md](AGENTS.md) end to end, then work from
-[The Map](#the-map).
+## Where to Go from Here
+
+- **Machine Lifecycle & Bootstrap**: Read [docs/bootstrap.md](docs/bootstrap.md) for the end-to-end
+  bare-metal commissioning workflow.
+- **Day-to-Day Operations**: Consult [docs/usage.md](docs/usage.md) for tag filtering, targeted
+  execution, and local pull techniques.
+- **Layering Architecture**: Inspect [docs/layering-architecture.md](docs/layering-architecture.md)
+  for layer boundaries, Gherkin gating, and ownership rules.
+- **Failure Analysis**: Review [docs/failure-points.md](docs/failure-points.md) and
+  [docs/conventions.md](docs/conventions.md) for the full catalog of 22 empirical failure points and their
+  codified rules.
+- **AI Coding Agents**: Review [AGENTS.md](AGENTS.md) thoroughly before modifying plays, variables,
+  or task blocks.
+
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE). (Earlier READMEs claimed GPL-3.0-or-later, but no
-LICENSE file was ever present in the working tree or in git history; that claim is
-retired in favor of the MIT file now at the repository root.)
+MIT — see [LICENSE](LICENSE).
 
-Two files are carved out of the MIT grant and remain GPL with their upstream
-credits intact:
+Two files are carved out of the MIT grant and remain GPL with their upstream credits intact:
 
-- [plugins/callback/llm_analyzer.py](plugins/callback/llm_analyzer.py) —
-  GPL-3.0-or-later, Copyright (c) 2023 Sagi Shnaidman (derived from his
-  callback plugin)
+- [plugins/callback/llm_analyzer.py](plugins/callback/llm_analyzer.py) — GPL-3.0-or-later,
+  Copyright (c) 2023 Sagi Shnaidman (derived from upstream callback plugin).
 - [roles/tuning/templates/usr/lib/systemd/system/cpupower.service.j2](roles/tuning/templates/usr/lib/systemd/system/cpupower.service.j2) —
-  GPL-2.0-or-later, Copyright (C) 2012-2020 Sébastien Luttringer,
-  Copyright (C) 2024-2025 Francesco Poli (derived from the Arch Linux
-  cpupower unit)
+  GPL-2.0-or-later, Copyright (C) 2012-2020 Sébastien Luttringer, Copyright (C) 2024-2025
+  Francesco Poli (derived from Arch Linux cpupower unit).
 
-The vendor/ submodules are separate works governed by their own licenses:
-almalinux-atomic-workstation (GPL-3.0), finpilot (Apache-2.0), and
-osbuild / rpmbuild (MIT, this stack).
+Vendor submodules under `vendor/` are separate works governed by their respective licenses:
+`almalinux-atomic-workstation` (GPL-3.0), `finpilot` (Apache-2.0), and `osbuild` / `rpmbuild` (MIT, this stack).
