@@ -11,6 +11,10 @@
   vars:
     dnf_max_parallel_downloads: 10
     dnf_fastestmirror: false
+    dnf_minrate: 100k
+    dnf_timeout: 10
+    dnf_conf_path: /etc/dnf/dnf.conf
+    dnf_dnf5_conf_path: /etc/dnf/libdnf5.conf.d/10-speed.conf
     enable_third_party_repos: true
     enable_rpmfusion: true
     enable_syncopated_copr: true

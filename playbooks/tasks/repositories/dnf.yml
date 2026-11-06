@@ -1,7 +1,8 @@
 ---
 # ============================================================================
 # DNF Performance Optimization
-# Configures max_parallel_downloads and fastestmirror in /etc/dnf/dnf.conf
+# Configures max_parallel_downloads, minrate, timeout in dnf.conf (DNF4)
+# and libdnf5 drop-in (DNF5); fastestmirror=False unconditionally in DNF4
 # ============================================================================
 
 - name: Configure DNF performance settings
@@ -12,38 +13,46 @@
         name: dnf-plugins-core
         state: present
 
-    - name: Configure max_parallel_downloads in DNF configuration
+    - name: Build DNF performance settings list
+      ansible.builtin.set_fact:
+        _dnf_performance_settings:
+          - option: max_parallel_downloads
+            value: "{{ dnf_max_parallel_downloads | default(10) | string }}"
+          - option: fastestmirror
+            value: "False"
+          - option: minrate
+            value: "{{ dnf_minrate | default('100k') | string }}"
+          - option: timeout
+            value: "{{ dnf_timeout | default(10) | string }}"
+
+    - name: Configure DNF4 performance settings in dnf.conf
       community.general.ini_file:
-        path: /etc/dnf/dnf.conf
+        path: "{{ dnf_conf_path | default('/etc/dnf/dnf.conf') }}"
         section: main
-        option: max_parallel_downloads
-        value: "{{ dnf_max_parallel_downloads | default(10) | string }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
         no_extra_spaces: true
         mode: "0644"
         backup: true
-      register: dnf_config_parallel_downloads
+      loop: "{{ _dnf_performance_settings }}"
+      when: ansible_pkg_mgr != 'dnf5'
+      register: _dnf_conf_changed
 
-    - name: Enable fastestmirror in DNF configuration (Fedora only)
+    - name: Configure DNF5 performance drop-in
       community.general.ini_file:
-        path: /etc/dnf/dnf.conf
+        path: "{{ dnf_dnf5_conf_path | default('/etc/dnf/libdnf5.conf.d/10-speed.conf') }}"
         section: main
-        option: fastestmirror
-        value: "{{ 'True' if (dnf_fastestmirror | default(false) | bool) else 'False' }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
         no_extra_spaces: true
         mode: "0644"
         backup: true
-      register: dnf_config_fastestmirror
-      when: ansible_distribution == 'Fedora'
-
-    - name: Purge fastestmirror from DNF configuration (Enterprise Linux)
-      community.general.ini_file:
-        path: /etc/dnf/dnf.conf
-        section: main
-        option: fastestmirror
-        state: absent
-        mode: "0644"
-      register: dnf_purge_fastestmirror
-      when: ansible_os_family == 'RedHat' and ansible_distribution != 'Fedora'
+      loop: >-
+        {{
+          _dnf_performance_settings | rejectattr('option', 'equalto', 'fastestmirror') | list
+        }}
+      when: ansible_pkg_mgr == 'dnf5'
+      register: _dnf5_dropin_changed
 
     # noqa: no-handler
     - name: Force refresh DNF metadata cache
@@ -51,6 +60,5 @@
         cmd: dnf makecache
       changed_when: true
       when: >-
-        (dnf_config_parallel_downloads is changed) or
-        (dnf_config_fastestmirror is changed) or
-        (dnf_purge_fastestmirror is changed)
+        (_dnf_conf_changed is changed) or
+        (_dnf5_dropin_changed is changed)
