@@ -10,13 +10,15 @@ and some are about how to talk about systems — never auto-commit (5), a
 speaker's own hedge (7), commit-message shell quoting (22) — and both kinds
 became rules. The conventions in [`conventions.md`](conventions.md) are these
 failures, generalized — the return edge, stated here where the failures live.
+The newest addendum: a fail-fast preflight can deadlock the very migration
+meant to clear it (23).
 
 For the build process that produced these failures, see
 [`build-process.md`](build-process.md).
 
 ---
 
-## The 22, at a glance
+## The 23, at a glance
 
 1. [Never restart zram on a device holding live swap](#1-never-restart-zram-on-a-device-holding-live-swap)
 2. [One file, one owner](#2-one-file-one-owner)
@@ -40,6 +42,7 @@ For the build process that produced these failures, see
 20. [Pre-commit hooks can block the very first commit](#20-pre-commit-hooks-can-block-the-very-first-commit)
 21. [Vagrant CLI breaks when asdf Ruby shadows system gems](#21-vagrant-cli-breaks-when-asdf-ruby-shadows-system-gems)
 22. [Multi-line commit messages with angle brackets break zsh parsing](#22-multi-line-commit-messages-with-angle-brackets-break-zsh-parsing)
+23. [A fail-fast preflight that deadlocks its own migration](#23-a-fail-fast-preflight-that-deadlocks-its-own-migration)
 
 ---
 
@@ -369,3 +372,22 @@ in the message body.
 
 **Pattern**: Shell quoting rules apply to commit messages. A message that parses
 in bash may not parse in zsh.
+
+### 23. A fail-fast preflight that deadlocks its own migration
+
+**What happened**: The Negativo 17 provider mutual-exclusion preflight
+(`roles/gpu/tasks/assert.yml`) fails when more than one NVIDIA driver provider
+is configured. Legacy hosts carry exactly that conflict (official CUDA repo +
+RPM Fusion driver set), and the fix — the hard-break migration in
+`roles/gpu/tasks/nvidia.yml` — runs *after* the preflight. Without an exit, a
+legacy host fails at assert and the migration can never execute.
+
+**The learning**: A presence/conflict check that blocks remediation of the
+state it detects is a deadlock, not a guard. Failing fast is only correct when
+the play offers a path that reaches the fix.
+
+**Pattern**: Conflict preflights get an explicit skip override at the same
+time they ship (`gpu_nvidia_provider_preflight: false` for the single
+hard-break migration run), documented in the role README in the same atomic
+commit — the same contract as entry 10, applied to assert-time checks.
+

@@ -106,6 +106,33 @@ gpu_nvidia_utils_packages:
   - nvidia-settings
   - nvtop
 
+# RPM Fusion repository management toggle
+gpu_nvidia_ensure_rpmfusion: true
+
+# Driver/CUDA packages installed from the Negativo 17 repository when NVIDIA
+# is enabled (osbuild nvidia component payload parity). Safe to install
+# without an NVIDIA GPU: services are pulled in by udev rules only when a
+# 10de PCI display controller appears. gpu_nvidia_cuda_toolkit gates the
+# cuda/cuda-devel entries; the driver set always installs.
+gpu_nvidia_negativo17_packages:
+  - akmod-nvidia
+  - cuda
+  - cuda-devel
+  - nvidia-driver
+  - nvidia-driver-cuda
+  - nvidia-driver-cuda-libs
+  - nvidia-driver-libs
+  - nvidia-settings
+  - nvidia-persistenced
+  - nvtop
+
+# Advanced power management services provided by xorg-x11-drv-nvidia-power
+gpu_nvidia_power_management: true
+gpu_nvidia_power_services:
+  - nvidia-suspend
+  - nvidia-hibernate
+  - nvidia-resume
+
 # gpu_nvidia_persistenced is loaded from vars/<Distro>-<major>.yml
 # (EL defaults true, Fedora defaults false, matching the osbuild component).
 # The nvidia-persistenced package is always part of the driver set; this
@@ -117,12 +144,3 @@ gpu_nvidia_kernel_args:
   - rd.driver.blacklist=nova-core
   - modprobe.blacklist=nouveau
   - nvidia-drm.modeset=1
-
-# Driver packages always installed when NVIDIA is enabled
-gpu_nvidia_driver_packages:
-  - nvidia-driver
-  - nvidia-driver-cuda
-  - nvidia-driver-cuda-libs
-  - nvidia-driver-libs
-  - nvidia-gpu-firmware
-  - nvidia-persistenced

@@ -1,8 +1,10 @@
 ---
 # Internal data for the gpu role (not meant for user override).
-# Distribution-specific values (CUDA repo path, GPG key, persistenced
-# default) live in vars/<Distro>-<major>.yml and are loaded by
-# tasks/main.yml via a first_found lookup.
+# Distribution-specific values (the nvidia-persistenced service default)
+# live in vars/<Distro>-<major>.yml and are loaded by tasks/main.yml via a
+# first_found lookup. The Negativo 17 repository endpoints themselves are
+# owned exclusively by the repositories task file
+# (playbooks/tasks/repositories/negativo17.yml), per the one-owner rule.
 
 # Distro-major combinations the NVIDIA CUDA stack supports
 gpu_nvidia_supported:
@@ -10,6 +12,7 @@ gpu_nvidia_supported:
   - Fedora-44
   - Rocky-9
   - Rocky-10
+  - AlmaLinux-9
   - AlmaLinux-10
 
 # NVIDIA container toolkit (libnvidia-container) repository — identical across

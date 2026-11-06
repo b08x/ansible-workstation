@@ -1,5 +1,6 @@
 ---
-# NVIDIA CUDA data for Rocky Linux 9 (matches the osbuild nvidia component)
-gpu_nvidia_cuda_repo_path: rhel9
-gpu_nvidia_cuda_gpgkey: CDF6BA43.pub
+# NVIDIA data for Rocky 9 (osbuild nvidia component parity)
+# Negativo 17 endpoints come from the repositories task file (epel-9 branch)
+# Vars remain role-scoped (Tier 2): only gpu_nvidia_persistenced differs
+# per distro-major (EL true, Fedora false, matching the osbuild component).
 gpu_nvidia_persistenced: true

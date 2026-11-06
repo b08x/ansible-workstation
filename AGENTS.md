@@ -66,6 +66,12 @@ pre-commit run --all-files
   enabling both means editing the single `callbacks_enabled` line)
 - Logs go to `.logs/` and `/tmp/ansible.log`
 
+## Testing & Execution Boundaries
+
+- **CRITICAL: NEVER execute test playbooks or mutation runs directly against the user's host workstation.**
+- **All tests, role checks, and playbook validations MUST run inside dev containers, disposable VMs, or Molecule testbeds (e.g. `molecule test`), never on the live workstation.**
+- Pre-flight validation checks must always use `--check` mode (`--tags assert --check`) or isolated test environments.
+
 ## Testing
 
 - tox-ansible skips Python 3.7/3.8 and ansible-core < 2.14

@@ -40,7 +40,7 @@
     _user_cargo_decision_note: >-
       system cargo is current ({{ _user_cargo_system_semver | default('0.0.0') }} >= {{ user_cargo_min_system_version }});
       using it and skipping the rustup toolchain
-  when: not ansible_check_mode and _user_cargo_strategy == 'system'
+  when: not ansible_check_mode and (_user_cargo_strategy | default('')) == 'system'
   tags: ["cargo", "user"]
 
 - name: Set decision note for rustup strategy
@@ -49,13 +49,13 @@
       {{ 'system cargo is absent' if (_user_cargo_system_final | default('') | length == 0) else
          'system cargo compares older than ' ~ user_cargo_min_system_version }};
       installing the rustup user toolchain
-  when: not ansible_check_mode and _user_cargo_strategy == 'rustup'
+  when: not ansible_check_mode and (_user_cargo_strategy | default('')) == 'rustup'
   tags: ["cargo", "user"]
 
 - name: Report the cargo toolchain decision
   ansible.builtin.debug:
     msg: >-
-      Cargo toolchain decision: {{ _user_cargo_strategy }} - system cargo:
+      Cargo toolchain decision: {{ _user_cargo_strategy | default('skipped') }} - system cargo:
       {{ _user_cargo_system_final | default('absent') | trim }},
       minimum {{ user_cargo_min_system_version }}.
       {{ _user_cargo_decision_note | default('') }}.
@@ -69,7 +69,7 @@
 
 - name: Prepare rustup when selected
   ansible.builtin.import_tasks: cargo/rustup.yml
-  when: _user_cargo_strategy == 'rustup' and not ansible_check_mode
+  when: not ansible_check_mode and (_user_cargo_strategy | default('')) == 'rustup'
   tags: ["cargo", "user"]
 
 - name: Install crates independently

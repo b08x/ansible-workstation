@@ -10,7 +10,6 @@
   tags: ["repos", "repositories", "system"]
   vars:
     dnf_max_parallel_downloads: 10
-    dnf_fastestmirror: false
     dnf_minrate: 100k
     dnf_timeout: 10
     dnf_conf_path: /etc/dnf/dnf.conf
@@ -20,6 +19,13 @@
     enable_syncopated_copr: true
     syncopated_copr: "b08x/syncopated"
     copr_repos: []
+    # Negativo 17 NVIDIA driver + Multimedia repositories (osbuild-standard
+    # repos: negativo17-nvidia / negativo17-multimedia, GPG key
+    # RPM-GPG-KEY-slaanesh, managed priority/exclusion override drop-in).
+    # Installed unconditionally: multimedia is useful everywhere and the
+    # Negativo 17 NVIDIA packages are dormant without a 10de controller
+    # (udev-gated services). Set enable_negativo17: false to opt out.
+    enable_negativo17: true
 
   pre_tasks:
     - name: Ensure facts are gathered
@@ -55,6 +61,13 @@
         - ansible_distribution is defined
         - enable_third_party_repos | default(true) | bool
       tags: ["repos", "repositories"]
+
+    - name: Configure Negativo 17 NVIDIA and Multimedia repositories
+      ansible.builtin.include_tasks: tasks/repositories/negativo17.yml
+      when:
+        - ansible_distribution is defined
+        - enable_negativo17 | default(true) | bool
+      tags: ["repos", "repositories", "negativo17"]
 
     - name: Execute system package upgrade
       ansible.builtin.dnf:

@@ -1,0 +1,120 @@
+---
+# NVIDIA GPU Driver and CUDA Stack Provisioning Playbook
+# Provisions the NVIDIA display drivers and CUDA toolkit from the Negativo 17
+# repository (the osbuild nvidia component payload) plus the NVIDIA Container
+# Toolkit. Repositories themselves (negativo17-nvidia / negativo17-multimedia
+# and the priority/exclusion override drop-in) are owned by
+# playbooks/repositories.yml; this playbook relies on them being configured.
+#
+# Adheres to the 15 Ansible Design Patterns:
+# - Pattern 5: Pre-flight Check Block (detects NVIDIA hardware, platform compatibility, Secure Boot,
+#   NVIDIA driver provider mutual exclusion via roles/gpu/tasks/assert.yml)
+# - Pattern 6: Role Composition (invokes roles/gpu with explicit role vars)
+# - Pattern 7: Tag-as-Select Pattern (tags: ["gpu", "nvidia", "system", "assert"])
+# - Pattern 9: Block-as-Unit Pattern (error handling and transactional grouping)
+# - Pattern 10: Environment Injection Pattern
+# - Pattern 11: Conditional Feature Flags (gpu_install_nvidia, gpu_nvidia_cuda_toolkit)
+# - Pattern 12: Post-task Lifecycle Pattern (reboot assessment and service status verification)
+# - Pattern 13: Debug-as-Progress-Indicator Pattern
+#
+# Legacy hosts running the old stack (official NVIDIA CUDA repo + RPM Fusion
+# driver set) are migrated by the hard-break block in roles/gpu/tasks/nvidia.yml.
+# Run once with -e gpu_nvidia_provider_preflight=false to let the migration run
+# through the provider preflight.
+
+- name: Provision NVIDIA GPU Drivers and CUDA Stack
+  hosts: "{{ target_hosts | default('workstations') }}"
+  become: true
+  gather_facts: true
+  vars:
+    # Explicitly enforce NVIDIA installation in this standalone playbook
+    gpu_install_nvidia: true
+    nvidia_cuda_install: true
+
+  pre_tasks:
+    - name: Announce NVIDIA provisioning start
+      ansible.builtin.debug:
+        msg: >-
+          Starting NVIDIA GPU driver and CUDA stack provisioning on
+          {{ inventory_hostname }} ({{ ansible_distribution }} {{ ansible_distribution_version }})
+      tags: ["gpu", "nvidia", "always"]
+
+    - name: Hardware and pre-flight capability inspection
+      tags: ["gpu", "nvidia", "assert"]
+      block:
+        - name: Check for NVIDIA PCI hardware presence
+          ansible.builtin.command:
+            argv:
+              - sh
+              - -c
+              - |
+                for d in /sys/bus/pci/devices/*; do
+                  if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+                    v=$(cat "$d/vendor" 2>/dev/null)
+                    c=$(cat "$d/class" 2>/dev/null)
+                    if [ "$v" = "0x10de" ] && [ "${c#0x03}" != "$c" ]; then
+                      exit 0
+                    fi
+                  fi
+                done
+                exit 1
+          register: _nvidia_pci_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
+        - name: Check Secure Boot status
+          ansible.builtin.command: mokutil --sb-state
+          register: _nvidia_sb_probe
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
+        - name: Report pre-flight findings
+          ansible.builtin.debug:
+            msg:
+              - "NVIDIA GPU Detected: {{ (_nvidia_pci_probe.rc | default(1)) == 0 }}"
+              - "Secure Boot: {{ _nvidia_sb_probe.stdout | default('Unknown') }}"
+
+  roles:
+    - role: gpu
+      vars:
+        gpu_install_nvidia: true
+        nvidia_cuda_install: true
+      tags: ["gpu", "nvidia", "system"]
+
+  post_tasks:
+    - name: Post-flight execution assessment and reboot verification
+      tags: ["gpu", "nvidia", "status"]
+      block:
+        - name: Check for pending reboot flag
+          ansible.builtin.stat:
+            path: /var/run/reboot-required
+          register: _nvidia_reboot_flag
+          check_mode: false
+
+        - name: Check package manager reboot requirements
+          ansible.builtin.command: needs-restarting -r
+          register: _nvidia_needs_restarting
+          changed_when: false
+          failed_when: false
+          check_mode: false
+          when: ansible_os_family == 'RedHat'
+
+        - name: Check driver status via nvidia-smi if loaded
+          ansible.builtin.command: nvidia-smi --query-gpu=gpu_name,driver_version,cuda_version --format=csv,noheader
+          register: _nvidia_smi_status
+          changed_when: false
+          failed_when: false
+          check_mode: false
+
+        - name: Display NVIDIA provisioning summary
+          ansible.builtin.debug:
+            msg:
+              - "Provisioning completed for {{ inventory_hostname }}"
+              - >-
+                Active NVIDIA Driver: {{ _nvidia_smi_status.stdout
+                if (_nvidia_smi_status.rc | default(1)) == 0
+                else 'Driver not yet loaded (reboot likely required)' }}
+              - "Reboot Required (/var/run/reboot-required): {{ _nvidia_reboot_flag.stat.exists | default(false) }}"
+              - "Needs Restarting (needs-restarting -r): {{ (_nvidia_needs_restarting.rc | default(0)) == 1 }}"

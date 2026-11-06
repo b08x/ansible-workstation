@@ -20,11 +20,13 @@ The role was carved out of `roles/tools` (which previously carried the Intel tas
 +--------------------------------------------------------------------------+
 |                      Layer 1: roles/gpu (Ansible)                        |
 |   - Intel oneAPI yum repo + pinned 56-entry MKL/compiler package set     |
-|   - /etc/profile.d/intel-oneapi.sh environment profile                   |
+|   - /etc/profile.d/intel-oneapi.sh profile (preserves LD_LIBRARY_PATH)   |
 |   - Intel graphics driver packages (optional, non-fatal by default)       |
-|   - NVIDIA CUDA repo (fedora43/fedora44/rhel9/rhel10) + GPG key          |
-|   - NVIDIA driver, CUDA toolkit, container toolkit, utilities             |
-|   - NVIDIA CDI generation script + nvidia-cdi-refresh.service             |
+|   - RPM Fusion Free & Non-Free repositories (Fedora & EL)                 |
+|   - Negativo 17 NVIDIA driver + CUDA packages (osbuild payload parity)   |
+|   - /etc/profile.d/cuda.sh environment profile (PATH & LD_LIBRARY_PATH)  |
+|   - NVIDIA container toolkit, CDI script & nvidia-cdi-refresh.service    |
+|   - NVIDIA power management services (suspend, hibernate, resume)        |
 |   - nvidia-persistenced service (EL default on, Fedora default off)       |
 |   - Kernel args via grubby + /etc/modprobe.d nouveau blacklist           |
 +--------------------------------------------------------------------------+
@@ -57,7 +59,7 @@ The role was carved out of `roles/tools` (which previously carried the Intel tas
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
 1. **Task Dispatcher Pattern**: `tasks/main.yml` dispatches to `assert.yml`, `intel.yml`, and `nvidia.yml`, each gated by explicit boolean flags (`gpu_install_intel_oneapi`, `gpu_install_intel_graphics`, `gpu_install_nvidia`) that lazily consume the Tier 1 host flags.
-2. **Pre-flight Assertions (Fail-Fast Pattern)**: `tasks/assert.yml` validates facts gathered, RedHat family, supported distribution, `dnf`/`dnf5` package manager, `systemd` init manager, and effective root (`id -u` registered as `_gpu_effective_uid`), plus NVIDIA-specific gates: supported Distro-major assert (fails with `gpu: NVIDIA CUDA is not supported on <distro> <version>`), GPU vendor fallback probe, and a Secure Boot (`mokutil --sb-state`) check that warns — never fails — about the manual MOK enrollment step.
+2. **Pre-flight Assertions (Fail-Fast Pattern)**: `tasks/assert.yml` validates facts gathered, RedHat family, supported distribution, `dnf`/`dnf5` package manager, `systemd` init manager, and effective root (`id -u` registered as `_gpu_effective_uid`), plus NVIDIA-specific gates: supported Distro-major assert (fails with `gpu: NVIDIA CUDA is not supported on <distro> <version>`), an osbuild-style NVIDIA driver **provider mutual-exclusion preflight** (classifies computed Negativo 17 URLs plus every `baseurl`/`mirrorlist` in `/etc/yum.repos.d` against the provider regex table — upstream CUDA, negativo17-lts, Negativo 17, RPM Fusion nvidia — and fails when more than one provider is configured; the Negativo 17 nvidia+multimedia pair counts as one; skip for the one-time hard-break migration with `gpu_nvidia_provider_preflight: false`), GPU vendor fallback probe, and a Secure Boot (`mokutil --sb-state`) check that warns — never fails — about the manual MOK enrollment step.
 3. **Distro-Switching Pattern (`first_found`)**: CUDA repo path, GPG key, and the `nvidia-persistenced` default are loaded from `vars/<Distro>-<major>.yml` (Fedora-43/44, Rocky-9/10, AlmaLinux-10) via the `lookup('ansible.builtin.first_found')` shape used by `common` and `tuning`.
 4. **Tag-as-Select**: Every task and include carries the `gpu` role tag plus feature tags (`intel`, `intel_oneapi`, `nvidia`, `assert`, `distro`) and the playbook-level `system` domain tag.
 5. **Block-as-Unit**: Mutating groups (Intel graphics, Intel oneAPI, NVIDIA stack, CDI configuration) run as `block:` units; the Intel groups keep their `block/rescue` diagnostic structure with human-readable failure messages.
@@ -78,22 +80,44 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 ### 2. Intel oneAPI Toolkit (`tasks/intel.yml`)
 - Imports the Intel GPG key, configures the `oneAPI` yum repository, and installs the pinned `gpu_intel_oneapi_packages` list (56 unique entries; the tools list's duplicate `intel-oneapi-runtime-dpcpp-sycl-core` entry removed).
 - Writes `/etc/profile.d/intel-oneapi.sh` to source `/opt/intel/oneapi/setvars.sh` on login.
-- Behavior is identical to the former `roles/tools/tasks/intel.yml`; a host can override the package list without editing the role.
+- Preserves pre-existing `LD_LIBRARY_PATH` entries (such as CUDA or custom paths) rather than completely overriding them when sourcing `setvars.sh --force`.
+- Purges any legacy unmanaged `/etc/profile.d/100-intel-oneapi.sh` script.
 
-### 3. NVIDIA Repositories (`tasks/nvidia.yml`)
-- `cuda-<path>-x86_64` yum repository with the per-distro GPG key
-  (`fedora43`/`1940C73E.pub`, `fedora44`/`73CD9B30.pub`,
-  `rhel9`/`rhel10` with `CDF6BA43.pub`), mirroring the osbuild `nvidia`
-  component. **No RPM Fusion repository is added** — the proprietary driver
-  resolves exclusively from the NVIDIA CUDA repo.
+### 3. Negativo 17 & NVIDIA Repositories (`tasks/nvidia.yml`, `playbooks/tasks/repositories/negativo17.yml`)
+- **Negativo 17 NVIDIA driver + Multimedia repositories**: defined once by the
+  repositories playbook (`playbooks/tasks/repositories/negativo17.yml`) —
+  `negativo17-nvidia` and `negativo17-multimedia` with the
+  `RPM-GPG-KEY-slaanesh` GPG key, per-distro endpoints
+  (`negativo17.org/repos/nvidia/fedora-<major>` / `epel-<major>` and the
+  matching multimedia branches), and a managed priority/exclusion override
+  drop-in `/etc/dnf/repos.override.d/90-negativo17-overrides.repo`
+  (priority=90 on Negativo 17, `[rpmfusion*]` section-glob excludepkgs for
+  `nvidia-* akmod-nvidia xorg-x11-drv-nvidia* ffmpeg* mpv* libdvdcss*
+  gstreamer1-plugin*`). This mirrors the osbuild nvidia component fragment
+  byte-for-byte, so RPM Fusion packages cannot win driver or codec conflicts.
+- **Posted per host unconditionally**: multimedia is useful on any host, and
+  the Negativo 17 NVIDIA packages are dormant without a 10de controller —
+  their udev rules gate services (see
+  negativo17.org/changes-to-the-nvidia-driver-packages).
+- **RPM Fusion Free & Non-Free repositories**: still ensured on Fedora and EL
+  (`gpu_nvidia_ensure_rpmfusion: true`) for non-driver content; the override
+  drop-in makes the driver/CUDA/codec package set unresolvable from RPM Fusion.
+- **Legacy official CUDA repository**: removed. The tasks/nvidia.yml
+  hard-break block detects and deletes `developer.download.nvidia.com` repo
+  files, erases installed `xorg-x11-drv-nvidia*` packages, and distro-syncs.
 - The `nvidia-container-toolkit` repository (`nvidia.github.io/libnvidia-container`) is added only when `gpu_nvidia_container_toolkit` is true.
 
-### 4. NVIDIA Packages (`tasks/nvidia.yml`)
-- Driver set always installed when NVIDIA is enabled:
-  `nvidia-driver`, `nvidia-driver-cuda`, `nvidia-driver-cuda-libs`,
-  `nvidia-driver-libs`, `nvidia-gpu-firmware`, `nvidia-persistenced`.
-- `cuda-toolkit`, `nvidia-container-toolkit`, and the utilities
-  (`nvidia-settings`, `nvtop`) each gated by their own boolean toggle.
+### 4. NVIDIA Packages & Environment (`tasks/nvidia.yml`)
+- osbuild-standard Negativo 17 payload installed when NVIDIA is enabled:
+  `akmod-nvidia`, `cuda`, `cuda-devel`, `nvidia-driver`, `nvidia-driver-cuda`,
+  `nvidia-driver-cuda-libs`, `nvidia-driver-libs`, `nvidia-settings`,
+  `nvidia-persistenced`, `nvtop` (`gpu_nvidia_negativo17_packages`; the
+  `cuda`/`cuda-devel` pair is gated by `gpu_nvidia_cuda_toolkit`).
+- `nvidia-container-toolkit` is the only remaining package outside the payload.
+- Writes `/etc/profile.d/cuda.sh` configuring `PATH`
+  (`/usr/local/cuda/bin`-conditional; Negativo 17's `cuda` packages install
+  into system paths, so the script degrades safely) and `LD_LIBRARY_PATH`.
+- Enables systemd power management services (`nvidia-suspend`, `nvidia-hibernate`, `nvidia-resume`) managed by `gpu_nvidia_power_management`.
 
 ### 5. NVIDIA CDI Container Integration (`tasks/nvidia.yml`)
 - Copies `nvidia-cdi-generate.sh` (0755) to `/usr/local/bin` and
@@ -146,23 +170,31 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `gpu_intel_graphics_packages` | *(7 packages)* | Intel graphics driver package list. |
 | `gpu_install_nvidia` | `{{ nvidia_cuda_install | default(false) | bool }}` | Install the NVIDIA CUDA stack. |
 | `gpu_nvidia_force_install` | `false` | Force the NVIDIA driver set to `state: latest`. |
-| `gpu_nvidia_cuda_toolkit` | `true` | Install `cuda-toolkit`. |
+| `gpu_nvidia_provider_preflight` | `true` | Enable the NVIDIA driver provider mutual-exclusion preflight. Set `false` only for the single hard-break migration run on a legacy-stack host. |
+| `gpu_nvidia_cuda_toolkit` | `true` | Include `cuda`/`cuda-devel` in the Negativo 17 payload. |
 | `gpu_nvidia_container_toolkit` | `true` | Install `nvidia-container-toolkit` + CDI script/unit. |
 | `gpu_nvidia_utils` | `true` | Install `nvidia-settings`, `nvtop`. |
 | `gpu_nvidia_utils_packages` | `nvidia-settings`, `nvtop` | NVIDIA utility package list. |
+| `gpu_nvidia_ensure_rpmfusion` | `true` | Ensure RPM Fusion Free & Non-Free repositories are present (excluded-override strategy keeps driver/CUDA packages unresolvable from RPM Fusion). |
+| `gpu_nvidia_power_management` | `true` | Enable systemd suspend/hibernate/resume power services. |
+| `gpu_nvidia_power_services` | *(3 services)* | Power management service units (`nvidia-suspend`, `nvidia-hibernate`, `nvidia-resume`). |
 | `gpu_nvidia_persistenced` | *(from `vars/<distro>.yml`)* | Enable the `nvidia-persistenced` service (EL true, Fedora false). |
 | `gpu_nvidia_kernel_args` | *(4 osbuild args)* | Kernel command-line arguments applied via grubby. |
-| `gpu_nvidia_driver_packages` | *(6 packages)* | NVIDIA driver packages always installed when enabled. |
+| `gpu_nvidia_negativo17_packages` | *(10 Negativo 17 packages)* | osbuild-standard NVIDIA driver/CUDA payload. |
 
 ### Internal (`vars/main.yml`, `vars/<Distro>-<major>.yml`)
 
 | Variable | Description |
 |---|---|
 | `gpu_nvidia_supported` | Supported `Distro-major` strings for the NVIDIA stack. |
-| `gpu_nvidia_cuda_repo_path` | CUDA repository path segment (`fedora43`, `fedora44`, `rhel9`, `rhel10`). |
-| `gpu_nvidia_cuda_gpgkey` | CUDA repository GPG key filename (`1940C73E.pub`, `73CD9B30.pub`, `CDF6BA43.pub`). |
+| `gpu_nvidia_persistenced` | Per-distro nvidia-persistenced service default (EL true, Fedora false). |
 | `gpu_nvidia_container_repo_baseurl` | NVIDIA container toolkit (libnvidia-container) repository base URL (distro-independent). |
 | `gpu_nvidia_container_repo_gpgkey` | NVIDIA container toolkit repository GPG key URL (distro-independent). |
+
+The Negativo 17 repository endpoints and the priority/exclusion override
+drop-in are **not** role variables — they are owned exclusively by the
+repositories playbook (`playbooks/tasks/repositories/negativo17.yml`), per the
+one-owner rule.
 
 ---
 
@@ -185,6 +217,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 | `intel` | Feature | Intel graphics and oneAPI tasks. |
 | `intel_oneapi` | Feature | Intel oneAPI toolkit tasks. |
 | `nvidia` | Feature | NVIDIA driver, toolkit, container, and kernel argument tasks. |
+| `negativo17` | Feature | Negativo 17 repositories and override drop-in (repositories playbook). |
 | `distro` | Internal | Distribution variable loading. |
 | `always` | System | Entry debug, assertions, handler flush. |
 
@@ -207,7 +240,15 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 The role runs after `common` (hardware detection); the standalone [`playbooks/transcribe-cpp.yml`](../../playbooks/transcribe-cpp.yml) carries the transcribe.cpp oneAPI/CUDA probes (consumer only).
 
-### 2. Enabling a stack per host (`inventory/host_vars/<host>.yml`)
+### 2. Standalone NVIDIA Playbook (`playbooks/nvidia.yml`)
+
+Provision NVIDIA display drivers, CUDA toolkit, and power management services directly on target workstations:
+
+```bash
+ansible-playbook playbooks/nvidia.yml -l gir
+```
+
+### 3. Enabling a stack per host (`inventory/host_vars/<host>.yml`)
 
 ```yaml
 intel_oneapi_install: true

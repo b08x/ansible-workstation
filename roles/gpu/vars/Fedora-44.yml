@@ -1,5 +1,6 @@
 ---
-# NVIDIA CUDA data for Fedora 44 (matches the osbuild nvidia component)
-gpu_nvidia_cuda_repo_path: fedora44
-gpu_nvidia_cuda_gpgkey: 73CD9B30.pub
+# NVIDIA data for Fedora 44 (osbuild nvidia component parity)
+# Negativo 17 endpoints come from the repositories task file (fedora-44 branch)
+# Vars remain role-scoped (Tier 2): only gpu_nvidia_persistenced differs
+# per distro-major (EL true, Fedora false, matching the osbuild component).
 gpu_nvidia_persistenced: false

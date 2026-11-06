@@ -76,6 +76,85 @@
         fail_msg: "gpu: NVIDIA CUDA is not supported on {{ ansible_distribution }} {{ ansible_distribution_major_version }}"
         quiet: false
 
+    - name: Scan enabled repository sections for NVIDIA driver provider references
+      ansible.builtin.shell: |
+        set -o pipefail
+        awk '
+          FNR==1   { en=1 }
+          /^[ \t]*\[/ { en=1 }
+          /^[ \t]*enabled[ \t]*=/ { e=$0; sub(/^[^=]*=/,"",e); gsub(/[ \t]/,"",e); en=(e=="1") }
+          /^[ \t]*(baseurl|mirrorlist)[ \t]*=/ { if(en){ v=$0; sub(/^[^=]*=/,"",v); print v } }
+        ' /etc/yum.repos.d/*.repo 2>/dev/null
+      args:
+        executable: /bin/bash
+      register: _gpu_provider_url_scan
+      changed_when: false
+      check_mode: false
+
+    - name: Build candidate NVIDIA driver provider URL list
+      ansible.builtin.set_fact:
+        _gpu_provider_urls: >-
+          {{
+            (
+              [
+                'https://negativo17.org/repos/nvidia/'
+                ~ (('fedora-' ~ ansible_distribution_major_version)
+                   if ansible_distribution == 'Fedora'
+                   else 'epel-' ~ ansible_distribution_major_version) ~ '/x86_64/',
+                'https://negativo17.org/repos/multimedia/'
+                ~ (('fedora-' ~ ansible_distribution_major_version)
+                   if ansible_distribution == 'Fedora'
+                   else 'epel-' ~ ansible_distribution_major_version) ~ '/x86_64/'
+              ]
+              + (_gpu_provider_url_scan.stdout_lines | default([]))
+            ) | unique
+          }}
+
+    - name: Classify the candidate URLs by NVIDIA driver provider
+      ansible.builtin.set_fact:
+        _gpu_nvidia_providers: >-
+          {%- set ns = namespace(found={}) -%}
+          {%- for url in _gpu_provider_urls -%}
+          {%-   set provider = none -%}
+          {%-   if url is search('developer\.download\.nvidia\.com/compute/cuda') -%}
+          {%-     set provider = 'cuda' -%}
+          {%-   elif url is search('(?:fedora|epel)-nvidia-lts') -%}
+          {%-     set provider = 'negativo17-lts' -%}
+          {%-   elif url is search('negativo17\.org/.*(nvidia|multimedia)(?!-lts)') -%}
+          {%-     set provider = 'negativo17' -%}
+          {%-   elif url is search('rpmfusion\.org/nonfree/.*/nvidia-driver') -%}
+          {%-     set provider = 'rpmfusion-nvidia' -%}
+          {%-   endif -%}
+          {%-   if provider -%}
+          {%-     set ns.found = ns.found | combine({provider: ns.found.get(provider, []) + [url]}) -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{ ns.found }}
+
+    - name: Assert at most one NVIDIA driver provider is configured
+      ansible.builtin.assert:
+        that:
+          - _gpu_nvidia_providers | length | int <= 1
+        fail_msg: >-
+          {{ _gpu_nvidia_providers | length }} NVIDIA driver providers are
+          configured; at most one is allowed. The Negativo 17
+          nvidia+multimedia pair counts as one provider.
+          {% for provider, urls in _gpu_nvidia_providers.items() %}
+          - {{ provider }}: {{ urls | join(', ') }}
+          {% endfor %}
+          Pick one provider and remove the other repository definitions.
+        success_msg: >-
+          {{ _gpu_nvidia_providers.keys() | list | join(', ')
+             if _gpu_nvidia_providers else 'no' }}
+          NVIDIA driver provider(s) configured
+        quiet: false
+      # Escape hatch (convention: presence checks always get one). Set
+      # gpu_nvidia_provider_preflight: false for the single hard-break
+      # migration run on a legacy stack host: the skip lets tasks/nvidia.yml
+      # remove the legacy CUDA repo files and RPM Fusion driver packages,
+      # after which the preflight passes clean on the next run.
+      when: gpu_nvidia_provider_preflight | default(true) | bool
+
     - name: Probe GPU vendor via PCI sysfs (fallback when common was not run)
       ansible.builtin.command:
         argv:

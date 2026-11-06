@@ -1,0 +1,86 @@
+---
+# ============================================================================
+# Negativo 17 NVIDIA driver and Multimedia repositories
+# Shared across Fedora (fedora-<major> branches) and EL/Rocky/AlmaLinux
+# (epel-<major> branches), mirroring the osbuild nvidia component:
+#   - GPG key RPM-GPG-KEY-slaanesh imported once, gpgcheck enabled
+#   - negativo17-nvidia / negativo17-multimedia repo definitions
+#   - managed priority/exclusion drop-in /etc/dnf/repos.override.d/
+#     90-negativo17-overrides.repo (priority=90 on Negativo 17, RPM Fusion
+#     section-glob excludepkgs) so RPM Fusion packages cannot win conflicts
+#
+# The repos are installed unconditionally (multimedia is useful on any host;
+# Negativo 17 NVIDIA packages are dormant without a 10de controller — their
+# own udev rules gate the services, per negativo17.org packaging changes).
+# ============================================================================
+
+- name: Resolve Negativo 17 repository branch for this distribution
+  ansible.builtin.set_fact:
+    negativo17_repo_branch: >-
+      {{ 'fedora-' ~ ansible_distribution_major_version
+         if ansible_distribution == 'Fedora'
+         else 'epel-' ~ ansible_distribution_major_version }}
+
+- name: Import Negativo 17 GPG key
+  ansible.builtin.rpm_key:
+    state: present
+    key: "{{ negativo17_gpgkey | default('https://negativo17.org/repos/RPM-GPG-KEY-slaanesh') }}"
+  register: repo_negativo17_key
+  tags: ["negativo17", "repositories", "repos"]
+
+- name: Add Negativo 17 NVIDIA driver repository
+  ansible.builtin.yum_repository:
+    name: negativo17-nvidia
+    description: "negativo17 - Nvidia ({{ negativo17_repo_branch }})"
+    baseurl: "https://negativo17.org/repos/nvidia/{{ negativo17_repo_branch }}/x86_64/"
+    enabled: true
+    gpgcheck: true
+    gpgkey: "https://negativo17.org/repos/RPM-GPG-KEY-slaanesh"
+    file: negativo17
+    state: present
+  register: repo_negativo17_nvidia
+  tags: ["negativo17", "repositories", "repos"]
+
+- name: Add Negativo 17 Multimedia repository
+  ansible.builtin.yum_repository:
+    name: negativo17-multimedia
+    description: "negativo17 - Multimedia ({{ negativo17_repo_branch }})"
+    baseurl: "https://negativo17.org/repos/multimedia/{{ negativo17_repo_branch }}/x86_64/"
+    enabled: true
+    gpgcheck: true
+    gpgkey: "https://negativo17.org/repos/RPM-GPG-KEY-slaanesh"
+    file: negativo17
+    state: present
+  register: repo_negativo17_multimedia
+  tags: ["negativo17", "repositories", "repos"]
+
+- name: Create DNF repository override drop-in directory
+  ansible.builtin.file:
+    path: /etc/dnf/repos.override.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["negativo17", "repositories", "repos"]
+
+- name: Install managed Negativo 17 priority/exclusion override drop-in
+  ansible.builtin.copy:
+    src: 90-negativo17-overrides.repo
+    dest: /etc/dnf/repos.override.d/90-negativo17-overrides.repo
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  register: repo_negativo17_overrides
+  tags: ["negativo17", "repositories", "repos"]
+
+- name: Refresh DNF metadata after Negativo 17 repository changes
+  ansible.builtin.command:
+    cmd: dnf makecache
+  changed_when: true
+  when: >-
+    (repo_negativo17_key is changed) or
+    (repo_negativo17_nvidia is changed) or
+    (repo_negativo17_multimedia is changed) or
+    (repo_negativo17_overrides is changed)
+  tags: ["negativo17", "repositories", "repos"]

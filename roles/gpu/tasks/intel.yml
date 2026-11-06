@@ -58,12 +58,22 @@
           #!/bin/bash
           # Initialize Intel oneAPI environment variables on login
           if [ -f /opt/intel/oneapi/setvars.sh ]; then
+              _prev_ld_library_path="${LD_LIBRARY_PATH:-}"
               source /opt/intel/oneapi/setvars.sh --force > /dev/null 2>&1
+              if [ -n "${_prev_ld_library_path}" ]; then
+                  export LD_LIBRARY_PATH="${_prev_ld_library_path}:${LD_LIBRARY_PATH}"
+              fi
+              unset _prev_ld_library_path
           fi
         mode: "0755"
         owner: root
         group: root
         backup: true
+
+    - name: Remove legacy oneAPI environment profile script
+      ansible.builtin.file:
+        path: /etc/profile.d/100-intel-oneapi.sh
+        state: absent
 
   rescue:
     - name: Report Intel oneAPI setup failure

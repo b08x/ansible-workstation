@@ -47,7 +47,10 @@ argument_specs:
         default: false
       gpu_nvidia_cuda_toolkit:
         type: bool
-        description: Install the cuda-toolkit package.
+        description: >-
+          Include the cuda and cuda-devel packages in the Negativo 17
+          payload (negativo17 provides the CUDA toolkit as system paths,
+          superseding cuda-toolkit from the official repository).
         default: true
       gpu_nvidia_container_toolkit:
         type: bool
@@ -63,6 +66,28 @@ argument_specs:
         type: list
         elements: str
         description: NVIDIA utility package list.
+      gpu_nvidia_ensure_rpmfusion:
+        type: bool
+        description: >-
+          Ensure RPM Fusion Free and Non-Free repositories are enabled for
+          non-driver content; the managed Negativo 17 override drop-in
+          excludes the driver/CUDA/codec package set there.
+        default: true
+      gpu_nvidia_provider_preflight:
+        type: bool
+        description: >-
+          Enable the NVIDIA driver provider mutual-exclusion preflight.
+          Set false only for the single hard-break migration run on a
+          legacy-stack host (official CUDA repo + RPM Fusion driver set).
+        default: true
+      gpu_nvidia_power_management:
+        type: bool
+        description: Enable NVIDIA systemd power management services (suspend, hibernate, resume).
+        default: true
+      gpu_nvidia_power_services:
+        type: list
+        elements: str
+        description: Systemd services managed when NVIDIA power management is enabled.
       gpu_nvidia_persistenced:
         type: bool
         description: >-
@@ -74,22 +99,13 @@ argument_specs:
         type: list
         elements: str
         description: Kernel command-line arguments applied via grubby for all installed kernels.
-      gpu_nvidia_driver_packages:
+      gpu_nvidia_negativo17_packages:
         type: list
         elements: str
-        description: NVIDIA driver package list always installed when NVIDIA is enabled.
-      gpu_nvidia_cuda_repo_path:
-        type: str
         description: >-
-          Internal. NVIDIA CUDA repository path segment, loaded from
-          vars/<Distro>-<major>.yml (fedora43, fedora44, rhel9,
-          rhel10).
-      gpu_nvidia_cuda_gpgkey:
-        type: str
-        description: >-
-          Internal. NVIDIA CUDA repository GPG key filename, loaded from
-          vars/<Distro>-<major>.yml (1940C73E.pub, 73CD9B30.pub,
-          CDF6BA43.pub).
+          NVIDIA driver and CUDA package list installed from the Negativo 17
+          repository when NVIDIA is enabled (osbuild nvidia component payload
+          parity).
       gpu_nvidia_container_repo_baseurl:
         type: str
         description: >-

@@ -225,7 +225,8 @@ class CallbackModule(CallbackBase):
             host_name: str = result._host.get_name()
             duration: str = self._calculate_duration(result._task._uuid)
             self.console.print(
-                f"[cyan][SKIPPED][/] {host_name} | {task_name} (Execution: {duration})"
+                f"[bright_black][SKIPPED] {host_name} | {task_name} (Execution: {duration})[/]",
+                highlight=False,
             )
 
     # -------------------------------------------------------------------------
