@@ -1,0 +1,48 @@
+---
+# Cargo temporary directory probe (adapted from reference example)
+# Contract: TMPDIR noexec fallback to ~/.cargo/tmp (0700).
+# Never writes rc files or ~/.cargo/config.toml.
+
+- name: Create Cargo's private temporary directory
+  ansible.builtin.file:
+    path: "{{ _user_cargo_home }}/.cargo/tmp"
+    state: directory
+    mode: "0700"
+  tags: ["cargo", "user", "tmp"]
+
+- name: Probe executable temporary storage
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable | default('/usr/bin/python3') }}"
+      - -c
+      - |
+        import os, subprocess, sys, tempfile
+        candidates = [os.environ.get('TMPDIR', '/tmp'), sys.argv[1]]
+        for directory in dict.fromkeys(candidates):
+            path = None
+            try:
+                fd, path = tempfile.mkstemp(prefix='cargo-exec-', dir=directory)
+                with os.fdopen(fd, 'w') as stream:
+                    stream.write('#!/bin/sh\nexit 0\n')
+                os.chmod(path, 0o700)
+                subprocess.run([path], check=True, capture_output=True)
+                print(directory)
+                break
+            except (OSError, subprocess.CalledProcessError):
+                continue
+            finally:
+                if path is not None:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
+        else:
+            print(sys.argv[1])
+      - "{{ _user_cargo_home }}/.cargo/tmp"
+  environment:
+    TMPDIR: "{{ ansible_env.TMPDIR | default('/tmp') }}"
+  register: _user_cargo_tmpdir
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  tags: ["cargo", "user", "tmp"]

@@ -1,0 +1,63 @@
+---
+# Install one crate independently (per-crate non-fatal failures)
+# Contract: DNF-preferred via user_cargo_crate_dnf_map, cargo install --locked fallback.
+# --force for crates listed in user_cargo_force_crates.
+# Never writes rc files or ~/.cargo/config.toml.
+
+- name: Install one crate without aborting the remaining list
+  environment:
+    PATH: "{{ _user_cargo_path }}"
+    CARGO_HOME: "{{ _user_cargo_home }}/.cargo"
+    TMPDIR: "{{ _user_cargo_tmpdir.stdout | default(_user_cargo_home ~ '/.cargo/tmp') }}"
+  block:
+    - name: Check for the crate's executable and force flag
+      ansible.builtin.set_fact:
+        _user_cargo_force_this: "{{ _user_cargo_crate in (user_cargo_force_crates | default([])) }}"
+      tags: ["cargo", "user", "crate"]
+
+    - name: Probe if crate binary exists
+      ansible.builtin.command:
+        argv:
+          - which
+          - "{{ user_cargo_crate_bin_map.get(_user_cargo_crate, _user_cargo_crate) }}"
+      register: _user_cargo_present
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      tags: ["cargo", "user", "crate", "probe"]
+
+    - name: Install an absent or explicitly forced crate
+      when: not _user_cargo_present.stdout or _user_cargo_force_this | bool
+      block:
+        - name: Try DNF-preferred package first
+          when: _user_cargo_crate in (user_cargo_crate_dnf_map | default({}))
+          block:
+            - name: Install the mapped DNF package
+              ansible.builtin.dnf:
+                name: "{{ user_cargo_crate_dnf_map[_user_cargo_crate] }}"
+                state: present
+              become: true
+              become_user: root
+              tags: ["cargo", "user", "crate", "dnf"]
+
+          rescue:
+            - name: Report DNF fallback to cargo
+              ansible.builtin.debug:
+                msg: "DNF could not install {{ _user_cargo_crate }}; trying Cargo."
+              tags: ["cargo", "user", "crate", "dnf"]
+
+        - name: Install via cargo
+          ansible.builtin.command:
+            cmd: >-
+              {{ _user_cargo_executable }} install --locked {{ _user_cargo_crate }}{{ ' --force' if _user_cargo_force_this | bool else '' }}
+          changed_when: true
+          tags: ["cargo", "user", "crate", "install"]
+
+  rescue:
+    - name: Report this crate's failure and continue
+      ansible.builtin.debug:
+        msg: >-
+          Skipping {{ _user_cargo_crate }} after failure: {{ ansible_failed_result.msg | default('unknown error') }}.
+          The crate is either unavailable, fails to compile, or provides a differently named binary.
+          Other crates continue.
+      tags: ["cargo", "user", "crate", "rescue"]

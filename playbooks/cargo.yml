@@ -1,0 +1,205 @@
+---
+# Loads the existing account definition from group_vars/all.yml.
+# Optional: user_cargo_tmpdir,
+# user_cargo_force_install, user_cargo_force_crates.
+# Shell startup files and ~/.cargo/config.toml remain user-owned.
+# Requires community.general >= 7.5.0 on the controller.
+# user_cargo_tmpdir defaults to /tmp; noexec selects ~/.cargo/tmp.
+# force_crates bypasses the executable check; the Cargo module stays idempotent.
+- name: Manage the user's Cargo toolchain and crates
+  hosts: all
+  gather_facts: false
+  become: true
+  become_user: "{{ user.name }}"
+  vars_files:
+    - "{{ playbook_dir }}/group_vars/all.yml"
+  vars:
+    user_cargo_min_system_version: "1.99.1"
+
+    # Seeded verbatim from yadm files/cargo-packages.txt.
+    user_cargo_crates:
+      - bottom
+      - choose
+      - git-cliff
+      - gping
+      - ripgrep_all
+      - sd
+      - gitui
+      - eza
+      - weathr
+      - dua-cli
+
+    # Crate name -> command binary.
+    user_cargo_crate_bin_map:
+      bottom: btm
+      ripgrep_all: rga
+      dua-cli: dua
+      du-dust: dust
+
+    # Prefer DNF; fall back to Cargo when the package install fails.
+    user_cargo_crate_dnf_map:
+      dua-cli: dua-cli
+      gitui: gitui
+      eza: eza
+  environment:
+    HOME: "{{ user.home }}"
+    CARGO_HOME: "{{ user.home }}/.cargo"
+    RUSTUP_HOME: "{{ user.home }}/.rustup"
+  tasks:
+    - name: Validate required settings
+      ansible.builtin.assert:
+        that:
+          - user is defined and user is mapping
+          - user.name is defined and user.name != 'root'
+          - user.home is defined and user.home is match('^/')
+          - user_cargo_min_system_version is defined
+
+    # Bootstrap and execution probes cannot predict changes in check mode.
+    - name: Configure Cargo
+      when: not ansible_check_mode
+      vars:
+        cargo_tmpdir: >-
+          {{ (user.home ~ '/.cargo/tmp') if
+             'noexec' in cargo_tmp_mount.stdout.split(',') else
+             (user_cargo_tmpdir | default('/tmp')) }}
+      block:
+        - name: Probe system Cargo version
+          ansible.builtin.command: /usr/bin/cargo --version
+          register: system_cargo_probe
+          changed_when: false
+          failed_when: false
+
+        - name: Request distribution Cargo satisfying the minimum version
+          become: true
+          become_user: root
+          ansible.builtin.dnf:
+            name: "cargo >= {{ user_cargo_min_system_version }}"
+            state: present
+          register: cargo_package
+          ignore_errors: true
+          when: system_cargo_probe.rc != 0
+
+        - name: Default to rustup
+          ansible.builtin.set_fact:
+            cargo_strategy: rustup
+            cargo_executable: "{{ user.home }}/.cargo/bin/cargo"
+            cargo_path: "{{ user.home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+
+        - name: Select system Cargo when available
+          ansible.builtin.set_fact:
+            cargo_strategy: system
+            cargo_executable: /usr/bin/cargo
+            cargo_path: /usr/bin:/bin:/usr/local/bin
+          when: system_cargo_probe.rc == 0 or (cargo_package is defined and cargo_package is succeeded)
+
+        - name: Prepare Cargo's install root
+          ansible.builtin.file:
+            path: "{{ user.home }}/.cargo"
+            state: directory
+            mode: '0700'
+
+        - name: Read the temporary directory's mount options
+          ansible.builtin.command:
+            argv: [findmnt, --noheadings, --output, OPTIONS, --target, "{{ user_cargo_tmpdir | default('/tmp') }}"]
+          register: cargo_tmp_mount
+          changed_when: false
+
+        # nodev restricts device files; noexec is the installer constraint.
+        - name: Prepare fallback storage only for a noexec temporary mount
+          ansible.builtin.file:
+            path: "{{ user.home }}/.cargo/tmp"
+            state: directory
+            mode: '0700'
+          when: "'noexec' in cargo_tmp_mount.stdout.split(',')"
+
+        - name: Prepare rustup when selected
+          when: cargo_strategy == 'rustup'
+          environment:
+            TMPDIR: "{{ cargo_tmpdir }}"
+          block:
+            - name: Inspect rustup
+              ansible.builtin.stat:
+                path: "{{ user.home }}/.cargo/bin/rustup"
+              register: rustup
+
+            - name: Install absent or explicitly forced rustup
+              when: not rustup.stat.exists or (user_cargo_force_install | default(false) | bool)
+              block:
+                - name: Allocate a private installer file
+                  ansible.builtin.tempfile:
+                    state: file
+                    path: "{{ cargo_tmpdir }}"
+                    prefix: rustup-init-
+                  register: rustup_installer
+
+                - name: Download rustup installer
+                  ansible.builtin.get_url:
+                    url: https://sh.rustup.rs
+                    dest: "{{ rustup_installer.path }}"
+                    mode: '0600'
+
+                - name: Install without changing shell configuration
+                  ansible.builtin.command:
+                    argv: [/bin/sh, "{{ rustup_installer.path }}", -y, --no-modify-path, --profile, minimal]
+                  changed_when: true
+
+            - name: Verify rustup and Cargo
+              ansible.builtin.command:
+                argv: ["{{ user.home }}/.cargo/bin/{{ item }}", --version]
+              loop: [rustup, cargo]
+              changed_when: false
+          rescue:
+            - name: Require a usable existing installation after bootstrap failure
+              ansible.builtin.command:
+                argv: ["{{ user.home }}/.cargo/bin/{{ item }}", --version]
+              loop: [rustup, cargo]
+              changed_when: false
+          always:
+            - name: Remove bootstrap script
+              ansible.builtin.file:
+                path: "{{ rustup_installer.path }}"
+                state: absent
+              when: rustup_installer.path is defined
+
+        - name: Locate each crate's executable
+          ansible.builtin.command: "which {{ (user_cargo_crate_bin_map | default({})).get(item, item) }}"
+          environment:
+            PATH: "{{ user.home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+          loop: "{{ user_cargo_crates | default([]) }}"
+          register: crate_probes
+          changed_when: false
+          failed_when: false
+
+        - name: Prefer mapped DNF packages for missing or forced crates
+          become: true
+          become_user: root
+          ansible.builtin.dnf:
+            name: "{{ (user_cargo_crate_dnf_map | default({})).get(probe.item, probe.item) }}"
+            state: present
+          loop: "{{ crate_probes.results }}"
+          loop_control: {loop_var: probe, label: "{{ probe.item }}"}
+          when:
+            - not probe.stdout or (user_cargo_force_crates | default(false) | bool)
+            - probe.item in (user_cargo_crate_dnf_map | default({}))
+          register: crate_packages
+          failed_when: false
+
+        - name: Install remaining crates with Cargo, continuing after failures
+          vars:
+            dnf_installed: >-
+              {{ crate_packages.results | rejectattr('skipped', 'defined')
+                 | select('succeeded') | map(attribute='probe.item') | list }}
+          community.general.cargo:
+            name: "{{ probe.item }}"
+            executable: "{{ cargo_executable }}"
+            path: "{{ user.home }}/.cargo"
+            state: present
+          environment:
+            PATH: "{{ cargo_path }}"
+            TMPDIR: "{{ cargo_tmpdir }}"
+          loop: "{{ crate_probes.results }}"
+          loop_control: {loop_var: probe, label: "{{ probe.item }}"}
+          when:
+            - not probe.stdout or (user_cargo_force_crates | default(false) | bool)
+            - probe.item not in dnf_installed
+          failed_when: false

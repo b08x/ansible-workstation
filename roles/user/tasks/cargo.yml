@@ -1,493 +1,82 @@
 ---
-# tasks file for the Rust/cargo toolchain and crate management in roles/user
-# Migrated from yadm bootstrap.d/20-cargo.sh (behavior parity):
-#   * TMPDIR noexec detection with a ~/.cargo/tmp fallback
-#   * rustup installed with --no-modify-path; ~/.zshenv (Layer 2) already
-#     sources ~/.cargo/env, so this role never writes shell rc files
-#   * crates resolved from user_cargo_crates; DNF packages preferred where
-#     available (the script's crate_to_dnf mapping); per-crate failures are
-#     non-fatal and never stop the remaining crates
-#
-# Toolchain decision tree (human amendment 2026-11):
-#   1. Probe the SYSTEM cargo at /usr/bin/cargo (never via PATH - PATH
-#      resolves to ~/.cargo/bin once rustup has run and would mask the
-#      system version).
-#   2. When the system cargo is ABSENT, first probe DNF availability
-#      (is_dnf_package_available parity): if the cargo package exists,
-#      install it (the feature's single escalation idiom) and re-probe;
-#      when the freshly installed cargo still compares older than
-#      user_cargo_min_system_version (EL-class scenario) fall through to
-#      rustup; when the DNF install fails, fall back to rustup (warn-debug).
-#   3. When the system cargo is PRESENT: >= user_cargo_min_system_version
-#      -> use it and skip rustup; < threshold -> rustup.
-#   4. Cargo is absent and unavailable via DNF -> rustup.
-#   5. user_cargo_force_install bypasses everything and forces rustup.
-#
-# Layer boundary: ~/.cargo/config.toml and all shell rc files are user
-# owned (Yadm/unmanaged); this task file never writes them. Crates install
-# into CARGO_HOME=~/.cargo whether the effective cargo is the rustup or the
-# system one.
+# Rust/cargo toolchain + crates (roles/user), refactored from monolith.
+# Decision tree: probe SYSTEM cargo at /usr/bin/cargo (never via PATH, rustup's ~/.cargo/bin would mask it);
+# if cargo is absent, attempt DNF install; if still absent or version < user_cargo_min_system_version, use rustup.
+# Strategy verdict uses discrete when-gated set_fact tasks (no ternary chains).
+# user_cargo_force_install is a when-gate on the rustup-install block only.
+# Rustup availability is verified post-install with a rescue-on-failure pattern.
+# Contracts: rustup runs --no-modify-path; ~/.zshenv (Layer 2) sources ~/.cargo/env - this file NEVER writes shell rc files;
+# ~/.cargo/config.toml is user-owned (Yadm) - never written; TMPDIR noexec probing falls back to ~/.cargo/tmp.
+# DNF-preferred crates resolve via user_cargo_crate_dnf_map; per-crate failures non-fatal.
 
-- name: Record the workstation user home directory
+- name: Validate the cargo feature contract
+  ansible.builtin.assert:
+    that:
+      - user.name is defined
+      - user.name != 'root'
+      - user.home is defined
+      - user.home is match('^/')
+      - user_cargo_min_system_version is defined
+    fail_msg: >-
+      Cargo feature requires Tier 1 identity contract (user.name, user.home) and
+      user_cargo_min_system_version to be defined.
+  tags: ["cargo", "user", "assert", "always"]
+
+- name: Explain check-mode limitation
+  ansible.builtin.debug:
+    msg: >-
+      Cargo bootstrap and executable probes are skipped in check mode.
+      The cargo feature will report its current state but will not mutate.
+  when: ansible_check_mode
+  tags: ["cargo", "user"]
+
+- name: Resolve cargo toolchain strategy
+  ansible.builtin.import_tasks: cargo/strategy.yml
+  when: not ansible_check_mode
+  tags: ["cargo", "user"]
+
+- name: Set decision note for system strategy
   ansible.builtin.set_fact:
-    _user_cargo_home: "{{ user.home | default('/home/' ~ user.name) }}"
-  tags: ["cargo", "user"]
-
-- name: Ensure cargo tmp directory exists for build artifacts
-  ansible.builtin.file:
-    path: "{{ _user_cargo_home }}/.cargo/tmp"
-    state: directory
-    mode: "0700"
-  tags: ["cargo", "user"]
-
-- name: Probe whether the current TMPDIR permits execution
-  # Mirrors the script's can_execute_in()/setup_tmpdir(): when /tmp (or the
-  # current TMPDIR) is mounted noexec, rustup-init, cargo, and build.rs
-  # scripts need a writable, executable directory under ~/.cargo instead.
-  ansible.builtin.shell: |
-    dir="${TMPDIR:-/tmp}"
-    [ -d "$dir" ] && [ -w "$dir" ] || exit 1
-    testfile=$(mktemp -p "$dir" .can_exec.XXXXXX 2>/dev/null) || exit 1
-    chmod 700 "$testfile" 2>/dev/null || { rm -f "$testfile"; exit 1; }
-    printf '#!/bin/sh\nexit 0\n' >"$testfile" 2>/dev/null
-    if [ -x "$testfile" ] && "$testfile" 2>/dev/null; then
-      rc=0
-    else
-      rc=1
-    fi
-    rm -f "$testfile"
-    exit "$rc"
-  args:
-    executable: /bin/bash
-  register: _user_cargo_tmp_exec_ok
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["cargo", "user"]
-
-- name: Resolve the effective build TMPDIR
-  ansible.builtin.set_fact:
-    _user_cargo_effective_tmpdir: >-
-      {{ '/tmp' if (_user_cargo_tmp_exec_ok.rc | default(1)) == 0
-         else (_user_cargo_home ~ '/.cargo/tmp') }}
-  tags: ["cargo", "user"]
-
-- name: Probe the SYSTEM cargo version
-  # /usr/bin/cargo specifically - never via PATH, which would resolve to
-  # ~/.cargo/bin once rustup has run and mask the system version.
-  ansible.builtin.command: /usr/bin/cargo --version
-  register: _user_system_cargo_version
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["cargo", "user"]
-
-- name: Probe for an existing rustup installation
-  ansible.builtin.stat:
-    path: "{{ _user_cargo_home }}/.cargo/bin/rustup"
-  register: _user_cargo_rustup_stat
-  tags: ["cargo", "user"]
-
-- name: Probe rustup availability in PATH
-  ansible.builtin.command: which rustup
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-  register: _user_cargo_rustup_which
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["cargo", "user"]
-
-- name: Probe system cargo package availability via DNF
-  # is_dnf_package_available parity from 20-cargo.sh; only needed when the
-  # system cargo is absent, no usable rustup exists, and nothing is forced.
-  ansible.builtin.command: dnf info cargo
-  register: _user_cargo_dnf_available
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when:
-    - (_user_system_cargo_version.stdout | default('')) | length == 0
-    - not ((_user_cargo_rustup_stat.stat.exists | default(false))
-           or (_user_cargo_rustup_which.rc | default(1)) == 0)
-    - not (user_cargo_force_install | default(false) | bool)
-  tags: ["cargo", "user"]
-
-- name: Resolve whether a system cargo DNF install should be attempted
-  ansible.builtin.set_fact:
-    _user_cargo_dnf_attempt: >-
-      {{ ((_user_system_cargo_version.stdout | default('')) | length == 0)
-         and (_user_cargo_dnf_available.rc | default(1)) == 0
-         and not ((_user_cargo_rustup_stat.stat.exists | default(false))
-                  or (_user_cargo_rustup_which.rc | default(1)) == 0)
-         and not (user_cargo_force_install | default(false) | bool) }}
-  tags: ["cargo", "user"]
-
-- name: Install the system cargo package from DNF
-  when: _user_cargo_dnf_attempt | default(false) | bool
-  tags: ["cargo", "user"]
-  block:
-    - name: Install cargo via the system package manager
-      ansible.builtin.dnf:
-        name: cargo
-        state: present
-      become: true
-      become_user: root
-      when: not (ansible_check_mode | default(false))
-      tags: ["cargo", "user"]
-
-  rescue:
-    - name: Report system cargo DNF installation failure
-      ansible.builtin.debug:
-        msg: >-
-          Failed to install the system cargo package via DNF; falling back
-          to the rustup user toolchain in ~/.cargo. Re-run with -vv for the
-          exact dnf failure.
-      tags: ["cargo", "user"]
-
-- name: Re-probe the system cargo version after the DNF decision
-  ansible.builtin.command: /usr/bin/cargo --version
-  register: _user_system_cargo_reprobe
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: _user_cargo_dnf_attempt | default(false) | bool
-  tags: ["cargo", "user"]
-
-- name: Resolve the cargo toolchain strategy
-  ansible.builtin.set_fact:
-    _user_cargo_system_final_version: >-
-      {{ (  (_user_system_cargo_reprobe.stdout | default(''))
-           if (_user_cargo_dnf_attempt | default(false) | bool)
-           else (_user_system_cargo_version.stdout | default('')) ) | trim }}
-    _user_cargo_dnf_installed: >-
-      {{ (_user_cargo_dnf_attempt | default(false) | bool)
-         and ((_user_system_cargo_reprobe.stdout | default('')) | length > 0) }}
-    _user_cargo_rustup_present: >-
-      {{ (_user_cargo_rustup_stat.stat.exists | default(false))
-         or (_user_cargo_rustup_which.rc | default(1)) == 0 }}
-  tags: ["cargo", "user"]
-
-- name: Resolve the cargo toolchain strategy verdict
-  ansible.builtin.set_fact:
-    _user_cargo_strategy: >-
-      {{ 'rustup-forced'
-         if (user_cargo_force_install | default(false) | bool)
-         else ('system'
-               if (_user_cargo_system_final_version | length > 0)
-                  and ((_user_cargo_system_final_version | regex_search('[0-9]+\.[0-9]+') | default('0', true))
-                       is version(user_cargo_min_system_version | default('1.80'), '>='))
-               else ('rustup-older'
-                     if (_user_cargo_system_final_version | length > 0)
-                     else 'rustup-unavailable')) }}
-  tags: ["cargo", "user"]
-
-- name: Resolve the rustup install gate and decision note
-  # Separate set_fact: set_fact evaluates all keys of one task up-front, so
-  # consumers of _user_cargo_strategy must live in a later task than the
-  # one that defines it (failure point 17, lazy evaluation).
-  ansible.builtin.set_fact:
-    _user_cargo_install_rustup: >-
-      {{ ((user_cargo_force_install | default(false) | bool)
-          or (_user_cargo_strategy in ['rustup-older', 'rustup-unavailable']))
-          and ((not (_user_cargo_rustup_present | default(false) | bool))
-               or (user_cargo_force_install | default(false) | bool)) }}
     _user_cargo_decision_note: >-
-      {{ 'user_cargo_force_install bypasses the system cargo check'
-         ~ ' and forces the rustup user toolchain'
-         if (user_cargo_force_install | default(false) | bool)
-         else ('system cargo is current; using it and skipping the rustup toolchain'
-               if _user_cargo_strategy == 'system'
-               else ('system cargo compares older than ' ~ user_cargo_min_system_version
-                     ~ '; installing the rustup user toolchain'
-                     if _user_cargo_strategy == 'rustup-older'
-                     else ('system cargo is absent' ~ (
-                            ' and the DNF cargo install did not produce a usable system cargo'
-                            if (_user_cargo_dnf_attempt | default(false) | bool)
-                            else ' (no usable cargo package available via DNF)')
-                            ~ '; installing the rustup user toolchain'))) }}
+      system cargo is current ({{ _user_cargo_system_semver | default('0.0.0') }} >= {{ user_cargo_min_system_version }});
+      using it and skipping the rustup toolchain
+  when: not ansible_check_mode and _user_cargo_strategy == 'system'
+  tags: ["cargo", "user"]
+
+- name: Set decision note for rustup strategy
+  ansible.builtin.set_fact:
+    _user_cargo_decision_note: >-
+      {{ 'system cargo is absent' if (_user_cargo_system_final | default('') | length == 0) else
+         'system cargo compares older than ' ~ user_cargo_min_system_version }};
+      installing the rustup user toolchain
+  when: not ansible_check_mode and _user_cargo_strategy == 'rustup'
   tags: ["cargo", "user"]
 
 - name: Report the cargo toolchain decision
   ansible.builtin.debug:
     msg: >-
-      Cargo toolchain decision: {{ _user_cargo_strategy }} -
-      system cargo: {{ _user_cargo_system_final_version | default('absent') }}
-      (minimum {{ user_cargo_min_system_version }}),
-      rustup present: {{ _user_cargo_rustup_present | default(false) | bool }},
-      rustup install: {{ _user_cargo_install_rustup | default(false) | bool }}.
-      {{ _user_cargo_decision_note }}.
+      Cargo toolchain decision: {{ _user_cargo_strategy }} - system cargo:
+      {{ _user_cargo_system_final | default('absent') | trim }},
+      minimum {{ user_cargo_min_system_version }}.
+      {{ _user_cargo_decision_note | default('') }}.
+  when: not ansible_check_mode
   tags: ["cargo", "user"]
 
-- name: Install the rustup user toolchain
-  when:
-    - _user_cargo_install_rustup | default(false) | bool
-    - not (ansible_check_mode | default(false))
-  tags: ["cargo", "user"]
-  block:
-    - name: Download the rustup installer
-      ansible.builtin.get_url:
-        url: "{{ user_cargo_rustup_url }}"
-        dest: "{{ _user_cargo_effective_tmpdir }}/rustup-init.sh"
-        mode: "0700"
-        timeout: 30
-      tags: ["cargo", "user"]
-
-      # --no-modify-path contract: ~/.zshenv (Layer 2) already sources
-      # ~/.cargo/env - Ansible writes no rc files.
-    - name: Run the rustup installer
-      ansible.builtin.command:
-        cmd: sh rustup-init.sh -y --no-modify-path
-        chdir: "{{ _user_cargo_effective_tmpdir }}"
-      environment:
-        TMPDIR: "{{ _user_cargo_effective_tmpdir }}"
-        PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-      changed_when: true
-      tags: ["cargo", "user"]
-
-  rescue:
-    - name: Report rustup installation failure
-      ansible.builtin.debug:
-        msg: >-
-          Failed to install rustup from {{ user_cargo_rustup_url }}.
-          Cargo-based crate installation requires the Rust toolchain; the
-          failing task output above shows the exact error.
-      tags: ["cargo", "user"]
-
-    - name: Fail on rustup installation failure
-      ansible.builtin.fail:
-        msg: "rustup installation failed - see the preceding task output."
-      tags: ["cargo", "user"]
-
-  # always: the downloaded rustup-init.sh (mode 0700, from the pinned
-  # user_cargo_rustup_url) is removed on success AND failure - a stray
-  # privesc-capable script in the effective TMPDIR is never left behind.
-  always:
-    - name: Clean up the rustup installer
-      ansible.builtin.file:
-        path: "{{ _user_cargo_effective_tmpdir }}/rustup-init.sh"
-        state: absent
-      when:
-        - _user_cargo_effective_tmpdir is defined
-        - not (ansible_check_mode | default(false))
-      tags: ["cargo", "user"]
-
-- name: Probe the effective cargo binary
-  # PATH resolution: the rustup cargo in ~/.cargo/bin wins when rustup runs;
-  # otherwise this resolves to the system cargo.
-  ansible.builtin.command: which cargo
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-  register: _user_cargo_which
-  changed_when: false
-  failed_when: false
-  check_mode: false
+- name: Prepare executable temporary storage
+  ansible.builtin.import_tasks: cargo/tmp.yml
+  when: not ansible_check_mode
   tags: ["cargo", "user"]
 
-- name: Verify the effective cargo version
-  ansible.builtin.command: cargo --version
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-  register: _user_cargo_version_raw
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: (_user_cargo_which.rc | default(1)) == 0
+- name: Prepare rustup when selected
+  ansible.builtin.import_tasks: cargo/rustup.yml
+  when: _user_cargo_strategy == 'rustup' and not ansible_check_mode
   tags: ["cargo", "user"]
 
-- name: Verify the effective rustc version
-  ansible.builtin.command: rustc --version
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-  register: _user_cargo_rustc_version_raw
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: (_user_cargo_which.rc | default(1)) == 0
-  tags: ["cargo", "user"]
-
-- name: Query cargo-installed crates
-  ansible.builtin.command: cargo install --list
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-    TMPDIR: "{{ _user_cargo_effective_tmpdir }}"
-  register: _user_cargo_install_list_raw
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: (_user_cargo_which.rc | default(1)) == 0
-  tags: ["cargo", "user"]
-
-- name: Probe crate binaries in PATH
-  ansible.builtin.command: "which {{ user_cargo_crate_bin_map[item] | default(item) }}"
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
-  loop: "{{ user_cargo_crates }}"
+- name: Install crates independently
+  ansible.builtin.include_tasks: cargo/crate.yml
+  loop: "{{ user_cargo_crates | default([]) }}"
   loop_control:
-    label: "{{ user_cargo_crate_bin_map[item] | default(item) }}"
-  register: _user_cargo_bin_probes
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["cargo", "user"]
-
-- name: Resolve present and cargo-installed crates
-  ansible.builtin.set_fact:
-    _user_cargo_present: >-
-      {{ _user_cargo_bin_probes.results
-         | selectattr('rc', 'eq', 0) | map(attribute='item') | unique | list }}
-    _user_cargo_cargo_installed: >-
-      {{ _user_cargo_install_list_raw.stdout_lines | default([])
-         | select('search', '^[^[:space:]]')
-         | map('regex_replace', ' .*$', '') | unique | list }}
-  tags: ["cargo", "user"]
-
-- name: Resolve crates requiring installation
-  # Crates whose mapped binary is present or that cargo already installed
-  # are skipped; user_cargo_force_crates is the per-crate skip-if-present
-  # override and is always attempted (idempotency pair with
-  # user_cargo_force_install).
-  ansible.builtin.set_fact:
-    _user_cargo_missing: >-
-      {{ (user_cargo_crates
-          | difference(_user_cargo_present)
-          | difference(_user_cargo_cargo_installed)
-          | unique | list)
-         | union(user_cargo_crates | intersect(user_cargo_force_crates | default([])))
-         | unique | list }}
-  tags: ["cargo", "user"]
-
-- name: Report converged crates and skip further work
-  ansible.builtin.debug:
-    msg: "All {{ user_cargo_crates | length }} cargo crates are already installed."
-  when: _user_cargo_missing | default([]) | length == 0
-  tags: ["cargo", "user"]
-
-- name: Install DNF-preferred crates as system packages
-  when:
-    - _user_cargo_missing | default([]) | length > 0
-  tags: ["cargo", "user"]
-  block:
-    - name: Probe DNF availability for DNF-preferred crates
-      ansible.builtin.command: "dnf info {{ user_cargo_crate_dnf_map[item] | default('') }}"
-      loop: "{{ _user_cargo_missing | select('in', user_cargo_crate_dnf_map | list) | list }}"
-      loop_control:
-        label: "{{ user_cargo_crate_dnf_map[item] | default(item) }}"
-      register: _user_cargo_dnf_info_probes
-      changed_when: false
-      failed_when: false
-      check_mode: false
-      tags: ["cargo", "user"]
-
-    # The ONLY privilege escalation in the crate flow (the script's
-    # needs-sudo declare): crates offered as distro packages install
-    # system-wide; per-crate failures fall back to cargo via the re-probe.
-    - name: Install available DNF-preferred crates
-      ansible.builtin.dnf:
-        name: "{{ user_cargo_crate_dnf_map[item] }}"
-        state: present
-      become: true
-      become_user: root
-      loop: "{{ _user_cargo_dnf_info_probes.results | selectattr('rc', 'eq', 0) | map(attribute='item') | list }}"
-      loop_control:
-        label: "{{ user_cargo_crate_dnf_map[item] | default(item) }}"
-      register: _user_cargo_dnf_installs
-      failed_when: false
-      when: not (ansible_check_mode | default(false))
-      tags: ["cargo", "user"]
-
-  rescue:
-    - name: Report DNF crate installation failure
-      ansible.builtin.debug:
-        msg: >-
-          DNF installation of DNF-preferred crates failed on
-          {{ inventory_hostname }}; affected crates fall back to
-          cargo compilation in the following step.
-      tags: ["cargo", "user"]
-
-- name: Re-probe crate binaries after the DNF attempts
-  ansible.builtin.command: "which {{ user_cargo_crate_bin_map[item] | default(item) }}"
-  environment:
-    PATH: "{{ _user_cargo_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
-  loop: "{{ _user_cargo_missing | default([]) }}"
-  loop_control:
-    label: "{{ user_cargo_crate_bin_map[item] | default(item) }}"
-  register: _user_cargo_bin_probes_after_dnf
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["cargo", "user"]
-
-- name: Resolve crates requiring cargo compilation
-  ansible.builtin.set_fact:
-    _user_cargo_cargo_needed: >-
-      {{ _user_cargo_missing | default([])
-         | difference(_user_cargo_bin_probes_after_dnf.results | selectattr('rc', 'eq', 0)
-                      | map(attribute='item') | list) }}
-  tags: ["cargo", "user"]
-
-- name: Report cargo unavailability for remaining crates
-  ansible.builtin.debug:
-    msg: >-
-      cargo is not available on PATH; the following crates could not be
-      installed via DNF and require the Rust toolchain:
-      {{ _user_cargo_cargo_needed | join(', ') }}.
-  when:
-    - (_user_cargo_which.rc | default(1)) != 0
-    - _user_cargo_cargo_needed | default([]) | length > 0
-  tags: ["cargo", "user"]
-
-- name: Install remaining crates via cargo
-  when:
-    - (_user_cargo_which.rc | default(1)) == 0
-    - _user_cargo_cargo_needed | default([]) | length > 0
-  tags: ["cargo", "user"]
-  block:
-    - name: Compile and install remaining crates via cargo
-      ansible.builtin.command: "cargo install --locked {{ item }}"
-      environment:
-        PATH: "{{ _user_cargo_home }}/.cargo/bin:{{ ansible_env.PATH | default('') }}"
-        CARGO_HOME: "{{ _user_cargo_home }}/.cargo"
-        TMPDIR: "{{ _user_cargo_effective_tmpdir }}"
-      loop: "{{ _user_cargo_cargo_needed }}"
-      loop_control:
-        label: "{{ item }}"
-      register: _user_cargo_install_results
-      changed_when: true
-      # Per-crate failures are non-fatal (script parity): a failing crate
-      # never stops the remaining crates; failures are reported below.
-      failed_when: false
-      when: not (ansible_check_mode | default(false))
-      tags: ["cargo", "user"]
-
-    - name: Report per-crate installation failures
-      ansible.builtin.debug:
-        msg: >-
-          cargo install failed for {{ item.item }} - the crate is either
-          unavailable, fails to compile, or provides a differently named
-          binary. Other crates continue; re-run with -vv for details.
-      loop: >-
-        {{ _user_cargo_install_results.results | default([])
-           | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list }}
-      loop_control:
-        label: "{{ item.item }}"
-      tags: ["cargo", "user"]
-
-  rescue:
-    - name: Report cargo installation group failure
-      ansible.builtin.debug:
-        msg: >-
-          The cargo crate installation group failed unexpectedly on
-          {{ inventory_hostname }} (not a per-crate failure); see the task
-          output above.
-      tags: ["cargo", "user"]
-
-- name: Summarize cargo toolchain and crate installation
-  ansible.builtin.debug:
-    msg: >-
-      Cargo toolchain strategy: {{ _user_cargo_strategy }},
-      effective cargo: {{ (_user_cargo_version_raw.stdout | default('none')) | trim }},
-      crates missing at entry: {{ _user_cargo_missing | default([]) | length }},
-      cargo install failures (non-fatal): {{ _user_cargo_install_results.results | default([])
-      | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list | length }}.
+    loop_var: _user_cargo_crate
+    label: "{{ _user_cargo_crate }}"
+  when: not ansible_check_mode
   tags: ["cargo", "user"]

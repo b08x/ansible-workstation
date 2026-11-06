@@ -120,8 +120,10 @@ argument_specs:
         type: bool
         description: >-
           Manage GNOME Shell user extensions. Lazily consumes the Tier 1
-          enable_desktop host flag; resolves to false when unset.
-        default: "{{ enable_desktop | default(false) | bool }}"
+          enable_desktop host flag and verifies GNOME is the target DE; resolves to false when unset or non-GNOME.
+        default: >-
+          {{ (enable_desktop | default(false) | bool) and
+             ((desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
       user_gnome_extensions:
         type: list
         elements: str

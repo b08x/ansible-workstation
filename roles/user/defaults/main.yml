@@ -58,12 +58,13 @@ user_cargo_force_crates: []
 
 user_cargo_rustup_url: "https://sh.rustup.rs"
 
-# Minimum acceptable SYSTEM cargo (/usr/bin/cargo) version, below which the
-# user rustup toolchain is installed into ~/.cargo. Fedora 43/44 ship Rust
-# 1.89+/1.99 (compares equal/newer; rustup stays skipped and the system
-# cargo is used), while EL 10 ships Rust 1.79 (compares older; rustup is
-# installed). Overridable per host/group.
-user_cargo_min_system_version: "1.80"
+# Minimum acceptable SYSTEM cargo (/usr/bin/cargo) version - below this, the
+# user rustup toolchain is installed into ~/.cargo. Fedora 43's updates
+# repository ships cargo 1.99.1 (verified: Fedora 43 host, cargo-1.99.1-2.fc43)
+# and Fedora 44 ships Rust 1.99+ - both compare >= 1.99.1, so system cargo is
+# used and rustup stays skipped; EL 10 ships Rust 1.79, compares older than
+# 1.99.1, so the rustup user toolchain is installed; overridable per host/group.
+user_cargo_min_system_version: "1.99.1"
 
 # Seeded verbatim from yadm files/cargo-packages.txt
 user_cargo_crates:
@@ -94,9 +95,10 @@ user_cargo_crate_dnf_map:
 
 # -- GNOME Shell user extensions (migrated from yadm bootstrap.d/40-gnome-extensions.sh) --
 
-# Lazy Tier 1 consumption: only managed when a desktop is enabled
-# (same pattern as gpu_install_intel_oneapi in roles/gpu).
-user_install_gnome_extensions: "{{ enable_desktop | default(false) | bool }}"
+# Lazy Tier 1 consumption: only managed when a desktop is enabled and GNOME is the DE
+user_install_gnome_extensions: >-
+  {{ (enable_desktop | default(false) | bool) and
+     ((desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
 
 # Force re-installation of every configured extension (skip-if-present override).
 user_gnome_extensions_force_install: false

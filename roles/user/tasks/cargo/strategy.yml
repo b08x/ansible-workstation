@@ -1,0 +1,73 @@
+---
+# System cargo probe and strategy resolution
+# Contract: probe SYSTEM cargo at /usr/bin/cargo (never via PATH).
+# Resolves _user_cargo_strategy, _user_cargo_executable, _user_cargo_path.
+
+- name: Record the workstation user home directory
+  ansible.builtin.set_fact:
+    _user_cargo_home: "{{ user.home | default('/home/' ~ user.name) }}"
+  tags: ["cargo", "user", "strategy"]
+
+- name: Probe the SYSTEM cargo version (never via PATH - rustup's ~/.cargo/bin would mask it)
+  ansible.builtin.command: /usr/bin/cargo --version
+  register: _user_cargo_system_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["cargo", "user", "strategy"]
+
+- name: Attempt DNF bootstrap when system cargo is absent
+  ansible.builtin.dnf:
+    name: cargo
+    state: present
+  become: true
+  become_user: root
+  register: _user_cargo_dnf_result
+  ignore_errors: true
+  when: >-
+    not ansible_check_mode and (_user_cargo_system_version.stdout | default('')) | length == 0
+  tags: ["cargo", "user", "strategy"]
+
+- name: Re-probe the system cargo version after DNF decision
+  ansible.builtin.command: /usr/bin/cargo --version
+  register: _user_cargo_system_reprobe
+  when: >-
+    not ansible_check_mode and
+    (_user_cargo_dnf_result is changed or _user_cargo_dnf_result is success)
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["cargo", "user", "strategy"]
+
+- name: Resolve the final system cargo version
+  ansible.builtin.set_fact:
+    _user_cargo_system_final: >-
+      {{ (_user_cargo_system_reprobe.stdout | default(''))
+        if (_user_cargo_dnf_result is changed or _user_cargo_dnf_result is success)
+        else (_user_cargo_system_version.stdout | default('')) }}
+  tags: ["cargo", "user", "strategy"]
+
+- name: Extract the system cargo semver for comparison
+  ansible.builtin.set_fact:
+    _user_cargo_system_semver: >-
+      {{ (_user_cargo_system_final | regex_replace('cargo ([0-9]+\.[0-9]+\.[0-9]+).*', '\1'))
+        | default('0.0.0', true) }}
+  when: (_user_cargo_system_final | length) > 0
+  tags: ["cargo", "user", "strategy"]
+
+- name: Default the cargo strategy to rustup
+  ansible.builtin.set_fact:
+    _user_cargo_strategy: rustup
+    _user_cargo_executable: "{{ _user_cargo_home }}/.cargo/bin/cargo"
+    _user_cargo_path: "{{ _user_cargo_home }}/.cargo/bin:/usr/local/bin:/usr/bin:/bin"
+  tags: ["cargo", "user", "strategy"]
+
+- name: Select system cargo strategy when version meets minimum
+  ansible.builtin.set_fact:
+    _user_cargo_strategy: system
+    _user_cargo_executable: /usr/bin/cargo
+    _user_cargo_path: /usr/bin:/bin:/usr/local/bin
+  when:
+    - (_user_cargo_system_final | length) > 0
+    - _user_cargo_system_semver | default('0.0.0') is version(user_cargo_min_system_version, '>=')
+  tags: ["cargo", "user", "strategy"]

@@ -1,0 +1,85 @@
+---
+# Rustup user toolchain installation
+# Contract: --no-modify-path (Layer 2 ~/.zshenv sources ~/.cargo/env; never write rc files).
+# Never writes ~/.cargo/config.toml.
+# rustup-init.sh always-cleanup on success AND failure.
+
+- name: Inspect the user's rustup binary
+  ansible.builtin.stat:
+    path: "{{ _user_cargo_home }}/.cargo/bin/rustup"
+  register: _user_cargo_rustup
+  tags: ["cargo", "user", "rustup"]
+
+- name: Install and verify rustup with recovery verification
+  environment:
+    TMPDIR: "{{ _user_cargo_tmpdir.stdout | default(_user_cargo_home ~ '/.cargo/tmp') }}"
+  block:
+    - name: Download the upstream rustup installer
+      ansible.builtin.get_url:
+        url: "{{ user_cargo_rustup_url }}"
+        dest: "{{ _user_cargo_tmpdir.stdout | default(_user_cargo_home ~ '/.cargo/tmp') }}/rustup-init.sh"
+        mode: "0700"
+        timeout: 30
+      when: not _user_cargo_rustup.stat.exists or user_cargo_force_install | default(false) | bool
+      tags: ["cargo", "user", "rustup", "download"]
+
+    - name: Install rustup when absent or explicitly forced
+      ansible.builtin.command:
+        argv:
+          - /bin/sh
+          - "{{ _user_cargo_tmpdir.stdout | default(_user_cargo_home ~ '/.cargo/tmp') }}/rustup-init.sh"
+          - -y
+          - --no-modify-path
+          - --profile
+          - minimal
+      environment:
+        HOME: "{{ _user_cargo_home }}"
+        CARGO_HOME: "{{ _user_cargo_home }}/.cargo"
+        RUSTUP_HOME: "{{ _user_cargo_home }}/.rustup"
+      changed_when: true
+      when: not _user_cargo_rustup.stat.exists or user_cargo_force_install | default(false) | bool
+      tags: ["cargo", "user", "rustup", "install"]
+
+    - name: Verify rustup availability
+      ansible.builtin.command:
+        argv: ["{{ _user_cargo_home }}/.cargo/bin/rustup", --version]
+      changed_when: false
+      check_mode: false
+      tags: ["cargo", "user", "rustup", "verify"]
+
+    - name: Verify the rustup-managed cargo toolchain
+      ansible.builtin.command:
+        argv: ["{{ _user_cargo_home }}/.cargo/bin/cargo", --version]
+      changed_when: false
+      check_mode: false
+      tags: ["cargo", "user", "rustup", "verify"]
+
+  rescue:
+    - name: Record the failed bootstrap or verification step
+      ansible.builtin.debug:
+        msg: >-
+          Rustup step failed: {{ ansible_failed_result.msg | default('unknown error') }};
+          checking existing installation.
+      tags: ["cargo", "user", "rustup", "rescue"]
+
+    - name: Require a working rustup installation after failure
+      ansible.builtin.command:
+        argv: ["{{ _user_cargo_home }}/.cargo/bin/rustup", --version]
+      changed_when: false
+      check_mode: false
+      tags: ["cargo", "user", "rustup", "rescue"]
+
+    - name: Require a working cargo toolchain after failure
+      ansible.builtin.command:
+        argv: ["{{ _user_cargo_home }}/.cargo/bin/cargo", --version]
+      changed_when: false
+      check_mode: false
+      tags: ["cargo", "user", "rustup", "rescue"]
+
+  always:
+    - name: Remove the downloaded bootstrap script
+      ansible.builtin.file:
+        path: "{{ _user_cargo_tmpdir.stdout | default(_user_cargo_home ~ '/.cargo/tmp') }}/rustup-init.sh"
+        state: absent
+      when: not ansible_check_mode
+      tags: ["cargo", "user", "rustup", "cleanup"]

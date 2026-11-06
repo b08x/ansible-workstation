@@ -21,8 +21,6 @@ tools_vscode_force_install: false
 # System Flatpaks and Flathub Remote
 tools_install_flatpaks: "{{ tools_install_gui_apps | default(true) | bool }}"
 tools_system_flatpaks:
-  - com.mattjakeman.ExtensionManager
-  - page.tesk.Refine
   - com.github.tchx84.Flatseal
   - io.github.flattool.Warehouse
   - io.github.dvlv.boxbuddyrs
