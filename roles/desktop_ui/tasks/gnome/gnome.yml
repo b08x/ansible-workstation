@@ -60,3 +60,13 @@
     - ansible_service_mgr == 'systemd'
     - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
   tags: ["desktop_ui", "gnome", "gdm", "systemd"]
+
+- name: Install gnome Flatpak applications
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+    remote: flathub
+  loop: "{{ gnome_flatpaks | default(desktop_ui_gnome_flatpaks) }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["flatpaks", "gnome"]

@@ -16,6 +16,9 @@ desktop_ui_cosmic_install_supplementary_apps: false
 
 desktop_ui_theme_force_install: false
 
+desktop_ui_gnome_flatpaks:
+  - com.mattjakeman.ExtensionManager
+  - page.tesk.Refine
 # GNOME Shell Extensions to ensure are installed via dnf
 desktop_ui_gnome_extensions:
   # System extensions (available via dnf)

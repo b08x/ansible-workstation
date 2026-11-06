@@ -28,21 +28,56 @@
   check_mode: false
   tags: ["gnome-extensions", "user"]
 
-- name: Skip GNOME extension management when GNOME Shell is absent
+- name: Probe running GNOME Shell process
+  ansible.builtin.command: pgrep -x gnome-shell
+  register: _user_gnome_proc_probe
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gnome-extensions", "user"]
+
+- name: Populate service facts for display manager detection
+  ansible.builtin.service_facts:
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve GNOME desktop environment status
+  ansible.builtin.set_fact:
+    _user_gnome_is_set: >-
+      {{ (desktop_ui_environment | default(desktop_environment | default(''))) == 'gnome' }}
+    _user_de_is_other: >-
+      {{ (desktop_ui_environment | default(desktop_environment | default(''))) not in ['', 'gnome'] }}
+    _user_gnome_is_detected: >-
+      {{ (_user_gnome_proc_probe.rc | default(1)) == 0 or
+         ((ansible_facts.services['gdm.service'].state | default('')) == 'running') }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Skip GNOME extension management when GNOME is absent, unconfigured, or inactive
   ansible.builtin.debug:
     msg: >-
-      gnome-shell or the gnome-extensions CLI was not found on
-      {{ inventory_hostname }}; skipping GNOME extension management.
-  when:
-    - (_user_gnome_shell_version_raw.rc | default(1)) != 0
-      or (_user_gnome_cli_probe.rc | default(1)) != 0
+      GNOME extension management is skipped on {{ inventory_hostname }}:
+      {% if (_user_gnome_shell_version_raw.rc | default(1)) != 0 or (_user_gnome_cli_probe.rc | default(1)) != 0 %}
+      gnome-shell or gnome-extensions CLI binary is not installed.
+      {% elif _user_de_is_other %}
+      desktop environment is configured as '{{ desktop_ui_environment | default(desktop_environment) }}' (not gnome).
+      {% else %}
+      GNOME is not set or detected as the active desktop environment.
+      {% endif %}
+  when: >-
+    (_user_gnome_shell_version_raw.rc | default(1)) != 0 or
+    (_user_gnome_cli_probe.rc | default(1)) != 0 or
+    _user_de_is_other or
+    not (_user_gnome_is_set or _user_gnome_is_detected or
+         (desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome')
   tags: ["gnome-extensions", "user"]
 
 - name: Resolve GNOME extension management availability
   ansible.builtin.set_fact:
     _user_gnome_available: >-
       {{ (_user_gnome_shell_version_raw.rc | default(1)) == 0
-         and (_user_gnome_cli_probe.rc | default(1)) == 0 }}
+         and (_user_gnome_cli_probe.rc | default(1)) == 0
+         and not _user_de_is_other
+         and (_user_gnome_is_set or _user_gnome_is_detected or
+              (desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
   tags: ["gnome-extensions", "user"]
 
 - name: Parse the GNOME Shell version
@@ -316,15 +351,21 @@
     # D-Bus session for the user; the write is advisory and extensions
     # activate on the next login/shell restart regardless of whether it
     # succeeded headlessly.
-    - name: Enable installed configured extensions
-      community.general.dconf:
-        key: /org/gnome/shell/enabled-extensions
-        value: >-
+    - name: Resolve extension list to enable
+      ansible.builtin.set_fact:
+        _user_gnome_to_enable: >-
           {{ _user_gnome_enabled_current
              | union(user_gnome_extensions)
              | intersect(_user_gnome_installed | union(_user_gnome_newly_installed | default([])))
-             | unique | to_json }}
+             | unique | list }}
+      tags: ["gnome-extensions", "user"]
+
+    - name: Enable installed configured extensions
+      community.general.dconf:
+        key: /org/gnome/shell/enabled-extensions
+        value: "{{ _user_gnome_to_enable | to_json }}"
         state: present
+      when: (_user_gnome_to_enable | length) > 0
       tags: ["gnome-extensions", "user"]
 
   rescue:
