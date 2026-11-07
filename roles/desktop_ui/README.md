@@ -116,7 +116,7 @@ These variables are namespaced with `desktop_ui_*` and control role-specific beh
 | Variable | Default | Description |
 |---|---|---|
 | `desktop_ui_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
-| `desktop_ui_environment` | `"gnome"` | Target desktop environment (`gnome`, `cosmic`, or `sway`). |
+| `desktop_ui_environment` | `"none"` | Target desktop environment (`gnome`, `cosmic`, `sway`, or `none`). `"none"` leaves the host headless — skips desktop, toolkit, and display manager provisioning. |
 | `desktop_ui_display_manager` | dynamic | Target display manager: defaults to `"cosmic-greeter"` when `desktop_ui_environment == 'cosmic'`, otherwise `"gdm"`. Supports overriding to `"gdm"` or `"cosmic-greeter"`. |
 | `desktop_ui_cosmic_use_copr` | `false` | When true on Fedora, enables the `ryanabx/cosmic-epoch` COPR repository prior to package installation. |
 | `desktop_ui_cosmic_install_supplementary_apps` | `false` | When true, installs supplementary COSMIC applications (`@cosmic-desktop-apps`). |

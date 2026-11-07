@@ -11,12 +11,17 @@ argument_specs:
         description: Run pre-flight validation assertions to fail fast on invalid environments.
       desktop_ui_environment:
         type: str
-        default: "gnome"
+        default: "none"
         choices:
+          - "none"
           - "gnome"
           - "cosmic"
           - "sway"
-        description: Desktop environment to provision (gnome, cosmic, or sway).
+        # >160 chars wraps lint; documented at length in the role README
+        description: >-
+          Desktop environment to provision (gnome, cosmic, or sway).
+          "none" leaves the host headless: no desktop, toolkit, or display
+          manager provisioning.
       desktop_ui_display_manager:
         type: str
         choices:

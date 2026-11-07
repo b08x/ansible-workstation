@@ -56,10 +56,10 @@
 - name: Assert supported desktop environment
   ansible.builtin.assert:
     that:
-      - desktop_ui_environment in ['gnome', 'cosmic', 'sway']
+      - desktop_ui_environment in ['gnome', 'cosmic', 'sway', 'none']
     fail_msg: >-
       Unsupported desktop environment '{{ desktop_ui_environment }}'.
-      Allowed values: gnome, cosmic, sway.
+      Allowed values: gnome, cosmic, sway, none (headless).
     quiet: true
   tags: ["desktop_ui", "assert", "always"]
 

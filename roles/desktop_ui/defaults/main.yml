@@ -4,8 +4,8 @@
 # Control pre-flight assertions (Fail-Fast Pattern)
 desktop_ui_assert_enabled: true
 
-# Target desktop environment: gnome, cosmic, or sway
-desktop_ui_environment: gnome
+# Target desktop environment: gnome, cosmic, sway, or none (headless; skip all desktop provisioning)
+desktop_ui_environment: none
 
 # Target display manager: defaults to cosmic-greeter when environment is cosmic, otherwise gdm
 desktop_ui_display_manager: "{{ 'cosmic-greeter' if desktop_ui_environment == 'cosmic' else 'gdm' }}"
