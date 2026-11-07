@@ -145,3 +145,24 @@ User skills live in `~/.gemini/skills/<name>/SKILL.md` and are loaded on demand:
 
 When trackboi MCP tools are available, agents can load trackboi skill details, then call `orient_agent` to catch up before updating cards, tracks, boards, or handoff notes. If `.trackboi`, `.etc/.trackboi`, or `.etc/trackboi` files are present but MCP tools are not available, agents may read those files to catch up on local context. Do not manually create, update, or delete trackboi records in the filesystem; use MCP tools for mutations.
 </trackboi>
+
+## Empirical Operational & Environmental Guardrails (FCA Invariants)
+
+Based on 3-month session intelligence and Formal Concept Analysis (FCA) forensics across the workstation ecosystem (`workstation`, `osbuild`, `rpmbuild`, `mistral-vibe`):
+
+### 1. Environmental Tooling Guardrails
+- **`find` Command Denylist Workaround**: The host environment and sandboxes enforce a security denylist blocking raw `find` executions (`tooling-limitation × environmental` #1 recurring friction, 312+ incidents). Agents MUST NEVER issue raw `find` commands. Use `ls -R`, recursive shell globbing (`shopt -s globstar; ls **/*.yml`), `read_file`, or target-directed python/ruby scripts.
+- **YAML Codebase-Memory Fallback**: When querying `codebase-memory-mcp` tools (`search_graph`, `trace_path`) on YAML-first Ansible repositories, knowledge graphs frequently return empty or partial coverage. Agents must immediately execute direct source inspection (`read_file`, `grep`) rather than looping through empty graph queries.
+- **Rootless Podman Network Resolution**: In rootless containerized test environments, default IPv6/AAAA lookups fail. Enforce `ip_resolve=4` in container registries and network configurations.
+- **Pre-commit Hook Isolation**: Pre-commit hooks (`prettier`, `black`, `isort`, `trailing-whitespace`) frequently auto-fix unrelated files in the working tree. After any pre-commit run, agents must inspect `git status` and immediately unstage/revert out-of-scope files (`git restore --staged <file>` / `git checkout <file>`) to preserve atomic commit boundaries.
+
+### 2. Decision & Collaboration Invariants
+- **Mandatory Collaborative Gating on Test Suites (`Target_Test`)**: FCA empirical data demonstrates that unsupervised model autonomy on test harnesses has the highest failure rate (13.6% error, 25.4% correction, 82.0% success), whereas collaborative test design reaches 94.4% success with 0% runtime errors. Any structural additions or changes to test suites, Molecule scenarios, or assertion frameworks must be human-gated (`Collab_Decide`) checkpoints.
+- **Fail-Fast Escalation on `State_Blocked` / `State_Error`**: Post-failure trajectory tracking shows that autonomous self-retry after `State_Blocked` fails 35.5% of the time, and after `State_Error` fails 42.2% of the time. If an agent task blocks or fails twice consecutively, agents MUST immediately escalate to the user or request guidance rather than persisting in autonomous retry loops.
+
+### 3. Multi-Agent Delegation & Handoff Contracts
+- **Rich State Payloads (Eliminating "Thin Handoffs")**: Context loss shifted from memory compaction to thin subagent briefs (`context-loss ×13`). All delegated subagent briefs MUST include explicit state payloads:
+  1. Exact file paths (`PATHS`) to inspect or mutate.
+  2. Concrete deterministic verification commands (`GATE`).
+  3. Pinned type and structural contracts (`CONTRACTS`).
+
