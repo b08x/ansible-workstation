@@ -1,0 +1,98 @@
+// <Lattice object of 3 atoms 25 concepts 3 coatoms at 0x7f98ed806270>
+digraph Lattice {
+    rankdir=BT;
+    bgcolor="transparent";
+    node [shape=box, style="filled,rounded", fillcolor="#1e1e2e", fontcolor="#cdd6f4", fontname="Sans", fontsize=10, color="#89b4fa", penwidth=1.5];
+    edge [dir=none, color="#6c7086", penwidth=1.5];
+	node [label="" shape=circle style=filled width=.25]
+	edge [dir=none labeldistance=1.5 minlen=2]
+	c0
+	c1
+	c1 -> c1 [color=transparent headlabel="LLM:SrcCode" labelangle=270]
+	c1 -> c0
+	c2
+	c2 -> c2 [color=transparent headlabel="LLM:Test" labelangle=270]
+	c2 -> c0
+	c3
+	c3 -> c3 [color=transparent headlabel="Collab:Docs" labelangle=270]
+	c3 -> c0
+	c4
+	c4 -> c4 [color=transparent headlabel="LLM:Config" labelangle=270]
+	c4 -> c1
+	c5
+	c5 -> c1
+	c5 -> c2
+	c6
+	c6 -> c2
+	c6 -> c3
+	c7
+	c7 -> c4
+	c7 -> c5
+	c8
+	c8 -> c8 [color=transparent headlabel="Collab:Config" labelangle=270]
+	c8 -> c1
+	c8 -> c3
+	c9
+	c9 -> c9 [color=transparent headlabel="User:Config" labelangle=270]
+	c9 -> c6
+	c10
+	c10 -> c5
+	c10 -> c6
+	c10 -> c8
+	c11
+	c11 -> c11 [color=transparent headlabel="LLM:Docs" labelangle=270]
+	c11 -> c4
+	c11 -> c8
+	c12
+	c12 -> c9
+	c12 -> c10
+	c13
+	c13 -> c13 [color=transparent headlabel="Collab:SrcCode User:SrcCode User:Test Collab:Test" labelangle=270]
+	c13 -> c13 [color=transparent labelangle=90 taillabel="Test_Intensive(>25%)"]
+	c13 -> c2
+	c14
+	c14 -> c14 [color=transparent headlabel="User:Docs" labelangle=270]
+	c14 -> c14 [color=transparent labelangle=90 taillabel="Succ_High(>90%)"]
+	c14 -> c11
+	c15
+	c15 -> c7
+	c15 -> c10
+	c15 -> c11
+	c16
+	c16 -> c5
+	c16 -> c13
+	c17
+	c17 -> c6
+	c17 -> c13
+	c18
+	c18 -> c18 [color=transparent labelangle=90 taillabel="Err_Elevated(>5%)"]
+	c18 -> c7
+	c18 -> c16
+	c19
+	c19 -> c19 [color=transparent labelangle=90 taillabel="Block_Elevated(>3%)"]
+	c19 -> c9
+	c19 -> c17
+	c20
+	c20 -> c20 [color=transparent labelangle=90 taillabel="Vol_High(>100)"]
+	c20 -> c12
+	c20 -> c14
+	c20 -> c15
+	c21
+	c21 -> c10
+	c21 -> c16
+	c21 -> c17
+	c22
+	c22 -> c22 [color=transparent labelangle=90 taillabel="Corr_High(>20%)"]
+	c22 -> c12
+	c22 -> c19
+	c22 -> c21
+	c23
+	c23 -> c23 [color=transparent labelangle=90 taillabel="Tool_Intensive(>70%)"]
+	c23 -> c15
+	c23 -> c18
+	c23 -> c21
+	c24
+	c24 -> c20
+	c24 -> c22
+	c24 -> c23
+}
