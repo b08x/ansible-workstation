@@ -34,7 +34,7 @@ Every link in the chain below is verifiable in this repository:
   performance` — host variables (step 3) outrank role defaults, so ninjabot
   runs `performance`.
 - Extra vars outrank everything: `ansible-playbook playbooks/workstation.yml
-  -e desktop_ui_environment=cosmic` overrides the `gnome` default in
+  -e desktop_ui_environment=cosmic` overrides the `none` (headless) default in
   `roles/desktop_ui/defaults/main.yml` for exactly one run (step 4).
 
 The tiers also meet on purpose: `inventory/host_vars/tinybot.yml` sets the

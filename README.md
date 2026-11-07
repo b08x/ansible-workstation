@@ -322,7 +322,7 @@ autonomous coding agents and LLM execution pipelines:
 
 ## The Architecture and Decoupling Contract
 
-The Layer 1 orchestration surface consists of five primary entry points:
+The Layer 1 orchestration surface consists of six primary entry points:
 
 - [local.yml](local.yml) — The root-level `ansible-pull` entry point for autonomous local
   convergence. Implements two decoupled plays:
@@ -342,7 +342,12 @@ The Layer 1 orchestration surface consists of five primary entry points:
   [playbooks/repositories.yml](playbooks/repositories.yml) first, then targets the `workstations`
   inventory group across four modular plays.
 - [playbooks/repositories.yml](playbooks/repositories.yml) — Standalone package manager and DNF
-  repository configuration across Fedora and EL10 distributions.
+  repository configuration across Fedora and EL10 distributions, including the Negativo 17
+  NVIDIA/multimedia repositories posted by default (`enable_negativo17: true`) with per-host
+  Drop-in exclusion (`playbooks/files/90-negativo17-overrides.repo`).
+- [playbooks/nvidia.yml](playbooks/nvidia.yml) — Standalone NVIDIA driver + CUDA + container-toolkit
+  provisioning against the `workstations` group; relies on `playbooks/repositories.yml` having
+  posted the Negativo 17 repositories first.
 - [playbooks/nas.yml](playbooks/nas.yml) — Network-attached storage services (NFSv4, Samba, Rsync,
   firewalld) against `hosts: all`.
 - [playbooks/tts.yml](playbooks/tts.yml) — Local speech synthesis (Whisper / Piper) against

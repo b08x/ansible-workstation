@@ -111,6 +111,7 @@ Feature: High-Performance Developer Workstation
      When role "gpu" is executed with nvidia_cuda_install: true
       And role "user" is executed for primary user "b08x"
      Then NVIDIA kernel modules (nvidia, nvidia_uvm) must be loaded
+      And Negativo 17 repositories must be the sole NVIDIA provider (provider preflight)
       And nvidia-container-toolkit and CDI specification must be configured
       And unprivileged toolchains (~/.local/go, ~/.cargo/bin) must be verified
       And re-running the play must report changed=0
@@ -194,6 +195,9 @@ This repository serves as a **controlled reference distilled dataset** for auton
   - *Sub-Second Assertions*: Every role includes a standalone `tasks/assert.yml` validating platform,
     elevation, and identity in under one second.
   - *Strict Single Ownership*: Every configuration file on disk is owned by exactly one role.
+  - *NVIDIA Provider Mutual Exclusion*: The `gpu` role's preflight fails when more than one NVIDIA
+    driver provider (upstream CUDA, negativo17-lts, Negativo 17, RPM Fusion) is configured in
+    `/etc/yum.repos.d` (escape hatch `gpu_nvidia_provider_preflight: false`).
   - *Session-Safe Handlers*: Handlers inspect `loginctl list-sessions` to prevent disconnecting active seats.
 - **On-Demand Generation**: Autonomous agents can safely reference this dataset to generate custom
   tasks, auxiliary playbooks, or extension roles that immediately conform to the platform's safety contracts.
@@ -210,6 +214,9 @@ workstation/
 ├── playbooks/
 │   ├── workstation.yml        # Multi-host workstation orchestration playbook
 │   ├── repositories.yml       # Standalone DNF / DNF5 repository configuration
+│   ├── nvidia.yml            # Standalone NVIDIA driver + CUDA provisioning
+│   ├── tasks/                # Shared playbook task includes (repositories/negativo17.yml)
+│   ├── files/                # Repo Drop-ins (90-negativo17-overrides.repo)
 │   ├── nas.yml                # Network-attached storage services (NFSv4, Samba, Rsync)
 │   ├── tts.yml                # Text-to-speech services (Whisper / Piper)
 │   └── agent-harness/         # Dedicated agent CLI provisioning (Claude, Antigravity, Crush, OpenCode)
