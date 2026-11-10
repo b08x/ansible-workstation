@@ -46,6 +46,12 @@ sway_environment_vars:
   SDL_VIDEODRIVER: "wayland"
   _JAVA_AWT_WM_NONREPARENTING: "1"
 
+# Audio and volume management (WirePlumber / PipeWire)
+sway_volume_step: 5
+sway_volume_limit: "1.0"
+sway_volume_helper_path: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin/volume-helper"
+sway_volume_notifications: false
+
 # Custom config include paths and extra directives
 sway_config_custom_includes:
   - "/usr/share/sway/config.d/*.conf"

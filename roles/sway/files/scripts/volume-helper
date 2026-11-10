@@ -1,0 +1,116 @@
+#!/bin/sh
+# Sway volume helper script using WirePlumber (wpctl)
+# Status feedback is provided via Waybar wireplumber module (silent execution).
+
+set -eu
+
+if ! command -v wpctl >/dev/null 2>&1; then
+    exit 0
+fi
+
+DEFAULT_STEP=5
+LIMIT="1.0"
+SINK="@DEFAULT_AUDIO_SINK@"
+SOURCE="@DEFAULT_AUDIO_SOURCE@"
+ACTION=""
+STEP="$DEFAULT_STEP"
+
+normalize_limit() {
+    val="$1"
+    case "$val" in
+        *%)
+            val="${val%%%}"
+            awk -v v="$val" 'BEGIN { printf "%.2f", v / 100 }'
+            ;;
+        *)
+            awk -v v="$val" 'BEGIN { if (v > 10) printf "%.2f", v / 100; else print v }'
+            ;;
+    esac
+}
+
+normalize_step() {
+    val="$1"
+    echo "${val%%%}"
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --sink)
+            SINK="$2"
+            shift 2
+            ;;
+        --source)
+            SOURCE="$2"
+            shift 2
+            ;;
+        -l|--limit)
+            LIMIT="$2"
+            shift 2
+            ;;
+        -i|--increase)
+            ACTION="increase"
+            if [ "$#" -ge 2 ]; then
+                case "$2" in
+                    -*|"") ;;
+                    *) STEP="$2"; shift ;;
+                esac
+            fi
+            shift
+            ;;
+        -d|--decrease)
+            ACTION="decrease"
+            if [ "$#" -ge 2 ]; then
+                case "$2" in
+                    -*|"") ;;
+                    *) STEP="$2"; shift ;;
+                esac
+            fi
+            shift
+            ;;
+        -m|--mute|--toggle-mute)
+            ACTION="toggle-mute"
+            shift
+            ;;
+        --mic-mute|--toggle-mic-mute)
+            ACTION="toggle-mic-mute"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: volume-helper [options]"
+            echo "Options:"
+            echo "  --sink <SINK>                 Target audio sink (default: @DEFAULT_AUDIO_SINK@)"
+            echo "  --source <SOURCE>             Target audio source (default: @DEFAULT_AUDIO_SOURCE@)"
+            echo "  -l, --limit <LIMIT>           Maximum volume limit (default: 1.0)"
+            echo "  -i, --increase [STEP]         Increase sink volume by STEP% (default: 5)"
+            echo "  -d, --decrease [STEP]         Decrease sink volume by STEP% (default: 5)"
+            echo "  -m, --mute, --toggle-mute     Toggle sink mute state"
+            echo "  --mic-mute, --toggle-mic-mute Toggle source mute state"
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+LIMIT="$(normalize_limit "$LIMIT")"
+STEP="$(normalize_step "$STEP")"
+
+case "$ACTION" in
+    increase)
+        exec wpctl set-volume -l "$LIMIT" "$SINK" "$STEP"%+
+        ;;
+    decrease)
+        exec wpctl set-volume -l "$LIMIT" "$SINK" "$STEP"%-
+        ;;
+    toggle-mute)
+        exec wpctl set-mute "$SINK" toggle
+        ;;
+    toggle-mic-mute)
+        exec wpctl set-mute "$SOURCE" toggle
+        ;;
+    *)
+        exit 0
+        ;;
+esac

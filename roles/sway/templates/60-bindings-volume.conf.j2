@@ -1,0 +1,15 @@
+# 60-bindings-volume.conf - User PipeWire / WirePlumber volume bindings
+# Overrides /usr/share/sway/config.d/60-bindings-volume.conf via layered-include
+
+set $volume_helper_cmd {{ sway_volume_helper_path }}
+set $volume_step {{ sway_volume_step }}
+set $volume_limit {{ sway_volume_limit }}
+
+bindsym --locked {
+    XF86AudioRaiseVolume exec \
+        $volume_helper_cmd --limit "$volume_limit" --increase "$volume_step"
+    XF86AudioLowerVolume exec \
+        $volume_helper_cmd --limit "$volume_limit" --decrease "$volume_step"
+    XF86AudioMute    exec $volume_helper_cmd --toggle-mute
+    XF86AudioMicMute exec $volume_helper_cmd --toggle-mic-mute
+}
