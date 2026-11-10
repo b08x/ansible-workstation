@@ -1,0 +1,9 @@
+# greetd configuration managed by Ansible (roles/sway)
+# Changes will be overwritten.
+
+[terminal]
+vt = {{ sway_greetd_vt }}
+
+[default_session]
+command = "{{ sway_greetd_command }}"
+user = "{{ sway_greetd_user }}"

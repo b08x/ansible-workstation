@@ -1,0 +1,25 @@
+---
+# Distribution-specific packages for AlmaLinux / Enterprise Linux
+
+sway_packages:
+  core:
+    - sway
+    - swaybg
+    - swayidle
+    - swaylock
+    - foot
+  companions:
+    - waybar
+    - kanshi
+    - rofi-wayland
+    - mako
+  tools:
+    - grim
+    - slurp
+    - wl-clipboard
+    - pavucontrol
+    - playerctl
+    - brightnessctl
+  greetd:
+    - greetd
+    - tuigreet

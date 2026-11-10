@@ -44,6 +44,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -65,6 +66,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -85,6 +87,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -110,6 +113,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -132,6 +136,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -157,6 +162,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -177,6 +183,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -197,6 +204,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -233,6 +241,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
           "assert",
@@ -397,6 +406,14 @@
       when: auto_enable_desktop | default(false) | bool
       tags: ["desktop_ui", "desktop", "assert"]
 
+    - name: Execute sway role
+      ansible.builtin.include_role:
+        name: sway
+      when:
+        - auto_enable_desktop | default(false) | bool
+        - desktop_ui_environment | default('') == 'sway'
+      tags: ["sway", "desktop", "system", "assert"]
+
     - name: Execute tools role
       ansible.builtin.include_role:
         name: tools
@@ -416,6 +433,7 @@
           "containerd",
           "libvirt",
           "desktop_ui",
+          "sway",
           "desktop",
           "tools",
         ]

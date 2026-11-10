@@ -1,0 +1,35 @@
+---
+# tasks file for session environment configuration in sway role
+
+- name: Ensure Sway configuration directories exist for environment
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0755"
+  loop:
+    - path: /etc/sway
+      owner: root
+      group: root
+    - path: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway"
+      owner: "{{ user.name }}"
+      group: "{{ user.name }}"
+  tags: ["sway", "environment"]
+
+- name: Deploy Sway session environment files
+  ansible.builtin.template:
+    src: environment.j2
+    dest: "{{ item.dest }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - dest: /etc/sway/environment
+      owner: root
+      group: root
+    - dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/environment"
+      owner: "{{ user.name }}"
+      group: "{{ user.name }}"
+  tags: ["sway", "environment"]

@@ -1,0 +1,32 @@
+---
+# tasks file for user configuration in sway role
+
+- name: Ensure user Sway configuration directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/sway"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config.d"
+  tags: ["sway", "config"]
+
+- name: Check if user Sway configuration exists
+  ansible.builtin.stat:
+    path: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config"
+  register: _sway_user_config_stat
+  tags: ["sway", "config"]
+
+- name: Deploy user Sway configuration
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  when: not _sway_user_config_stat.stat.exists or (sway_force_reconfigure | default(false) | bool)
+  notify: Reload sway
+  tags: ["sway", "config"]

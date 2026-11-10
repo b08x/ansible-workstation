@@ -1,7 +1,9 @@
 ---
-# tasks file for Sway window manager stub in roles/desktop_ui
+# tasks file for Sway window manager notice in roles/desktop_ui
 
-- name: Announce Sway stub
+- name: Announce Sway provisioning delegation
   ansible.builtin.debug:
-    msg: "desktop_ui: sway provisioning not implemented yet; no changes made."
+    msg: >-
+      desktop_ui: Sway window manager provisioning is managed by standalone role 'sway'.
+      Ensure 'role: sway' is included in your playbook when desktop_ui_environment is 'sway'.
   tags: ["desktop_ui", "sway"]

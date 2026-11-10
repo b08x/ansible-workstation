@@ -1,0 +1,6 @@
+# Sway session environment managed by Ansible
+# Configured by roles/sway
+
+{% for key, value in (sway_environment_vars | default({})).items() %}
+{{ key }}="{{ value }}"
+{% endfor %}

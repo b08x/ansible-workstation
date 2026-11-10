@@ -1,0 +1,83 @@
+---
+# tasks file for greetd display manager configuration in sway role
+
+- name: Ensure greetd configuration directory exists
+  ansible.builtin.file:
+    path: /etc/greetd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["sway", "greetd"]
+
+- name: Deploy greetd configuration
+  ansible.builtin.template:
+    src: greetd-config.toml.j2
+    dest: /etc/greetd/config.toml
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart greetd
+  tags: ["sway", "greetd"]
+
+- name: Check conflicting display manager units
+  ansible.builtin.stat:
+    path: "/usr/lib/systemd/system/{{ item }}.service"
+  loop: "{{ sway_conflicting_display_managers }}"
+  register: _sway_dm_units
+  check_mode: false
+  when: sway_manage_display_manager | default(true) | bool
+  tags: ["sway", "greetd", "systemd"]
+
+- name: Stop and disable conflicting display managers
+  ansible.builtin.service:
+    name: "{{ item.item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ _sway_dm_units.results | default([]) }}"
+  when:
+    - sway_manage_display_manager | default(true) | bool
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - item.stat.exists | default(false)
+  tags: ["sway", "greetd", "systemd"]
+
+- name: Check display-manager symlink target
+  ansible.builtin.stat:
+    path: /etc/systemd/system/display-manager.service
+  register: _sway_dm_symlink
+  check_mode: false
+  when: sway_manage_display_manager | default(true) | bool
+  tags: ["sway", "greetd", "systemd"]
+
+- name: Remove stale display-manager symlink
+  ansible.builtin.file:
+    path: /etc/systemd/system/display-manager.service
+    state: absent
+  when:
+    - sway_manage_display_manager | default(true) | bool
+    - _sway_dm_symlink.stat.exists | default(false)
+    - _sway_dm_symlink.stat.islnk | default(false)
+    - not (_sway_dm_symlink.stat.lnk_target | default('')).endswith('greetd.service')
+  tags: ["sway", "greetd", "systemd"]
+
+- name: Check if greetd systemd unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/greetd.service
+  register: _sway_greetd_unit
+  check_mode: false
+  when: sway_manage_display_manager | default(true) | bool
+  tags: ["sway", "greetd", "systemd"]
+
+- name: Enable and start greetd service
+  ansible.builtin.service:
+    name: greetd
+    enabled: true
+    state: started
+  when:
+    - sway_manage_display_manager | default(true) | bool
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - (_sway_greetd_unit.stat.exists | default(false)) or not ansible_check_mode
+  tags: ["sway", "greetd", "systemd"]

@@ -60,6 +60,11 @@
       tags: ["containerd", "virt"]
     - role: desktop_ui
       tags: ["desktop_ui", "desktop", "system"]
+    - role: sway
+      when:
+        - enable_desktop | default(true) | bool
+        - desktop_ui_environment | default('') == 'sway'
+      tags: ["sway", "desktop", "system"]
     - role: libvirt
       tags: ["libvirt", "virt"]
 

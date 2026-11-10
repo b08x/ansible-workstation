@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  author: Robert Pannick
+  description: Standalone Sway Wayland window manager role for Fedora and Enterprise Linux workstations.
+  company: Syncopated
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+
+  galaxy_tags:
+    - sway
+    - wayland
+    - desktop
+    - windowmanager
+    - greetd
+
+dependencies: []

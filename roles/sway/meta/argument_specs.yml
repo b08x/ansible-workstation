@@ -1,0 +1,87 @@
+---
+# argument spec file for sway role
+
+argument_specs:
+  main:
+    short_description: Standalone Sway Wayland window manager role.
+    description:
+      - Configures the Sway Wayland window manager, companions, greetd display manager, session environment, and user configuration.
+    options:
+      sway_assert_enabled:
+        type: bool
+        default: true
+        description: Enable pre-flight environment, platform, and privilege assertions.
+      sway_force_install:
+        type: bool
+        default: false
+        description: Force reinstallation of Sway packages even if skip conditions match.
+      sway_force_reconfigure:
+        type: bool
+        default: false
+        description: Force recreation and overwrite of user configuration files.
+      sway_mod:
+        type: str
+        default: "Mod4"
+        description: Modifier key used in Sway keybindings (e.g. Mod4 for Super, Mod1 for Alt).
+      sway_terminal:
+        type: str
+        default: "foot"
+        description: Default terminal emulator binary to invoke in Sway bindings.
+      sway_menu:
+        type: str
+        default: "rofi -show drun"
+        description: Application launcher command to execute in Sway menu bindings.
+      sway_font:
+        type: str
+        default: "pango:monospace 10"
+        description: Font definition string used by Sway window titlebars and UI.
+      sway_install_companions:
+        type: bool
+        default: true
+        description: Install desktop companion components (Waybar, Kanshi, Rofi-wayland, Mako).
+      sway_install_tools:
+        type: bool
+        default: true
+        description: Install utility tools (grim, slurp, wl-clipboard, pavucontrol, playerctl, brightnessctl).
+      sway_install_greetd:
+        type: bool
+        default: true
+        description: Install and configure greetd login manager and tuigreet greeter.
+      sway_manage_display_manager:
+        type: bool
+        default: true
+        description: Manage display manager service status (enable greetd, stop and disable conflicting GDM).
+      sway_conflicting_display_managers:
+        type: list
+        elements: str
+        description: List of display manager service names to stop and disable when greetd is enabled.
+      sway_manage_environment:
+        type: bool
+        default: true
+        description: Manage system and user session environment files for Sway.
+      sway_packages:
+        type: dict
+        description: Package definitions map containing core, companions, tools, and greetd lists.
+      sway_greetd_command:
+        type: str
+        default: "tuigreet --time --remember --remember-user-session --cmd sway"
+        description: Command line executed by greetd for session selection and login.
+      sway_greetd_user:
+        type: str
+        default: "greetd"
+        description: User account under which the greetd daemon runs.
+      sway_greetd_vt:
+        type: int
+        default: 1
+        description: Virtual terminal on which greetd displays the greeter.
+      sway_environment_vars:
+        type: dict
+        description: Key-value map of Wayland and desktop session environment variables.
+      sway_config_custom_includes:
+        type: list
+        elements: str
+        description: List of glob include paths for layered Sway configuration.
+      sway_extra_config:
+        type: str
+        default: ""
+        description: Raw configuration text appended to user Sway configuration.

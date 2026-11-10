@@ -1,0 +1,54 @@
+---
+# defaults file for sway role
+
+# Pre-flight & enforcement flags
+sway_assert_enabled: true
+sway_force_install: false
+sway_force_reconfigure: false
+
+# User Interface Preferences
+sway_mod: "Mod4"
+sway_terminal: "foot"
+sway_menu: "rofi -show drun"
+sway_font: "pango:monospace 10"
+
+# Component installation toggles
+sway_install_companions: true
+sway_install_tools: true
+sway_install_greetd: true
+sway_manage_display_manager: true
+sway_manage_environment: true
+sway_conflicting_display_managers:
+  - gdm
+  - cosmic-greeter
+  - sddm
+  - lightdm
+
+# Package definitions (platform defaults provided by vars/*.yml)
+sway_packages:
+  core: []
+  companions: []
+  tools: []
+  greetd: []
+
+# greetd configuration options
+sway_greetd_command: "tuigreet --time --remember --remember-user-session --cmd sway"
+sway_greetd_user: "greetd"
+sway_greetd_vt: 1
+
+# Environment settings
+sway_environment_vars:
+  XDG_CURRENT_DESKTOP: "sway"
+  XDG_SESSION_TYPE: "wayland"
+  XDG_SESSION_DESKTOP: "sway"
+  MOZ_ENABLE_WAYLAND: "1"
+  QT_QPA_PLATFORM: "wayland;xcb"
+  SDL_VIDEODRIVER: "wayland"
+  _JAVA_AWT_WM_NONREPARENTING: "1"
+
+# Custom config include paths and extra directives
+sway_config_custom_includes:
+  - "/usr/share/sway/config.d/*.conf"
+  - "/etc/sway/config.d/*.conf"
+  - "{{ user.home | default('/home/' ~ (user.name | default('nobody'))) }}/.config/sway/config.d/*.conf"
+sway_extra_config: ""

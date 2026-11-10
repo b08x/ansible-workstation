@@ -1,0 +1,51 @@
+---
+# handlers file for sway role
+
+- name: Greetd restart | check active sessions on local seats
+  ansible.builtin.shell: |
+    set -o pipefail
+    loginctl list-sessions --no-legend --no-pager 2>/dev/null | while read -r _session _uid _user _seat _rest; do
+      if [ -n "${_seat}" ]; then
+        printf '%s %s\n' "${_user}" "${_uid}"
+      fi
+    done | sort -u
+  args:
+    executable: /bin/bash
+  register: _sway_seat_sessions
+  changed_when: false
+  check_mode: false
+  listen: "Restart greetd"
+
+- name: Restart greetd
+  ansible.builtin.service:
+    name: greetd
+    state: restarted
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - not ansible_check_mode
+    - _sway_seat_sessions.stdout | default('') | trim | length == 0
+  listen: "Restart greetd"
+
+- name: Greetd restart | warn logged-in users of deferred restart
+  ansible.builtin.debug:
+    msg: >-
+      Active GUI session detected for user {{ item.split(' ')[0] }} (UID {{ item.split(' ')[1] }}).
+      Skipping greetd restart to prevent session termination.
+      Log out or reboot to apply updated greetd configuration.
+  loop: "{{ _sway_seat_sessions.stdout_lines | default([]) }}"
+  loop_control:
+    label: "{{ item.split(' ')[0] }}"
+  when:
+    - _sway_seat_sessions.stdout | default('') | trim | length > 0
+  listen: "Restart greetd"
+
+- name: Reload sway
+  ansible.builtin.command: swaymsg reload
+  become: true
+  become_user: "{{ user.name }}"
+  changed_when: false
+  failed_when: false
+  when:
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - not ansible_check_mode

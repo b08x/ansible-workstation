@@ -1,0 +1,4 @@
+---
+# Host variables for gir-sway test VM
+enable_desktop: true
+desktop_ui_environment: sway
