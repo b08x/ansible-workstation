@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+count=0
+if command -v virsh >/dev/null 2>&1; then
+    count=$(virsh list --state-running --name 2>/dev/null | grep -c -v '^$' || echo 0)
+fi
+
+echo "{\"vms\": ${count:-0}}"

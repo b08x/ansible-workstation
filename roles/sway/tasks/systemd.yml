@@ -1,0 +1,24 @@
+---
+# tasks file for user systemd services in sway role
+
+- name: Ensure user systemd service directory exists
+  ansible.builtin.file:
+    path: "{{ user.home | default('/home/' ~ user.name) }}/.config/systemd/user"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  tags: ["sway", "systemd"]
+
+- name: Deploy Sway user session systemd services
+  ansible.builtin.template:
+    src: "systemd/{{ item }}.j2"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/systemd/user/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - eww.service
+    - sway-telemetry.service
+  tags: ["sway", "systemd"]

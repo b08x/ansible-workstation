@@ -1,0 +1,49 @@
+(defwindow bottom-bar
+  :monitor 0
+  :geometry (geometry :x "0%"
+                      :y "0%"
+                      :width "100%"
+                      :height "36px"
+                      :anchor "bottom center")
+  :stacking "bottom"
+  :exclusive true
+  (bottom-bar-widget))
+
+(defwidget bottom-bar-widget []
+  (centerbox :orientation "horizontal"
+             :class "bottom-bar"
+    (box :class "bar-left"
+         :orientation "horizontal"
+         :space-evenly false
+         :halign "start"
+         :spacing 10
+      (button :class "menu-button"
+              :onclick "rofi -show drun &"
+              "󰣇")
+      (workspaces))
+
+    (box :class "bar-center"
+         :orientation "horizontal"
+         :space-evenly false
+         :halign "center"
+      (label :class "clock-text" :text "${time_info}  •  ${date_info}"))
+
+    (box :class "bar-right"
+         :orientation "horizontal"
+         :space-evenly false
+         :halign "end"
+         :spacing 8
+      (box :class "status-pill net-pill"
+           :space-evenly false
+        (label :class "status-icon" :text "󰖩")
+        (label :class "status-text" :text "${net_info.name}"))
+      (box :class "status-pill audio-pill"
+           :space-evenly false
+        (label :class "status-icon" :text "${audio_info.muted ? '󰝟' : '󰕾'}")
+        (label :class "status-text" :text "${audio_info.volume}"))
+      (button :class "toggle-btn sidebar-btn"
+              :onclick "eww update sidebar_visible=${!sidebar_visible} &"
+              "󰒓")
+      (button :class "toggle-btn power-btn"
+              :onclick "eww update powermenu_visible=${!powermenu_visible} &"
+              "󰐥"))))

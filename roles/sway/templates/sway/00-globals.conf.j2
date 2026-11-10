@@ -1,0 +1,31 @@
+# 00-globals.conf - Global variable definitions for Sway
+set $mod {{ sway_mod | default('Mod4') }}
+set $left h
+set $down j
+set $up k
+set $right l
+
+set $sway {{ user.home | default('/home/' ~ user.name) }}/.config/sway/scripts
+set $eww {{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts
+
+set $term {{ sway_terminal | default('foot') }}
+set $menu {{ sway_menu | default('rofi -show drun') }}
+
+set $ws1 1
+set $ws2 2
+set $ws3 3
+set $ws4 4
+set $ws5 5
+set $ws6 6
+set $ws7 7
+set $ws8 8
+set $ws9 9
+set $ws10 10
+
+set $move_px 20
+set $resize_px 20
+
+# Post-split tick for UI indicators
+set $post_split exec "swaymsg -t send_tick split"
+# Switch workspace and focus urgent container if present
+set $post_workspace_switch [workspace="__focused__" urgent="first"] focus

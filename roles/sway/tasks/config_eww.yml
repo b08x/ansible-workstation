@@ -1,0 +1,62 @@
+---
+# tasks file for Eww widget configuration in sway role
+
+- name: Ensure user Eww configuration and script directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/eww"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/windows"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts/daemons"
+  tags: ["sway", "config", "eww"]
+
+- name: Deploy Eww configuration files
+  ansible.builtin.copy:
+    src: "theme/aphelion/eww/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - eww.yuck
+    - eww.scss
+    - colors.scss
+    - colors.yuck
+  tags: ["sway", "config", "eww"]
+
+- name: Deploy Eww window templates
+  ansible.builtin.copy:
+    src: "theme/aphelion/eww/windows/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/windows/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - bottom-bar.yuck
+    - sidebar.yuck
+    - powermenu.yuck
+    - workspaces.yuck
+  tags: ["sway", "config", "eww"]
+
+- name: Deploy Eww telemetry daemon scripts
+  ansible.builtin.copy:
+    src: "theme/aphelion/eww/scripts/daemons/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts/daemons/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - containers-status
+    - kvm-status
+    - gpu-status
+    - system-metrics
+    - network-status
+    - audio-status
+  tags: ["sway", "config", "eww"]

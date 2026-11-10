@@ -1,0 +1,7 @@
+# 03-output.conf - Display output and background configuration
+output * bg #101319 solid_color
+
+# Per-app max render time for responsive input
+for_window [app_id="^foot$"] max_render_time 2
+for_window [app_id="^kitty$"] max_render_time 2
+for_window [app_id="^rofi$"] max_render_time 2

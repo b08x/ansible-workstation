@@ -35,6 +35,43 @@ argument_specs:
         type: str
         default: "pango:monospace 10"
         description: Font definition string used by Sway window titlebars and UI.
+      sway_copr_repositories:
+        type: list
+        elements: str
+        default:
+          - "copr:copr.fedorainfracloud.org:b08x:syncopated"
+        description: List of COPR repositories to enable for SwayFX, Eww, and companion Wayland tools.
+      sway_use_swayfx:
+        type: bool
+        default: true
+        description: Enable SwayFX enhanced Wayland compositor instead of standard Sway.
+      sway_use_eww:
+        type: bool
+        default: true
+        description: Enable Eww widget system for status bar, workspaces, and telemetry sidebar.
+      sway_bar_engine:
+        type: str
+        default: "eww"
+        choices:
+          - "eww"
+          - "waybar"
+        description: Bar engine to deploy and display (eww or waybar).
+      sway_theme:
+        type: str
+        default: "aphelion"
+        description: Theme name applied across Sway, terminals, Rofi, and Eww.
+      swayfx_blur:
+        type: bool
+        default: false
+        description: Enable SwayFX background blur effect.
+      swayfx_shadows:
+        type: bool
+        default: true
+        description: Enable SwayFX drop shadows on windows and UI components.
+      swayfx_corner_radius:
+        type: int
+        default: 10
+        description: Corner radius in pixels for rounded SwayFX window corners.
       sway_install_companions:
         type: bool
         default: true

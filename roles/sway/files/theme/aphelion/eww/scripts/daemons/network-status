@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+ssid="Disconnected"
+status="down"
+
+if command -v nmcli >/dev/null 2>&1; then
+    active_conn=$(nmcli -t -f NAME,TYPE,STATE connection show --active 2>/dev/null | head -n 1 || true)
+    if [ -n "$active_conn" ]; then
+        ssid=$(awk -F: '{print $1}' <<< "$active_conn")
+        status="up"
+    fi
+fi
+
+echo "{\"status\": \"${status}\", \"name\": \"${ssid}\"}"

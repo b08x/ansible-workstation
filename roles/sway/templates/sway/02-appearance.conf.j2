@@ -1,0 +1,19 @@
+# 02-appearance.conf - Window styling, borders, gaps, and SwayFX effects
+font {{ sway_font | default('pango:monospace 10') }}
+default_border pixel 2
+default_floating_border pixel 2
+
+gaps inner 8
+gaps outer 4
+
+{% if sway_use_swayfx | default(true) | bool %}
+# SwayFX enhancement settings
+corner_radius {{ swayfx_corner_radius | default(10) }}
+blur {{ 'enable' if (swayfx_blur | default(false) | bool) else 'disable' }}
+shadows {{ 'enable' if (swayfx_shadows | default(true) | bool) else 'disable' }}
+shadow_blur_radius 20
+shadow_color #00000088
+{% endif %}
+
+# Window title alignment
+title_align left

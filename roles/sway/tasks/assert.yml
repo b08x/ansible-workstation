@@ -75,3 +75,22 @@
       Ensure 'user.name' and 'user.home' are configured in inventory, host_vars, or group_vars.
     quiet: true
   tags: ["sway", "assert", "always"]
+
+- name: Assert valid Sway bar engine
+  ansible.builtin.assert:
+    that:
+      - sway_bar_engine is defined
+      - sway_bar_engine in ['eww', 'waybar']
+    fail_msg: >-
+      Invalid sway_bar_engine '{{ sway_bar_engine | default('') }}'. Supported bar engines are: 'eww', 'waybar'.
+    quiet: true
+  tags: ["sway", "assert", "always"]
+
+- name: Assert Sway theme is defined and non-empty
+  ansible.builtin.assert:
+    that:
+      - sway_theme is defined
+      - sway_theme | length > 0
+    fail_msg: "The sway_theme variable must be defined and non-empty."
+    quiet: true
+  tags: ["sway", "assert", "always"]

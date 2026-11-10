@@ -1,0 +1,66 @@
+---
+# tasks file for modular Sway configuration in sway role
+
+- name: Ensure user Sway configuration and script directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - "{{ user.home | default('/home/' ~ user.name) }}/.local/bin"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/sway"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config.d"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/scripts"
+  tags: ["sway", "config"]
+
+- name: Deploy Sway helper scripts
+  ansible.builtin.copy:
+    src: "theme/aphelion/sway/scripts/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/scripts/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - smart-split
+    - smart-focus-change
+    - scratchpad-toggle
+    - move-to-edge
+    - window-do
+    - sway-colors
+  tags: ["sway", "config"]
+
+- name: Deploy user Sway root configuration
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  notify: Reload sway
+  tags: ["sway", "config"]
+
+- name: Deploy modular Sway configuration components
+  ansible.builtin.template:
+    src: "sway/{{ item }}.j2"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/config.d/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - 00-globals.conf
+    - 01-colors.conf
+    - 02-appearance.conf
+    - 03-output.conf
+    - 04-input.conf
+    - 05-idle.conf
+    - 06-modes.conf
+    - 07-keys.conf
+    - 08-rules.conf
+    - 09-eww.conf
+    - 10-autostart.conf
+  notify: Reload sway
+  tags: ["sway", "config"]

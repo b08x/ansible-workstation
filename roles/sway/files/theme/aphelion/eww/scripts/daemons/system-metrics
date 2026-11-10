@@ -1,0 +1,22 @@
+#!/bin/bash
+set -euo pipefail
+
+load=$(awk '{print $1, $2, $3}' /proc/loadavg 2>/dev/null || echo "0.00 0.00 0.00")
+
+mem_used_pct="0%"
+if [ -f /proc/meminfo ]; then
+    mem_total=$(awk '/MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || echo 1)
+    mem_avail=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 1)
+    if [ "$mem_total" -gt 0 ]; then
+        used=$((mem_total - mem_avail))
+        pct=$(( (used * 100) / mem_total ))
+        mem_used_pct="${pct}%"
+    fi
+fi
+
+failed_units=0
+if command -v systemctl >/dev/null 2>&1; then
+    failed_units=$(systemctl --failed --no-legend 2>/dev/null | grep -c 'loaded' || echo 0)
+fi
+
+echo "{\"load\": \"${load}\", \"mem\": \"${mem_used_pct}\", \"failed\": ${failed_units:-0}}"

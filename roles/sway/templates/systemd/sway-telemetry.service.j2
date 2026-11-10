@@ -1,0 +1,13 @@
+[Unit]
+Description=Sway Systems Engineering Telemetry Poller
+PartOf=sway-session.target
+After=eww.service
+
+[Service]
+Type=simple
+ExecStart={{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts/daemons/system-metrics
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=sway-session.target

@@ -1,0 +1,22 @@
+# 09-eww.conf - Eww widget bindings and powermenu modes
+{% if (sway_bar_engine | default('eww')) == 'eww' and (sway_use_eww | default(true) | bool) %}
+# Eww sidebar and powermenu toggle keybindings
+bindsym $mod+Shift+e exec $eww/manage toggle powermenu
+bindsym $mod+Tab exec $eww/manage toggle sidebar
+bindsym $mod+grave exec $eww/manage toggle mode-indicator
+
+# Powermenu modal mode
+mode "_powermenu" {
+    bindsym p exec '$eww/do-powermenu-action poweroff'
+    bindsym r exec '$eww/do-powermenu-action reboot'
+    bindsym s exec '$eww/do-powermenu-action suspend'
+    bindsym e exec 'swaymsg exit'
+    bindsym l exec 'swaylock -f -c 101319'
+
+    bindsym Return exec '$eww/do-powermenu-action confirm'
+    bindsym Escape mode "default", exec "$eww/manage hide powermenu"
+}
+{% else %}
+# Waybar fallback keybinding
+bindsym $mod+Shift+e exec swaynag -t warning -m 'Exit sway?' -B 'Yes' 'swaymsg exit'
+{% endif %}

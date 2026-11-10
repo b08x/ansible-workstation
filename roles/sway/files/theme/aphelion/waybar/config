@@ -1,0 +1,48 @@
+{
+    "layer": "bottom",
+    "position": "bottom",
+    "height": 34,
+    "spacing": 6,
+    "modules-left": ["sway/workspaces", "sway/mode"],
+    "modules-center": ["sway/window"],
+    "modules-right": ["pulseaudio", "network", "cpu", "memory", "clock", "tray"],
+    "sway/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": true,
+        "format": "{name}"
+    },
+    "sway/mode": {
+        "format": "<span style=\"italic\">{}</span>"
+    },
+    "sway/window": {
+        "max-length": 50
+    },
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 Muted",
+        "format-icons": {
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "on-click": "pavucontrol"
+    },
+    "network": {
+        "format-wifi": "󰖩 {essid}",
+        "format-ethernet": "󰈀 {ipaddr}",
+        "format-disconnected": "󰖪 Disconnected",
+        "tooltip-format": "{ifname} via {gwaddr}"
+    },
+    "cpu": {
+        "format": "󰘚 {usage}%",
+        "tooltip": true
+    },
+    "memory": {
+        "format": "󰍛 {percentage}%"
+    },
+    "clock": {
+        "format": "{:%H:%M  •  %a %b %d}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+    "tray": {
+        "spacing": 10
+    }
+}

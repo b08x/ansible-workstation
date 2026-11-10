@@ -41,6 +41,11 @@
   ansible.builtin.include_tasks: config.yml
   tags: ["sway", "config"]
 
+- name: Configure user session systemd services
+  ansible.builtin.include_tasks: systemd.yml
+  when: sway_use_eww | default(true) | bool
+  tags: ["sway", "systemd"]
+
 - name: Flush pending Sway handlers
   ansible.builtin.meta: flush_handlers
   tags: ["sway", "always"]

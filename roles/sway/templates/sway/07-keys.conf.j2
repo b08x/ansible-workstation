@@ -1,0 +1,72 @@
+# 07-keys.conf - Core keybindings, layout controls, and navigation
+floating_modifier $mod normal
+
+# Basic applications and system controls
+bindsym $mod+Return exec $term
+bindsym $mod+Shift+q kill
+bindsym $mod+d exec $menu
+bindsym $mod+Shift+c reload
+bindsym $mod+r mode "resize"
+bindsym $mod+m mode "move"
+
+# Layout and window management
+bindsym $mod+b splith; $post_split
+bindsym $mod+v splitv; $post_split
+bindsym $mod+q exec $sway/smart-split
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+bindsym $mod+f fullscreen
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+bindsym $mod+a focus parent
+
+# Directional navigation
+bindsym $mod+$left focus left
+bindsym $mod+$down focus down
+bindsym $mod+$up focus up
+bindsym $mod+$right focus right
+
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# Move container
+bindsym $mod+Shift+$left move left
+bindsym $mod+Shift+$down move down
+bindsym $mod+Shift+$up move up
+bindsym $mod+Shift+$right move right
+
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# Workspaces navigation
+bindsym $mod+1 workspace $ws1; $post_workspace_switch
+bindsym $mod+2 workspace $ws2; $post_workspace_switch
+bindsym $mod+3 workspace $ws3; $post_workspace_switch
+bindsym $mod+4 workspace $ws4; $post_workspace_switch
+bindsym $mod+5 workspace $ws5; $post_workspace_switch
+bindsym $mod+6 workspace $ws6; $post_workspace_switch
+bindsym $mod+7 workspace $ws7; $post_workspace_switch
+bindsym $mod+8 workspace $ws8; $post_workspace_switch
+bindsym $mod+9 workspace $ws9; $post_workspace_switch
+bindsym $mod+0 workspace $ws10; $post_workspace_switch
+
+# Move to workspace
+bindsym $mod+Shift+1 move container to workspace $ws1
+bindsym $mod+Shift+2 move container to workspace $ws2
+bindsym $mod+Shift+3 move container to workspace $ws3
+bindsym $mod+Shift+4 move container to workspace $ws4
+bindsym $mod+Shift+5 move container to workspace $ws5
+bindsym $mod+Shift+6 move container to workspace $ws6
+bindsym $mod+Shift+7 move container to workspace $ws7
+bindsym $mod+Shift+8 move container to workspace $ws8
+bindsym $mod+Shift+9 move container to workspace $ws9
+bindsym $mod+Shift+0 move container to workspace $ws10
+
+# Scratchpad
+bindsym $mod+Shift+minus move scratchpad
+bindsym $mod+minus scratchpad show

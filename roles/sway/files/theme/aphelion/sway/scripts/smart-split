@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+set -f
+
+swaymsg -t get_tree | jq -r 'recurse(
+    .focus[0] as $target
+    | (.nodes + .floating_nodes)[]
+    | select(.id == $target)
+    ) | "\(.rect.width) \(.rect.height) \(.deco_rect.height)"' | {
+
+    w=0
+    h=0
+    d=0
+    while read -r line; do
+        # shellcheck disable=2086
+        set -- $line
+        w=$1
+        h=$2
+        d=$3
+    done
+    if [ "$w" -eq 0 ] && [ "$h" -eq 0 ]; then
+        exit 0
+    fi
+    if [ "$w" -ge "$((h+d))" ]; then
+        direction=horizontal
+    else
+        direction=vertical
+    fi
+    swaymsg "split $direction"
+}

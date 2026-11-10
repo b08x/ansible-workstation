@@ -1,0 +1,120 @@
+/**
+ * Aphelion Rofi configuration
+ */
+configuration {
+    modi:                       "drun,run,window";
+    font:                       "JetBrains Mono 10";
+    show-icons:                 true;
+    display-drun:               " Apps";
+    display-run:                " Run";
+    display-window:             " Windows";
+    drun-display-format:        "{name}";
+}
+
+@theme "colors"
+
+window {
+    transparency:               "real";
+    location:                   center;
+    anchor:                     center;
+    fullscreen:                 false;
+    width:                      650px;
+    x-offset:                   0px;
+    y-offset:                   0px;
+
+    enabled:                    true;
+    margin:                     0px;
+    padding:                    0px;
+    border:                     2px solid;
+    border-radius:              10px;
+    border-color:               @selected;
+    background-color:           @background;
+    cursor:                     "default";
+}
+
+mainbox {
+    enabled:                    true;
+    spacing:                    10px;
+    margin:                     0px;
+    padding:                    20px;
+    border:                     0px solid;
+    border-color:               @selected;
+    background-color:           transparent;
+    children:                   [ "inputbar", "listview" ];
+}
+
+inputbar {
+    enabled:                    true;
+    spacing:                    10px;
+    margin:                     0px;
+    padding:                    8px 12px;
+    border-radius:              6px;
+    background-color:           @background-alt;
+    text-color:                 @foreground;
+    children:                   [ "prompt", "entry" ];
+}
+
+prompt {
+    enabled:                    true;
+    background-color:           inherit;
+    text-color:                 @selected;
+}
+
+entry {
+    enabled:                    true;
+    background-color:           inherit;
+    text-color:                 inherit;
+    cursor:                     text;
+    placeholder:                "Search...";
+    placeholder-color:          #abb2bf;
+}
+
+listview {
+    enabled:                    true;
+    columns:                    1;
+    lines:                      8;
+    cycle:                      true;
+    dynamic:                    true;
+    scrollbar:                  false;
+    layout:                     vertical;
+    reverse:                    false;
+    fixed-height:               true;
+    fixed-columns:              true;
+    spacing:                    5px;
+    margin:                     0px;
+    padding:                    0px;
+    background-color:           transparent;
+    text-color:                 @foreground;
+}
+
+element {
+    enabled:                    true;
+    spacing:                    10px;
+    margin:                     0px;
+    padding:                    8px 12px;
+    border-radius:              6px;
+    background-color:           transparent;
+    text-color:                 @foreground;
+    cursor:                     pointer;
+}
+
+element selected.normal {
+    background-color:           @selected;
+    text-color:                 @background;
+}
+
+element-icon {
+    background-color:           transparent;
+    text-color:                 inherit;
+    size:                       24px;
+    cursor:                     inherit;
+}
+
+element-text {
+    background-color:           transparent;
+    text-color:                 inherit;
+    highlight:                  inherit;
+    cursor:                     inherit;
+    vertical-align:             0.5;
+    horizontal-align:           0.0;
+}

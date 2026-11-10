@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+target_cond="${1:-}"
+fallback_cmd="${2:-}"
+
+if [ -n "$target_cond" ]; then
+    swaymsg "$target_cond" || {
+        if [ -n "$fallback_cmd" ]; then
+            swaymsg exec "$fallback_cmd"
+        fi
+    }
+fi

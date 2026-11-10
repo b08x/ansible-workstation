@@ -1,0 +1,17 @@
+# 10-autostart.conf - Session autostart and bar engine dispatch
+exec {
+    hash dbus-update-activation-environment 2>/dev/null && \
+        dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
+}
+
+{% if (sway_bar_engine | default('eww')) == 'eww' and (sway_use_eww | default(true) | bool) %}
+# Autostart Eww daemon and bar widgets
+exec_always {
+    $eww/init
+}
+{% else %}
+# Autostart Waybar status bar fallback
+bar {
+    swaybar_command waybar
+}
+{% endif %}

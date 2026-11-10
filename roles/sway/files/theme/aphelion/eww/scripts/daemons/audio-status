@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+vol="50%"
+muted="false"
+
+if command -v wpctl >/dev/null 2>&1; then
+    wp_out=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || true)
+    if [ -n "$wp_out" ]; then
+        raw_vol=$(awk '{print $2}' <<< "$wp_out")
+        pct=$(awk -v v="$raw_vol" 'BEGIN { printf "%.0f", v * 100 }')
+        vol="${pct}%"
+        if grep -q "\[MUTED\]" <<< "$wp_out"; then
+            muted="true"
+        fi
+    fi
+fi
+
+echo "{\"volume\": \"${vol}\", \"muted\": ${muted}}"

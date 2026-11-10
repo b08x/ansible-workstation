@@ -1,0 +1,45 @@
+# 06-modes.conf - Modal operational keybindings (resize, move)
+mode "resize" {
+    bindsym $left resize shrink width $resize_px
+    bindsym $down resize grow height $resize_px
+    bindsym $up resize shrink height $resize_px
+    bindsym $right resize grow width $resize_px
+
+    bindsym Left resize shrink width $resize_px
+    bindsym Down resize grow height $resize_px
+    bindsym Up resize shrink height $resize_px
+    bindsym Right resize grow width $resize_px
+
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym space mode "default"
+    bindsym r mode "default"
+}
+
+mode "move" {
+    bindsym $left move left $move_px
+    bindsym $down move down $move_px
+    bindsym $up move up $move_px
+    bindsym $right move right $move_px
+
+    bindsym Left move left $move_px
+    bindsym Down move down $move_px
+    bindsym Up move up $move_px
+    bindsym Right move right $move_px
+
+    bindsym Shift+$left exec $sway/move-to-edge left
+    bindsym Shift+$down exec $sway/move-to-edge down
+    bindsym Shift+$up exec $sway/move-to-edge up
+    bindsym Shift+$right exec $sway/move-to-edge right
+
+    bindsym 1 move container to workspace $ws1
+    bindsym 2 move container to workspace $ws2
+    bindsym 3 move container to workspace $ws3
+    bindsym 4 move container to workspace $ws4
+    bindsym 5 move container to workspace $ws5
+
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+    bindsym space mode "default"
+    bindsym m mode "default"
+}

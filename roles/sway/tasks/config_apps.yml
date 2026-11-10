@@ -1,0 +1,65 @@
+---
+# tasks file for companion applications and launcher theming in sway role
+
+- name: Ensure companion application configuration directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  loop:
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/foot"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/kitty"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/rofi"
+    - "{{ user.home | default('/home/' ~ user.name) }}/.config/waybar"
+  tags: ["sway", "config", "apps"]
+
+- name: Deploy Foot terminal configuration
+  ansible.builtin.copy:
+    src: theme/aphelion/terminals/foot.ini
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/foot/foot.ini"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  tags: ["sway", "config", "apps", "foot"]
+
+- name: Deploy Kitty terminal configuration
+  ansible.builtin.copy:
+    src: "theme/aphelion/terminals/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/kitty/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - kitty.conf
+    - colors.conf
+  tags: ["sway", "config", "apps", "kitty"]
+
+- name: Deploy Rofi launcher configuration
+  ansible.builtin.copy:
+    src: "theme/aphelion/rofi/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/rofi/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - config.rasi
+    - colors.rasi
+  tags: ["sway", "config", "apps", "rofi"]
+
+- name: Deploy Waybar fallback configuration
+  ansible.builtin.copy:
+    src: "theme/aphelion/waybar/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/waybar/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0644"
+    backup: true
+  loop:
+    - config
+    - style.css
+  tags: ["sway", "config", "apps", "waybar"]

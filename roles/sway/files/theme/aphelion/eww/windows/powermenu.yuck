@@ -1,0 +1,44 @@
+(defwindow powermenu
+  :monitor 0
+  :geometry (geometry :x "0%"
+                      :y "0%"
+                      :width "100%"
+                      :height "100%"
+                      :anchor "center")
+  :stacking "overlay"
+  (revealer :transition "crossfade"
+            :reveal powermenu_visible
+            :duration "200ms"
+    (powermenu-widget)))
+
+(defwidget powermenu-widget []
+  (box :class "powermenu-overlay"
+       :orientation "vertical"
+       :halign "center"
+       :valign "center"
+       :space-evenly false
+       :spacing 24
+    (box :class "powermenu-header"
+         :halign "center"
+      (label :class "powermenu-title" :text "System Power Control"))
+    (box :class "powermenu-buttons"
+         :orientation "horizontal"
+         :spacing 16
+         :space-evenly true
+      (button :class "power-action lock"
+              :onclick "swaylock -f -c 101319; eww update powermenu_visible=false &"
+              "󰌾 Lock")
+      (button :class "power-action suspend"
+              :onclick "systemctl suspend; eww update powermenu_visible=false &"
+              "󰤄 Suspend")
+      (button :class "power-action reboot"
+              :onclick "systemctl reboot"
+              "󰜉 Reboot")
+      (button :class "power-action poweroff"
+              :onclick "systemctl poweroff"
+              "󰐥 Power Off"))
+    (box :class "powermenu-footer"
+         :halign "center"
+      (button :class "cancel-btn"
+              :onclick "eww update powermenu_visible=false &"
+              "Cancel (Esc)"))))

@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+
+# Query Podman first, fallback to Docker
+count=0
+runtime="none"
+
+if command -v podman >/dev/null 2>&1; then
+    count=$(podman ps -q 2>/dev/null | wc -l || echo 0)
+    runtime="podman"
+elif command -v docker >/dev/null 2>&1; then
+    count=$(docker ps -q 2>/dev/null | wc -l || echo 0)
+    runtime="docker"
+fi
+
+echo "{\"count\": ${count:-0}, \"runtime\": \"${runtime}\"}"

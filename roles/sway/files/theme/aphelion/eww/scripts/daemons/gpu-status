@@ -1,0 +1,21 @@
+#!/bin/bash
+set -euo pipefail
+
+util="N/A"
+vram="N/A"
+
+if command -v nvidia-smi >/dev/null 2>&1; then
+    smi_out=$(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null || true)
+    if [ -n "$smi_out" ]; then
+        gpu_pct=$(awk -F',' '{print $1}' <<< "$smi_out" | tr -d ' ')
+        mem_used=$(awk -F',' '{print $2}' <<< "$smi_out" | tr -d ' ')
+        mem_total=$(awk -F',' '{print $3}' <<< "$smi_out" | tr -d ' ')
+        util="${gpu_pct}%"
+        vram="${mem_used}MB / ${mem_total}MB"
+    fi
+elif [ -d /sys/class/drm ]; then
+    util="Integrated"
+    vram="Dynamic"
+fi
+
+echo "{\"util\": \"${util}\", \"vram\": \"${vram}\"}"

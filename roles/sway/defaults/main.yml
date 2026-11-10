@@ -12,6 +12,17 @@ sway_terminal: "foot"
 sway_menu: "rofi -show drun"
 sway_font: "pango:monospace 10"
 
+# Aphelion Systems Engineering Theme & Compositor Settings
+sway_copr_repositories:
+  - "copr:copr.fedorainfracloud.org:b08x:syncopated"
+sway_use_swayfx: true
+sway_use_eww: true
+sway_bar_engine: "eww"  # choices: eww, waybar
+sway_theme: "aphelion"
+swayfx_blur: false
+swayfx_shadows: true
+swayfx_corner_radius: 10
+
 # Component installation toggles
 sway_install_companions: true
 sway_install_tools: true

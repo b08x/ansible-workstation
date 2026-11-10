@@ -1,0 +1,10 @@
+# 08-rules.conf - Window rules and floating assignments
+for_window {
+    [app_id="pavucontrol"] floating enable, resize set 800 500, move position center
+    [app_id="org.pulseaudio.pavucontrol"] floating enable, resize set 800 500, move position center
+    [app_id="zenity"] floating enable
+    [app_id="floating"] floating enable
+    [app_id="^scratchpad$"] floating enable, resize set 1100 650, move position center
+    [title="Picture-in-Picture"] floating enable, sticky enable
+    [title="Firefox — Sharing Indicator"] floating enable
+}

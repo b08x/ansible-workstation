@@ -1,0 +1,37 @@
+;; Eww main configuration for Aphelion Systems Engineering Theme
+(include "colors.yuck")
+
+;; Pollers & Daemons
+(defpoll container_info :interval "3s" :initial "{\"count\": 0, \"runtime\": \"none\"}"
+  "~/.config/eww/scripts/daemons/containers-status")
+
+(defpoll kvm_info :interval "5s" :initial "{\"vms\": 0}"
+  "~/.config/eww/scripts/daemons/kvm-status")
+
+(defpoll gpu_info :interval "5s" :initial "{\"util\": \"N/A\", \"vram\": \"N/A\"}"
+  "~/.config/eww/scripts/daemons/gpu-status")
+
+(defpoll sys_info :interval "2s" :initial "{\"load\": \"0.00 0.00 0.00\", \"mem\": \"0%\", \"failed\": 0}"
+  "~/.config/eww/scripts/daemons/system-metrics")
+
+(defpoll net_info :interval "5s" :initial "{\"status\": \"down\", \"name\": \"Disconnected\"}"
+  "~/.config/eww/scripts/daemons/network-status")
+
+(defpoll audio_info :interval "1s" :initial "{\"volume\": \"50%\", \"muted\": false}"
+  "~/.config/eww/scripts/daemons/audio-status")
+
+(defpoll time_info :interval "1s"
+  "date '+%H:%M'")
+
+(defpoll date_info :interval "60s"
+  "date '+%a %b %d'")
+
+;; Visibility state variables
+(defvar sidebar_visible false)
+(defvar powermenu_visible false)
+
+;; Include window definitions
+(include "windows/workspaces.yuck")
+(include "windows/bottom-bar.yuck")
+(include "windows/sidebar.yuck")
+(include "windows/powermenu.yuck")

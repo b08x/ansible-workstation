@@ -4,6 +4,7 @@
 sway_packages:
   core:
     - sway
+    - swayfx
     - swaybg
     - swayidle
     - swaylock
@@ -14,6 +15,8 @@ sway_packages:
     - kanshi
     - rofi-wayland
     - mako
+    - eww
+    - kitty
   tools:
     - grim
     - slurp
@@ -21,6 +24,8 @@ sway_packages:
     - pavucontrol
     - playerctl
     - brightnessctl
+    - jetbrains-mono-fonts
+    - fontawesome-6-free-fonts
   greetd:
     - greetd
     - tuigreet

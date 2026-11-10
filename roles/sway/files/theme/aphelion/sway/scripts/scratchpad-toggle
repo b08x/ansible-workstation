@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euo pipefail
+
+query="${1:-}"
+cmd="${2:-}"
+
+if [ -z "$query" ]; then
+    exit 1
+fi
+
+query_focused="${query//\]/ workspace\=__focused__ con_id=__focused__]}"
+
+# If focused, move to scratchpad
+if swaymsg "${query_focused} exec true" >/dev/null 2>&1; then
+    swaymsg "${query} move window to scratchpad"
+else
+    # If it exists (but not focused), move to current workspace and focus
+    if swaymsg "${query} exec true" >/dev/null 2>&1; then
+        swaymsg "${query} scratchpad show, focus"
+    else
+        # Window not open, run the command that spawns it
+        if [ -n "$cmd" ]; then
+            eval "$cmd"
+        fi
+    fi
+fi

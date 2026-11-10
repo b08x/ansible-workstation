@@ -1,0 +1,89 @@
+(defwindow sidebar
+  :monitor 0
+  :geometry (geometry :x "16px"
+                      :y "16px"
+                      :width "340px"
+                      :height "620px"
+                      :anchor "top right")
+  :stacking "overlay"
+  (revealer :transition "crossfade"
+            :reveal sidebar_visible
+            :duration "200ms"
+    (sidebar-widget)))
+
+(defwidget sidebar-widget []
+  (box :class "sidebar-pane"
+       :orientation "vertical"
+       :space-evenly false
+       :spacing 16
+    (box :class "sidebar-header"
+         :orientation "horizontal"
+         :space-evenly false
+      (label :class "header-title" :text "Telemetry & Systems" :hexpand true :halign "start")
+      (button :class "close-btn" :onclick "eww update sidebar_visible=false &" "󰅖"))
+
+    (box :class "metric-card containers-card"
+         :orientation "vertical"
+         :space-evenly false
+         :spacing 6
+      (box :class "card-title"
+           :orientation "horizontal"
+           :space-evenly false
+        (label :class "card-icon" :text "󰡨")
+        (label :class "card-label" :text "Containers (${container_info.runtime})"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-value" :text "${container_info.count} active containers")))
+
+    (box :class "metric-card kvm-card"
+         :orientation "vertical"
+         :space-evenly false
+         :spacing 6
+      (box :class "card-title"
+           :orientation "horizontal"
+           :space-evenly false
+        (label :class "card-icon" :text "󰢹")
+        (label :class "card-label" :text "Virtual Machines (KVM)"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-value" :text "${kvm_info.vms} running domains")))
+
+    (box :class "metric-card gpu-card"
+         :orientation "vertical"
+         :space-evenly false
+         :spacing 6
+      (box :class "card-title"
+           :orientation "horizontal"
+           :space-evenly false
+        (label :class "card-icon" :text "󰢮")
+        (label :class "card-label" :text "GPU & Acceleration"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-sublabel" :text "Util: ")
+        (label :class "card-value" :text "${gpu_info.util}"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-sublabel" :text "VRAM: ")
+        (label :class "card-value" :text "${gpu_info.vram}")))
+
+    (box :class "metric-card host-card"
+         :orientation "vertical"
+         :space-evenly false
+         :spacing 6
+      (box :class "card-title"
+           :orientation "horizontal"
+           :space-evenly false
+        (label :class "card-icon" :text "󰒋")
+        (label :class "card-label" :text "Host Health"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-sublabel" :text "Load: ")
+        (label :class "card-value" :text "${sys_info.load}"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-sublabel" :text "RAM: ")
+        (label :class "card-value" :text "${sys_info.mem}"))
+      (box :class "card-value-row"
+           :orientation "horizontal"
+        (label :class "card-sublabel" :text "Failed Units: ")
+        (label :class "card-value" :text "${sys_info.failed}")))))

@@ -1,0 +1,211 @@
+* {
+  all: unset;
+  font-family: "JetBrains Mono", monospace;
+}
+
+@import 'colors.scss';
+
+// Base window style
+window {
+  background: transparent;
+  color: $xfg;
+}
+
+// Bottom Bar Styles
+.bottom-bar {
+  background-color: $xbg;
+  border-top: 1px solid $x8;
+  padding: 0 12px;
+  color: $xfg;
+  font-size: 13px;
+
+  .bar-left {
+    .menu-button {
+      padding: 0 8px;
+      color: $x4;
+      font-size: 16px;
+      &:hover {
+        color: $x12;
+      }
+    }
+  }
+
+  .workspaces-widget {
+    .ws-button {
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: $x7;
+      &:hover {
+        background-color: $x8;
+        color: $xfg;
+      }
+    }
+  }
+
+  .bar-center {
+    .clock-text {
+      color: $xfg;
+      font-weight: bold;
+    }
+  }
+
+  .bar-right {
+    .status-pill {
+      background-color: $x8;
+      border-radius: 12px;
+      padding: 2px 10px;
+      margin: 2px 0;
+
+      .status-icon {
+        margin-right: 6px;
+        color: $x4;
+      }
+      .status-text {
+        color: $xfg;
+      }
+    }
+
+    .audio-pill .status-icon {
+      color: $x2;
+    }
+
+    .toggle-btn {
+      padding: 0 8px;
+      color: $x7;
+      font-size: 14px;
+      border-radius: 4px;
+      &:hover {
+        background-color: $x8;
+        color: $x4;
+      }
+    }
+
+    .power-btn:hover {
+      color: $x1;
+    }
+  }
+}
+
+// Sidebar Styles
+.sidebar-pane {
+  background-color: rgba(16, 19, 25, 0.95);
+  border: 1px solid $x8;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  .sidebar-header {
+    margin-bottom: 8px;
+    .header-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: $x4;
+    }
+    .close-btn {
+      color: $x7;
+      padding: 2px 6px;
+      &:hover {
+        color: $x1;
+      }
+    }
+  }
+
+  .metric-card {
+    background-color: $x8;
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid $x4;
+
+    &.containers-card {
+      border-left-color: $x6;
+    }
+    &.kvm-card {
+      border-left-color: $x5;
+    }
+    &.gpu-card {
+      border-left-color: $x2;
+    }
+    &.host-card {
+      border-left-color: $x3;
+    }
+
+    .card-title {
+      margin-bottom: 6px;
+      .card-icon {
+        margin-right: 8px;
+        color: $x4;
+        font-size: 14px;
+      }
+      .card-label {
+        font-weight: bold;
+        font-size: 13px;
+        color: $xfg;
+      }
+    }
+
+    .card-value-row {
+      margin: 2px 0;
+      font-size: 12px;
+      .card-sublabel {
+        color: $x7;
+        margin-right: 6px;
+      }
+      .card-value {
+        color: $xfg;
+      }
+      .text-urgent {
+        color: $x1;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+// Powermenu Styles
+.powermenu-overlay {
+  background-color: rgba(16, 19, 25, 0.85);
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid $x8;
+
+  .powermenu-header {
+    .powermenu-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: $xfg;
+    }
+  }
+
+  .powermenu-buttons {
+    .power-action {
+      background-color: $x8;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      color: $xfg;
+      min-width: 120px;
+
+      &:hover {
+        background-color: $x4;
+        color: $xbg;
+      }
+
+      &.poweroff:hover {
+        background-color: $x1;
+        color: $xfg;
+      }
+    }
+  }
+
+  .powermenu-footer {
+    .cancel-btn {
+      color: $x7;
+      padding: 8px 16px;
+      &:hover {
+        color: $xfg;
+      }
+    }
+  }
+}
