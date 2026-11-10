@@ -43,5 +43,7 @@
   ansible.builtin.dnf:
     name: "{{ _sway_install_packages }}"
     state: "{{ 'latest' if (sway_force_install | default(false) | bool) else 'present' }}"
+    allowerasing: true
+    update_cache: true
   when: _sway_install_packages | length > 0
   tags: ["sway", "packages"]

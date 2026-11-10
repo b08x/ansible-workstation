@@ -13,7 +13,7 @@ sway_packages:
   companions:
     - waybar
     - kanshi
-    - rofi-wayland
+    - rofi
     - mako
     - eww
     - kitty
