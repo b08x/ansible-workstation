@@ -18,4 +18,5 @@ tuning_cpupower_min_freq: 800MHz # or "600MHz"
 tuning_cpupower_max_freq: 3100MHz # or "3800MHz"
 tuning_irqbalance_enabled: false
 
-containerd_use_podman: false
+containerd_use_podman: true
+containerd_use_docker: false
