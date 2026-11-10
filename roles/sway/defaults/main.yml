@@ -64,8 +64,5 @@ sway_volume_helper_path: "{{ user.home | default('/home/' ~ user.name) }}/.local
 sway_volume_notifications: false
 
 # Custom config include paths and extra directives
-sway_config_custom_includes:
-  - "/usr/share/sway/config.d/*.conf"
-  - "/etc/sway/config.d/*.conf"
-  - "{{ user.home | default('/home/' ~ (user.name | default('nobody'))) }}/.config/sway/config.d/*.conf"
+sway_config_custom_includes: []
 sway_extra_config: ""

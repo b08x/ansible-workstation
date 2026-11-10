@@ -166,7 +166,7 @@ Units cleanly start when Sway initializes and terminate automatically upon sessi
 | `sway_greetd_user` | `"greetd"` | Daemon user for greetd. |
 | `sway_greetd_vt` | `1` | Virtual terminal for greetd greeter. |
 | `sway_environment_vars` | *(dict)* | Environment key-value mapping for Wayland sessions. |
-| `sway_config_custom_includes` | *(list)* | Glob list for layered Sway configuration. |
+| `sway_config_custom_includes` | `[]` | List of optional glob paths for custom Sway includes. |
 | `sway_extra_config` | `""` | Extra configuration appended to `~/.config/sway/config`. |
 
 ---

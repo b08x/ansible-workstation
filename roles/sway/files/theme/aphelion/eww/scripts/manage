@@ -1,0 +1,87 @@
+#!/bin/bash
+set -euo pipefail
+
+action="${1:-toggle}"
+widget="${2:-sidebar}"
+
+get_state() {
+    local target="$1"
+    case "$target" in
+        sidebar)
+            eww get sidebar_visible 2>/dev/null || echo "false"
+            ;;
+        powermenu)
+            eww get powermenu_visible 2>/dev/null || echo "false"
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+show_widget() {
+    local target="$1"
+    case "$target" in
+        sidebar)
+            eww update powermenu_visible=false 2>/dev/null || true
+            eww close powermenu 2>/dev/null || true
+            eww open sidebar 2>/dev/null || true
+            eww update sidebar_visible=true 2>/dev/null || true
+            ;;
+        powermenu)
+            eww update sidebar_visible=false 2>/dev/null || true
+            eww close sidebar 2>/dev/null || true
+            eww open powermenu 2>/dev/null || true
+            eww update powermenu_visible=true 2>/dev/null || true
+            swaymsg mode _powermenu 2>/dev/null || true
+            ;;
+        *)
+            eww open "$target" 2>/dev/null || true
+            ;;
+    esac
+}
+
+hide_widget() {
+    local target="$1"
+    case "$target" in
+        sidebar)
+            eww update sidebar_visible=false 2>/dev/null || true
+            eww close sidebar 2>/dev/null || true
+            ;;
+        powermenu)
+            eww update powermenu_visible=false 2>/dev/null || true
+            eww close powermenu 2>/dev/null || true
+            swaymsg mode default 2>/dev/null || true
+            ;;
+        *)
+            eww close "$target" 2>/dev/null || true
+            ;;
+    esac
+}
+
+toggle_widget() {
+    local target="$1"
+    local current
+    current="$(get_state "$target")"
+    if [ "$current" = "true" ]; then
+        hide_widget "$target"
+    else
+        show_widget "$target"
+    fi
+}
+
+case "$action" in
+    show|open)
+        show_widget "$widget"
+        ;;
+    hide|close)
+        hide_widget "$widget"
+        ;;
+    toggle)
+        toggle_widget "$widget"
+        ;;
+    *)
+        echo "Usage: $0 {show|hide|toggle} <window_name>" >&2
+        exit 1
+        ;;
+esac

@@ -45,6 +45,20 @@
     - workspaces.yuck
   tags: ["sway", "config", "eww"]
 
+- name: Deploy Eww management and lifecycle scripts
+  ansible.builtin.copy:
+    src: "theme/aphelion/eww/scripts/{{ item }}"
+    dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/eww/scripts/{{ item }}"
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+    backup: true
+  loop:
+    - init
+    - manage
+    - do-powermenu-action
+  tags: ["sway", "config", "eww"]
+
 - name: Deploy Eww telemetry daemon scripts
   ansible.builtin.copy:
     src: "theme/aphelion/eww/scripts/daemons/{{ item }}"
@@ -52,6 +66,7 @@
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
     mode: "0755"
+    backup: true
   loop:
     - containers-status
     - kvm-status

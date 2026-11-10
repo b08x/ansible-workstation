@@ -9,9 +9,4 @@ exec {
 exec_always {
     $eww/init
 }
-{% else %}
-# Autostart Waybar status bar fallback
-bar {
-    swaybar_command waybar
-}
 {% endif %}

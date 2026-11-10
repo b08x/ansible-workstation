@@ -117,7 +117,8 @@ argument_specs:
       sway_config_custom_includes:
         type: list
         elements: str
-        description: List of glob include paths for layered Sway configuration.
+        default: []
+        description: List of glob include paths for custom Sway configuration.
       sway_extra_config:
         type: str
         default: ""

@@ -1,7 +1,7 @@
 # Sway main configuration managed by Ansible (roles/sway)
-# Changes are composed via modular configuration files in ~/.config/sway/config.d/*.conf
+# Layered configuration includes honoring Fedora's layered-include architecture
 
-include {{ user.home | default('/home/' ~ user.name) }}/.config/sway/config.d/*.conf
+include '$([ -x /usr/libexec/sway/layered-include ] && /usr/libexec/sway/layered-include "/usr/share/sway/config.d/*.conf" "/etc/sway/config.d/*.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf" || [ -x {{ user.home | default('/home/' ~ user.name) }}/.local/bin/layered-include ] && {{ user.home | default('/home/' ~ user.name) }}/.local/bin/layered-include "/usr/share/sway/config.d/*.conf" "/etc/sway/config.d/*.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf" || echo "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf")'
 
 {% if sway_config_custom_includes is defined and sway_config_custom_includes | length > 0 %}
 ### Custom Includes

@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+action="${1:-}"
+eww_scripts="${HOME}/.config/eww/scripts"
+
+if [ -z "$action" ]; then
+    echo "Usage: $0 {poweroff|reboot|suspend|confirm|cancel}" >&2
+    exit 1
+fi
+
+case "$action" in
+    poweroff)
+        "${eww_scripts}/manage" hide powermenu 2>/dev/null || true
+        systemctl poweroff
+        ;;
+    reboot)
+        "${eww_scripts}/manage" hide powermenu 2>/dev/null || true
+        systemctl reboot
+        ;;
+    suspend)
+        "${eww_scripts}/manage" hide powermenu 2>/dev/null || true
+        systemctl suspend
+        ;;
+    confirm)
+        "${eww_scripts}/manage" hide powermenu 2>/dev/null || true
+        systemctl poweroff
+        ;;
+    cancel|escape)
+        "${eww_scripts}/manage" hide powermenu 2>/dev/null || true
+        ;;
+    *)
+        echo "Unknown action: $action" >&2
+        exit 1
+        ;;
+esac
