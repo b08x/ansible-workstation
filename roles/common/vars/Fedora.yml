@@ -19,6 +19,7 @@ _common_distro_packages:
   - ruby-devel
   - ruby-build-all
   - ruby-build-rbenv
+  - ranger
   - tar
   - tuned
   - unzip
