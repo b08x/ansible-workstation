@@ -1,3 +1,4 @@
 ---
 # Host variables for gir-sway test VM
 desktop_environment: sway
+sway_bar_engine: eww
