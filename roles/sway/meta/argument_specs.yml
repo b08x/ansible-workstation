@@ -15,10 +15,6 @@ argument_specs:
         type: bool
         default: false
         description: Force reinstallation of Sway packages even if skip conditions match.
-      sway_force_reconfigure:
-        type: bool
-        default: false
-        description: Force recreation and overwrite of user configuration files.
       sway_mod:
         type: str
         default: "Mod4"
@@ -35,40 +31,32 @@ argument_specs:
         type: str
         default: "pango:monospace 10"
         description: Font definition string used by Sway window titlebars and UI.
-      sway_copr_repositories:
-        type: list
-        elements: str
-        default:
-          - "copr:copr.fedorainfracloud.org:b08x:syncopated"
-        description: List of COPR repositories to enable for SwayFX, Eww, and companion Wayland tools.
-      sway_use_swayfx:
-        type: bool
-        default: true
-        description: Enable SwayFX enhanced Wayland compositor instead of standard Sway.
-      sway_use_eww:
-        type: bool
-        default: true
-        description: Enable Eww widget system for status bar, workspaces, and telemetry sidebar.
+      sway_compositor:
+        type: str
+        choices:
+          - "swayfx"
+          - "sway"
+        description: Sway compositor variant to install and configure (defaults to swayfx on Fedora, sway on EL).
       sway_bar_engine:
         type: str
-        default: "eww"
+        default: "waybar"
         choices:
-          - "eww"
           - "waybar"
-        description: Bar engine to deploy and display (eww or waybar).
+          - "eww"
+        description: Bar engine to deploy and display (waybar or eww).
       sway_theme:
         type: str
         default: "aphelion"
-        description: Theme name applied across Sway, terminals, Rofi, and Eww.
-      swayfx_blur:
+        description: Theme name applied across Sway, terminals, Rofi, Waybar, and Eww.
+      sway_fx_blur:
         type: bool
         default: false
         description: Enable SwayFX background blur effect.
-      swayfx_shadows:
+      sway_fx_shadows:
         type: bool
         default: true
         description: Enable SwayFX drop shadows on windows and UI components.
-      swayfx_corner_radius:
+      sway_fx_corner_radius:
         type: int
         default: 10
         description: Corner radius in pixels for rounded SwayFX window corners.
@@ -88,17 +76,14 @@ argument_specs:
         type: bool
         default: true
         description: Manage display manager service status (enable greetd, stop and disable conflicting GDM).
-      sway_conflicting_display_managers:
-        type: list
-        elements: str
-        description: List of display manager service names to stop and disable when greetd is enabled.
       sway_manage_environment:
         type: bool
         default: true
         description: Manage system and user session environment files for Sway.
-      sway_packages:
-        type: dict
-        description: Package definitions map containing core, companions, tools, and greetd lists.
+      sway_conflicting_display_managers:
+        type: list
+        elements: str
+        description: List of display manager service names to stop and disable when greetd is enabled.
       sway_greetd_command:
         type: str
         default: "tuigreet --time --remember --remember-user-session --cmd sway"
@@ -114,6 +99,17 @@ argument_specs:
       sway_environment_vars:
         type: dict
         description: Key-value map of Wayland and desktop session environment variables.
+      sway_volume_step:
+        type: int
+        default: 5
+        description: Volume adjustment step percentage for WirePlumber bindings.
+      sway_volume_limit:
+        type: str
+        default: "1.0"
+        description: Maximum volume limit passed to WirePlumber volume helper.
+      sway_volume_helper_path:
+        type: str
+        description: Destination path for the WirePlumber volume helper script.
       sway_config_custom_includes:
         type: list
         elements: str

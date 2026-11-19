@@ -1,7 +1,7 @@
 ---
 # Distribution-specific packages for Fedora
 
-sway_packages:
+_sway_distro_packages:
   core:
     - sway
     - swayfx

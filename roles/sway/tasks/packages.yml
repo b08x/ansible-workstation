@@ -1,40 +1,30 @@
 ---
 # tasks file for package installation in sway role
 
-- name: Enable Sway COPR repositories
-  community.general.copr:
-    name: "{{ item | regex_replace('^copr:copr\\.fedorainfracloud\\.org:', '') | replace(':', '/') }}"
-    state: enabled
-  loop: "{{ sway_copr_repositories | default([]) }}"
-  when:
-    - ansible_distribution == 'Fedora'
-    - (sway_use_swayfx | default(true) | bool) or (sway_use_eww | default(true) | bool)
-  tags: ["sway", "packages", "copr"]
-
 - name: Assemble initial sway package candidates
   ansible.builtin.set_fact:
     _sway_raw_packages: >-
       {{
-        ((sway_packages | default({})).core | default([]))
-        + (((sway_packages | default({})).companions | default([])) if (sway_install_companions | default(true) | bool) else [])
-        + (((sway_packages | default({})).tools | default([])) if (sway_install_tools | default(true) | bool) else [])
-        + (((sway_packages | default({})).greetd | default([])) if (sway_install_greetd | default(true) | bool) else [])
+        ((_sway_distro_packages | default({})).core | default([]))
+        + (((_sway_distro_packages | default({})).companions | default([])) if (sway_install_companions | default(true) | bool) else [])
+        + (((_sway_distro_packages | default({})).tools | default([])) if (sway_install_tools | default(true) | bool) else [])
+        + (((_sway_distro_packages | default({})).greetd | default([])) if (sway_install_greetd | default(true) | bool) else [])
       }}
   tags: ["sway", "packages"]
 
-- name: Resolve dual-track compositor and companion packages
+- name: Resolve compositor and bar engine packages
   ansible.builtin.set_fact:
     _sway_install_packages: >-
       {{
         (
           (
             _sway_raw_packages
-            | reject('equalto', 'sway' if ((sway_use_swayfx | default(true) | bool) and ('swayfx' in _sway_raw_packages)) else '')
-            | reject('equalto', '' if (sway_use_swayfx | default(true) | bool) else 'swayfx')
-            | reject('equalto', '' if (sway_use_eww | default(true) | bool) else 'eww')
+            | reject('equalto', 'sway' if (sway_compositor == 'swayfx' and ('swayfx' in _sway_raw_packages)) else '')
+            | reject('equalto', '' if (sway_compositor == 'swayfx') else 'swayfx')
+            | reject('equalto', 'waybar' if (sway_bar_engine == 'eww') else 'eww')
             | list
           )
-          + (['sway'] if not (sway_use_swayfx | default(true) | bool) else [])
+          + (['sway'] if sway_compositor != 'swayfx' else [])
         ) | unique | list
       }}
   tags: ["sway", "packages"]

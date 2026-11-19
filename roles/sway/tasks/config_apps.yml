@@ -12,12 +12,11 @@
     - "{{ user.home | default('/home/' ~ user.name) }}/.config/foot"
     - "{{ user.home | default('/home/' ~ user.name) }}/.config/kitty"
     - "{{ user.home | default('/home/' ~ user.name) }}/.config/rofi"
-    - "{{ user.home | default('/home/' ~ user.name) }}/.config/waybar"
   tags: ["sway", "config", "apps"]
 
 - name: Deploy Foot terminal configuration
   ansible.builtin.copy:
-    src: theme/aphelion/terminals/foot.ini
+    src: "theme/{{ sway_theme }}/terminals/foot.ini"
     dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/foot/foot.ini"
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
@@ -27,7 +26,7 @@
 
 - name: Deploy Kitty terminal configuration
   ansible.builtin.copy:
-    src: "theme/aphelion/terminals/{{ item }}"
+    src: "theme/{{ sway_theme }}/terminals/{{ item }}"
     dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/kitty/{{ item }}"
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
@@ -40,7 +39,7 @@
 
 - name: Deploy Rofi launcher configuration
   ansible.builtin.copy:
-    src: "theme/aphelion/rofi/{{ item }}"
+    src: "theme/{{ sway_theme }}/rofi/{{ item }}"
     dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/rofi/{{ item }}"
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
@@ -51,9 +50,19 @@
     - colors.rasi
   tags: ["sway", "config", "apps", "rofi"]
 
-- name: Deploy Waybar fallback configuration
+- name: Ensure Waybar configuration directory exists
+  ansible.builtin.file:
+    path: "{{ user.home | default('/home/' ~ user.name) }}/.config/waybar"
+    state: directory
+    owner: "{{ user.name }}"
+    group: "{{ user.name }}"
+    mode: "0755"
+  when: sway_bar_engine == 'waybar'
+  tags: ["sway", "config", "apps", "waybar"]
+
+- name: Deploy Waybar configuration
   ansible.builtin.copy:
-    src: "theme/aphelion/waybar/{{ item }}"
+    src: "theme/{{ sway_theme }}/waybar/{{ item }}"
     dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/waybar/{{ item }}"
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
@@ -62,4 +71,5 @@
   loop:
     - config
     - style.css
+  when: sway_bar_engine == 'waybar'
   tags: ["sway", "config", "apps", "waybar"]

@@ -1,7 +1,7 @@
 # 90-bar.conf - Status bar configuration override
 # Overrides /usr/share/sway/config.d/90-bar.conf to prevent waybar auto-starting under eww
 
-{% if (sway_bar_engine | default('eww')) == 'waybar' or not (sway_use_eww | default(true) | bool) %}
+{% if (sway_bar_engine | default('waybar')) == 'waybar' %}
 bar {
     swaybar_command waybar
 }

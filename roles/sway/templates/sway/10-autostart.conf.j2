@@ -4,7 +4,7 @@ exec {
         dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY SWAYSOCK XDG_CURRENT_DESKTOP
 }
 
-{% if (sway_bar_engine | default('eww')) == 'eww' and (sway_use_eww | default(true) | bool) %}
+{% if (sway_bar_engine | default('waybar')) == 'eww' %}
 # Autostart Eww daemon and bar widgets
 exec_always {
     $eww/init

@@ -4,7 +4,6 @@
 # Pre-flight & enforcement flags
 sway_assert_enabled: true
 sway_force_install: false
-sway_force_reconfigure: false
 
 # User Interface Preferences
 sway_mod: "Mod4"
@@ -13,15 +12,12 @@ sway_menu: "rofi -show drun"
 sway_font: "pango:monospace 10"
 
 # Aphelion Systems Engineering Theme & Compositor Settings
-sway_copr_repositories:
-  - "copr:copr.fedorainfracloud.org:b08x:syncopated"
-sway_use_swayfx: true
-sway_use_eww: true
-sway_bar_engine: "eww"  # choices: eww, waybar
+sway_compositor: "{{ 'swayfx' if ansible_distribution == 'Fedora' else 'sway' }}"
+sway_bar_engine: "waybar"
 sway_theme: "aphelion"
-swayfx_blur: false
-swayfx_shadows: true
-swayfx_corner_radius: 10
+sway_fx_blur: false
+sway_fx_shadows: true
+sway_fx_corner_radius: 10
 
 # Component installation toggles
 sway_install_companions: true
@@ -34,13 +30,6 @@ sway_conflicting_display_managers:
   - cosmic-greeter
   - sddm
   - lightdm
-
-# Package definitions (platform defaults provided by vars/*.yml)
-sway_packages:
-  core: []
-  companions: []
-  tools: []
-  greetd: []
 
 # greetd configuration options
 sway_greetd_command: "tuigreet --time --remember --remember-user-session --cmd sway"
@@ -61,7 +50,6 @@ sway_environment_vars:
 sway_volume_step: 5
 sway_volume_limit: "1.0"
 sway_volume_helper_path: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin/volume-helper"
-sway_volume_notifications: false
 
 # Custom config include paths and extra directives
 sway_config_custom_includes: []

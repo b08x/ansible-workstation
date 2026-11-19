@@ -76,21 +76,22 @@
     quiet: true
   tags: ["sway", "assert", "always"]
 
-- name: Assert valid Sway bar engine
+- name: Assert valid Sway compositor, bar engine, and theme configuration
   ansible.builtin.assert:
     that:
+      - sway_compositor is defined
+      - sway_compositor in ['swayfx', 'sway']
       - sway_bar_engine is defined
       - sway_bar_engine in ['eww', 'waybar']
-    fail_msg: >-
-      Invalid sway_bar_engine '{{ sway_bar_engine | default('') }}'. Supported bar engines are: 'eww', 'waybar'.
-    quiet: true
-  tags: ["sway", "assert", "always"]
-
-- name: Assert Sway theme is defined and non-empty
-  ansible.builtin.assert:
-    that:
+      - ansible_distribution == 'Fedora' or sway_compositor == 'sway'
+      - ansible_distribution == 'Fedora' or sway_bar_engine == 'waybar'
       - sway_theme is defined
       - sway_theme | length > 0
-    fail_msg: "The sway_theme variable must be defined and non-empty."
+    fail_msg: >-
+      Invalid Sway configuration: sway_compositor='{{ sway_compositor | default('') }}'
+      (allowed: swayfx, sway; EL requires sway),
+      sway_bar_engine='{{ sway_bar_engine | default('') }}'
+      (allowed: waybar, eww; EL requires waybar),
+      sway_theme='{{ sway_theme | default('') }}' (must be non-empty).
     quiet: true
   tags: ["sway", "assert", "always"]

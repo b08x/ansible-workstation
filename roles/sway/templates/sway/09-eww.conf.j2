@@ -1,5 +1,5 @@
 # 09-eww.conf - Eww widget bindings and powermenu modes
-{% if (sway_bar_engine | default('eww')) == 'eww' and (sway_use_eww | default(true) | bool) %}
+{% if (sway_bar_engine | default('waybar')) == 'eww' %}
 # Eww sidebar and powermenu toggle keybindings
 bindsym $mod+Shift+e exec $eww/manage toggle powermenu
 bindsym $mod+Tab exec $eww/manage toggle sidebar

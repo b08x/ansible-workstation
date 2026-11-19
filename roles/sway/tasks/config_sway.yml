@@ -26,7 +26,7 @@
 
 - name: Deploy Sway helper scripts
   ansible.builtin.copy:
-    src: "theme/aphelion/sway/scripts/{{ item }}"
+    src: "theme/{{ sway_theme }}/sway/scripts/{{ item }}"
     dest: "{{ user.home | default('/home/' ~ user.name) }}/.config/sway/scripts/{{ item }}"
     owner: "{{ user.name }}"
     group: "{{ user.name }}"
