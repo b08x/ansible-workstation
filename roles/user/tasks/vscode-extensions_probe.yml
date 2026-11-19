@@ -1,0 +1,50 @@
+---
+# Probe VS Code CLI availability (override -> native -> Flatpak)
+
+- name: Probe for the native VS Code CLI
+  ansible.builtin.command: which code
+  register: _user_vscode_which_code
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["vscode-extensions", "user"]
+
+- name: Probe for the Flatpak VS Code installation
+  ansible.builtin.command: flatpak list --app --columns=application
+  register: _user_vscode_flatpak_apps
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["vscode-extensions", "user"]
+
+- name: Resolve the VS Code CLI from the explicit override
+  ansible.builtin.set_fact:
+    _user_vscode_cli: "{{ user_vscode_command | default('') | trim | split(' ') | select('!=', '') | list }}"
+  when: user_vscode_command | default('') | trim | length > 0
+  tags: ["vscode-extensions", "user"]
+
+- name: Resolve the VS Code CLI from the native installation
+  ansible.builtin.set_fact:
+    _user_vscode_cli: ["code"]
+  when:
+    - _user_vscode_cli is not defined
+    - (_user_vscode_which_code.rc | default(1)) == 0
+  tags: ["vscode-extensions", "user"]
+
+- name: Resolve the VS Code CLI from the Flatpak installation
+  ansible.builtin.set_fact:
+    _user_vscode_cli: ["flatpak", "run", "com.visualstudio.code"]
+  when:
+    - _user_vscode_cli is not defined
+    - (_user_vscode_which_code.rc | default(1)) != 0
+    - "'com.visualstudio.code' in (_user_vscode_flatpak_apps.stdout_lines | default([]))"
+  tags: ["vscode-extensions", "user"]
+
+- name: Report VS Code absence and skip extension management
+  ansible.builtin.debug:
+    msg: >-
+      VS Code was not found on {{ inventory_hostname }} (no native code CLI
+      and no com.visualstudio.code Flatpak); skipping VS Code extension
+      installation.
+  when: _user_vscode_cli is not defined or (_user_vscode_cli | length) == 0
+  tags: ["vscode-extensions", "user"]

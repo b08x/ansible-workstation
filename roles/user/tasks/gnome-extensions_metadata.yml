@@ -1,0 +1,69 @@
+---
+# Query extension metadata from extensions.gnome.org (with unversioned fallback)
+
+- name: Query extension metadata from extensions.gnome.org
+  ansible.builtin.uri:
+    url: "{{ user_gnome_extensions_base_url }}/extension-info/?uuid={{ item }}&shell_version={{ _user_gnome_shell_version | default('') }}"
+    return_content: true
+    timeout: 15
+  loop: "{{ _user_gnome_target_uuids | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _user_gnome_ext_info
+  check_mode: false
+  failed_when: false
+  changed_when: false
+  when: _user_gnome_shell_version | default('') | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Record usable metadata from the versioned query
+  ansible.builtin.set_fact:
+    _user_gnome_ext_info_map: >-
+      {%- set usable = namespace(list=[]) -%}
+      {%- for r in _user_gnome_ext_info.results | default([]) -%}
+      {%- set json = r.json | default({}) -%}
+      {%- if r.status | default(0) == 1
+        and ((json.download_url | default('')) != ''
+             or (json.shell_version_map | default({}) | length) > 0) -%}
+      {%- set _ = usable.list.append(r) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ dict(usable.list | map(attribute='item') | zip(usable.list | map(attribute='json'))) }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve extensions without a usable metadata result
+  ansible.builtin.set_fact:
+    _user_gnome_unresolved: >-
+      {{ _user_gnome_target_uuids | default([])
+         | difference(_user_gnome_ext_info_map | default({}) | list) }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Retry extension metadata without the shell version
+  ansible.builtin.uri:
+    url: "{{ user_gnome_extensions_base_url }}/extension-info/?uuid={{ item }}"
+    return_content: true
+    timeout: 15
+  loop: "{{ _user_gnome_unresolved | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  register: _user_gnome_ext_info_retry
+  check_mode: false
+  failed_when: false
+  changed_when: false
+  when: _user_gnome_unresolved | default([]) | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Merge retried metadata into the extension metadata map
+  ansible.builtin.set_fact:
+    _user_gnome_ext_info_map: >-
+      {%- set merged = namespace(map=_user_gnome_ext_info_map | default({})) -%}
+      {%- for r in _user_gnome_ext_info_retry.results | default([]) -%}
+      {%- set json = r.json | default({}) -%}
+      {%- if r.status | default(0) == 1
+        and ((json.download_url | default('')) != ''
+             or (json.shell_version_map | default({}) | length) > 0) -%}
+      {%- set _ = merged.map.update({r.item: json}) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ merged.map }}
+  tags: ["gnome-extensions", "user"]

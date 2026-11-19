@@ -1,0 +1,81 @@
+---
+# NVIDIA-specific pre-flight assertions for gpu role
+
+- name: Assert NVIDIA CUDA is supported on this distribution
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution ~ '-' ~ ansible_distribution_major_version in _gpu_nvidia_supported
+    fail_msg: "gpu: NVIDIA CUDA is not supported on {{ ansible_distribution }} {{ ansible_distribution_major_version }}"
+    quiet: false
+  tags: ["gpu", "assert", "always"]
+
+- name: Verify NVIDIA driver provider repositories
+  ansible.builtin.include_tasks: assert_nvidia_repos.yml
+  tags: ["gpu", "assert", "always"]
+
+- name: Probe GPU vendor via PCI sysfs (fallback when common was not run)
+  ansible.builtin.command:
+    argv:
+      - sh
+      - -c
+      - |
+        gpu="none"
+        for d in /sys/bus/pci/devices/*; do
+          if [ -f "$d/vendor" ] && [ -f "$d/class" ]; then
+            v=$(cat "$d/vendor" 2>/dev/null)
+            c=$(cat "$d/class" 2>/dev/null)
+            if [ "${c#0x03}" != "$c" ]; then
+              case "$v" in
+                0x10de) gpu="nvidia"; break ;;
+                0x1002) gpu="amd" ;;
+                0x8086) [ "$gpu" != "nvidia" ] && gpu="intel" ;;
+              esac
+            fi
+          fi
+        done
+        echo "$gpu"
+  register: _gpu_vendor_probe
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: detected_gpu_vendor is not defined
+  tags: ["gpu", "assert", "always"]
+
+- name: Resolve GPU vendor for NVIDIA gating
+  ansible.builtin.set_fact:
+    _gpu_vendor: "{{ detected_gpu_vendor | default(_gpu_vendor_probe.stdout | default('none') | trim) }}"
+  tags: ["gpu", "assert", "always"]
+
+- name: Evaluate NVIDIA hardware presence
+  ansible.builtin.set_fact:
+    _gpu_nvidia_active: "{{ _gpu_vendor == 'nvidia' }}"
+  tags: ["gpu", "assert", "always"]
+
+- name: Warn and skip NVIDIA tasks on non-NVIDIA hardware
+  ansible.builtin.debug:
+    msg: >-
+      gpu: NVIDIA CUDA install is enabled, but the detected GPU vendor
+      is '{{ _gpu_vendor }}'. Skipping NVIDIA driver tasks; the play
+      continues normally.
+  when: not (_gpu_nvidia_active | bool)
+  tags: ["gpu", "assert", "always"]
+
+- name: Check Secure Boot state
+  ansible.builtin.command: mokutil --sb-state
+  register: _gpu_secure_boot_state
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gpu", "assert", "always"]
+
+- name: Warn about Secure Boot MOK enrollment
+  ansible.builtin.debug:
+    msg: >-
+      gpu: Secure Boot is enabled on this host. The NVIDIA kernel module
+      must be signed and enrolled into the Machine Owner Key (MOK) list
+      manually (mokutil --import at the next reboot). The role cannot
+      automate this step, and the driver will not load until it is done.
+  when: >-
+    (_gpu_secure_boot_state.rc | default(1)) == 0 and
+    'SecureBoot enabled' in _gpu_secure_boot_state.stdout | default('')
+  tags: ["gpu", "assert", "always"]

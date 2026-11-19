@@ -1,60 +1,13 @@
 ---
 # tasks file for VS Code extension management in roles/user
-# Migrated from yadm bootstrap.d/91-install-vscode-extensions.sh (behavior parity):
-#   * CLI resolution: user_vscode_command override -> native code CLI ->
-#     the com.visualstudio.code Flatpak -> friendly skip (RC_SKIPPED parity)
-#   * installed extensions normalized case-insensitively
-#   * per-extension failures are non-fatal (warn-debug, continue)
-# Layer boundary: this file installs extensions only. The VS Code binary
-# itself belongs to roles/tools, which installs it as a real opt-in feature
-# (disabled by default in that role).
+# Migrated from yadm bootstrap.d/91-install-vscode-extensions.sh (behavior parity).
 
-- name: Probe for the native VS Code CLI
-  ansible.builtin.command: which code
-  register: _user_vscode_which_code
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["vscode-extensions", "user"]
-
-- name: Probe for the Flatpak VS Code installation
-  ansible.builtin.command: flatpak list --app --columns=application
-  register: _user_vscode_flatpak_apps
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["vscode-extensions", "user"]
-
-- name: Resolve the VS Code CLI from the explicit override
-  ansible.builtin.set_fact:
-    _user_vscode_cli: "{{ user_vscode_command | default('') | trim | split(' ') | select('!=', '') | list }}"
-  when: user_vscode_command | default('') | trim | length > 0
-  tags: ["vscode-extensions", "user"]
-
-- name: Resolve the VS Code CLI from the native installation
-  ansible.builtin.set_fact:
-    _user_vscode_cli: ["code"]
-  when:
-    - _user_vscode_cli is not defined
-    - (_user_vscode_which_code.rc | default(1)) == 0
-  tags: ["vscode-extensions", "user"]
-
-- name: Resolve the VS Code CLI from the Flatpak installation
-  ansible.builtin.set_fact:
-    _user_vscode_cli: ["flatpak", "run", "com.visualstudio.code"]
-  when:
-    - _user_vscode_cli is not defined
-    - (_user_vscode_which_code.rc | default(1)) != 0
-    - "'com.visualstudio.code' in (_user_vscode_flatpak_apps.stdout_lines | default([]))"
-  tags: ["vscode-extensions", "user"]
-
-- name: Report VS Code absence and skip extension management
-  ansible.builtin.debug:
-    msg: >-
-      VS Code was not found on {{ inventory_hostname }} (no native code CLI
-      and no com.visualstudio.code Flatpak); skipping VS Code extension
-      installation.
-  when: _user_vscode_cli is not defined or (_user_vscode_cli | length) == 0
+- name: Probe VS Code CLI availability
+  ansible.builtin.include_tasks:
+    file: vscode-extensions_probe.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   tags: ["vscode-extensions", "user"]
 
 - name: Query installed VS Code extensions
@@ -103,45 +56,15 @@
   tags: ["vscode-extensions", "user"]
 
 - name: Install missing VS Code extensions
+  ansible.builtin.include_tasks:
+    file: vscode-extensions_install.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when:
     - (_user_vscode_list_raw.rc | default(1)) == 0
     - _user_vscode_targets | default([]) | length > 0
   tags: ["vscode-extensions", "user"]
-  block:
-    - name: Install each missing VS Code extension
-      # Per-extension failures are non-fatal (script parity): a failing
-      # extension never stops the remaining ones; failures are reported below.
-      ansible.builtin.command:
-        argv: "{{ _user_vscode_cli + ['--install-extension', item] }}"
-      loop: "{{ _user_vscode_targets }}"
-      loop_control:
-        label: "{{ item }}"
-      register: _user_vscode_install_results
-      changed_when: true
-      failed_when: false
-      when: not (ansible_check_mode | default(false))
-      tags: ["vscode-extensions", "user"]
-
-    - name: Report per-extension installation failures
-      ansible.builtin.debug:
-        msg: >-
-          Failed to install {{ item.item }}; the publisher or extension may
-          no longer exist on the marketplace. Other extensions continue;
-          re-run with -vv for details.
-      loop: >-
-        {{ _user_vscode_install_results.results | default([])
-           | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list }}
-      loop_control:
-        label: "{{ item.item }}"
-      tags: ["vscode-extensions", "user"]
-
-  rescue:
-    - name: Report VS Code extension group failure
-      ansible.builtin.debug:
-        msg: >-
-          The VS Code extension installation group failed unexpectedly on
-          {{ inventory_hostname }}; see the task output above.
-      tags: ["vscode-extensions", "user"]
 
 - name: Summarize VS Code extension installation
   ansible.builtin.debug:

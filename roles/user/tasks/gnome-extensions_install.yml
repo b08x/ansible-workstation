@@ -1,0 +1,87 @@
+---
+# Resolve bundle URLs and install GNOME extensions via gnome-extensions CLI
+
+- name: Resolve extension bundle download targets
+  ansible.builtin.set_fact:
+    _user_gnome_install_targets: >-
+      {%- set targets = namespace(list=[]) -%}
+      {%- for uuid in _user_gnome_target_uuids | default([]) -%}
+      {%- set json = (_user_gnome_ext_info_map | default({})).get(uuid, {}) -%}
+      {%- set path = json.download_url | default('', true) -%}
+      {%- if path == '' and (json.shell_version_map | default({}) | length) > 0 -%}
+      {%- set best = json.shell_version_map | dict2items | sort(attribute='value.version') | list | last | default({}) -%}
+      {%- set path = '/download-extension/' ~ uuid ~ '.shell-extension.zip?version_tag=' ~ (best.value.pk | default('') | string) -%}
+      {%- endif -%}
+      {%- if path != '' -%}
+      {%- set url = path if path.startswith('http') else (user_gnome_extensions_base_url ~ path) -%}
+      {%- set _ = targets.list.append({'uuid': uuid, 'url': url}) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ targets.list }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Report extensions without a resolvable bundle
+  ansible.builtin.debug:
+    msg: >-
+      No compatible bundle was found on extensions.gnome.org for:
+      {{ _user_gnome_target_uuids | difference(_user_gnome_install_targets | default([]) | map(attribute='uuid') | list) | join(', ') }}.
+  when:
+    - _user_gnome_target_uuids | default([]) | length > 0
+    - _user_gnome_target_uuids | difference(_user_gnome_install_targets | default([]) | map(attribute='uuid') | list) | length > 0
+  tags: ["gnome-extensions", "user"]
+
+- name: Install GNOME extensions from resolved bundles
+  when:
+    - _user_gnome_install_targets | default([]) | length > 0
+    - not (ansible_check_mode | default(false))
+  tags: ["gnome-extensions", "user"]
+  block:
+    - name: Create temporary directory for extension bundles
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -gnome-ext
+      register: _user_gnome_tempdir
+
+    - name: Download extension bundles
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ _user_gnome_tempdir.path }}/{{ item.uuid }}.shell-extension.zip"
+        mode: "0644"
+        timeout: 30
+      loop: "{{ _user_gnome_install_targets }}"
+      loop_control:
+        label: "{{ item.uuid }}"
+      register: _user_gnome_downloads
+      failed_when: false
+      changed_when: true
+
+    - name: Install extension bundles via the gnome-extensions CLI
+      ansible.builtin.command:
+        argv:
+          - gnome-extensions
+          - install
+          - --force
+          - "{{ _user_gnome_tempdir.path }}/{{ item.uuid }}.shell-extension.zip"
+      loop: "{{ _user_gnome_install_targets }}"
+      loop_control:
+        label: "{{ item.uuid }}"
+      register: _user_gnome_installs
+      failed_when: false
+      changed_when: true
+
+  rescue:
+    - name: Report GNOME extension installation group failure
+      ansible.builtin.debug:
+        msg: >-
+          GNOME extension installation failed on {{ inventory_hostname }};
+          individual UUID failures are listed after this notice. Re-run
+          with -vv for the exact failing task.
+
+  always:
+    - name: Clean up the extension bundle temporary directory
+      ansible.builtin.file:
+        path: "{{ _user_gnome_tempdir.path }}"
+        state: absent
+      when:
+        - _user_gnome_tempdir is defined
+        - _user_gnome_tempdir.path is defined

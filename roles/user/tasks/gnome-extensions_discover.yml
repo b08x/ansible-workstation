@@ -1,0 +1,38 @@
+---
+# Discover installed GNOME extensions and compute missing target UUIDs
+
+- name: Parse the GNOME Shell version
+  ansible.builtin.set_fact:
+    _user_gnome_shell_version: >-
+      {{ _user_gnome_shell_version_raw.stdout | default('')
+         | regex_replace('^GNOME Shell ([0-9.]+).*$', '\1') | trim }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve installed extension UUIDs from the extension directories
+  ansible.builtin.find:
+    paths:
+      - "{{ user.home | default('/home/' ~ user.name) }}/.local/share/gnome-shell/extensions"
+      - /usr/share/gnome-shell/extensions
+    file_type: directory
+  register: _user_gnome_installed_dirs
+  tags: ["gnome-extensions", "user"]
+
+- name: Record installed extension UUIDs
+  ansible.builtin.set_fact:
+    _user_gnome_installed: >-
+      {{ _user_gnome_installed_dirs.files | default([])
+         | map(attribute='path') | map('basename') | list }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Resolve extensions requiring installation
+  ansible.builtin.set_fact:
+    _user_gnome_target_uuids: >-
+      {{ user_gnome_extensions if (user_gnome_extensions_force_install | default(false) | bool)
+         else (user_gnome_extensions | difference(_user_gnome_installed | default([])) | list) }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Report extensions already installed
+  ansible.builtin.debug:
+    msg: "All {{ user_gnome_extensions | length }} configured GNOME extensions are already installed."
+  when: _user_gnome_target_uuids | default([]) | length == 0
+  tags: ["gnome-extensions", "user"]

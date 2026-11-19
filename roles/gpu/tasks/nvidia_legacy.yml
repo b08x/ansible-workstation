@@ -1,0 +1,58 @@
+---
+# Hard-break legacy migration from official NVIDIA CUDA repo + RPM Fusion drivers.
+# Gated on presence so fresh hosts stay idempotent and the role never mutates
+# a clean install.
+
+- name: Detect legacy official NVIDIA CUDA repository files
+  ansible.builtin.command:
+    argv:
+      - sh
+      - -c
+      - >
+        grep -l 'developer\.download\.nvidia\.com/compute/cuda'
+        /etc/yum.repos.d/*.repo 2>/dev/null || true
+  register: _gpu_legacy_cuda_repos
+  changed_when: false
+  check_mode: false
+  tags: ["gpu", "nvidia"]
+
+- name: Remove legacy official NVIDIA CUDA repository files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ _gpu_legacy_cuda_repos.stdout_lines | default([]) }}"
+  when: (_gpu_legacy_cuda_repos.stdout_lines | default([])) | length > 0
+  register: _gpu_legacy_cuda_repo_removal
+  tags: ["gpu", "nvidia"]
+
+- name: Detect legacy RPM Fusion NVIDIA driver packages
+  ansible.builtin.command:
+    argv:
+      - rpm
+      - -qa
+      - xorg-x11-drv-nvidia*
+      - nvidia-kmod-common
+      - cuda-drivers
+  register: _gpu_legacy_rpmfusion_driver
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["gpu", "nvidia"]
+
+- name: Remove legacy RPM Fusion NVIDIA driver packages
+  ansible.builtin.command:
+    cmd: dnf -y remove 'xorg-x11-drv-nvidia*'
+  register: _gpu_legacy_driver_removal
+  changed_when: true
+  when: (_gpu_legacy_rpmfusion_driver.stdout_lines | default([])) | length > 0
+  tags: ["gpu", "nvidia"]
+
+- name: Distro-sync after legacy driver removal
+  ansible.builtin.command:
+    cmd: dnf -q -y distro-sync
+  register: _gpu_legacy_distro_sync
+  changed_when: _gpu_legacy_driver_removal is changed
+  when: >-
+    (_gpu_legacy_driver_removal is changed) or
+    (_gpu_legacy_cuda_repo_removal is changed)
+  tags: ["gpu", "nvidia"]

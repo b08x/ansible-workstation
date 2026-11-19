@@ -1,0 +1,41 @@
+---
+# Firstboot /etc/syncopated-user.conf pre-flight assertions for user role
+
+- name: Probe for the osbuild-baked workstation user conf
+  # local.yml's pre-flight seeds workstation_user from this conf; the role
+  # depends on the same contract, so a malformed conf must fail fast instead
+  # of silently falling back to a hardcoded account on ISO machines.
+  ansible.builtin.stat:
+    path: /etc/syncopated-user.conf
+  register: _user_firstboot_conf_stat
+  check_mode: false
+  tags: ["user", "assert", "always"]
+
+- name: Read the osbuild-baked workstation user conf when present and readable
+  ansible.builtin.slurp:
+    src: /etc/syncopated-user.conf
+  register: _user_firstboot_conf
+  check_mode: false
+  when: _user_firstboot_conf_stat.stat.exists | default(false)
+  tags: ["user", "assert", "always"]
+
+- name: Assert the osbuild-baked user conf honors the pre-flight contract when present
+  vars:
+    _user_firstboot_conf_name: >-
+      {{ (_user_firstboot_conf.content | default('')
+          | b64decode | regex_findall('(?m)^WORKSTATION_USER=(\S+)')
+          | first | default('', true)) | trim }}
+  ansible.builtin.assert:
+    that:
+      - _user_firstboot_conf_name | length > 0
+      - _user_firstboot_conf_name is match('^[a-z_][a-z0-9_-]{0,31}$')
+    fail_msg: >-
+      /etc/syncopated-user.conf is present but breaks the firstboot
+      pre-flight contract: it must carry a readable
+      'WORKSTATION_USER=<account>' line (baked 0644 by osbuild) so this role
+      and the pull resolve the same workstation user. Rebuild the image or
+      repair the conf on this host. Current parsed value:
+      '{{ _user_firstboot_conf_name | default('') }}'.
+    quiet: true
+  when: _user_firstboot_conf_stat.stat.exists | default(false)
+  tags: ["user", "assert", "always"]

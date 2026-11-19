@@ -1,0 +1,83 @@
+---
+# Probe system Go, user-space Go, and attempt DNF golang install if absent
+
+- name: Record the workstation user home directory
+  ansible.builtin.set_fact:
+    _user_go_home: "{{ user.home | default('/home/' ~ user.name) }}"
+  tags: ["go", "user"]
+
+- name: Ensure user local bin and go directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ _user_go_home }}/.local/bin"
+    - "{{ _user_go_home }}/go/bin"
+  tags: ["go", "user"]
+
+- name: Probe the SYSTEM go version
+  # /usr/bin/go specifically - never via PATH, which can resolve to a
+  # user-space installation and mask the system one.
+  ansible.builtin.command: /usr/bin/go version
+  register: _user_system_go_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  tags: ["go", "user"]
+
+- name: Check for an existing user-space go binary
+  ansible.builtin.stat:
+    path: "{{ user_go_dest_dir }}/bin/go"
+  register: _user_go_stat
+  tags: ["go", "user"]
+
+- name: Probe system golang package availability via DNF
+  ansible.builtin.command: dnf info golang
+  register: _user_go_dnf_available
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when:
+    - (_user_system_go_version.stdout | default('')) | length == 0
+    - not (_user_go_stat.stat.exists | default(false))
+    - not (user_go_force_install | default(false) | bool)
+  tags: ["go", "user"]
+
+- name: Resolve whether a system golang DNF install should be attempted
+  ansible.builtin.set_fact:
+    _user_go_dnf_attempt: >-
+      {{ ((_user_system_go_version.stdout | default('')) | length == 0)
+         and (_user_go_dnf_available.rc | default(1)) == 0
+         and not (_user_go_stat.stat.exists | default(false))
+         and not (user_go_force_install | default(false) | bool) }}
+  tags: ["go", "user"]
+
+- name: Install the system golang package from DNF
+  when: _user_go_dnf_attempt | default(false) | bool
+  tags: ["go", "user"]
+  block:
+    - name: Install golang via the system package manager
+      ansible.builtin.dnf:
+        name: golang
+        state: present
+      become: true
+      become_user: root
+      when: not (ansible_check_mode | default(false))
+
+  rescue:
+    - name: Report system golang DNF installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install the system golang package via DNF; falling
+          through to the user-space Go toolchain install. Re-run with -vv
+          for the exact dnf failure.
+
+- name: Re-probe the system go version after the DNF decision
+  ansible.builtin.command: /usr/bin/go version
+  register: _user_system_go_reprobe
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: _user_go_dnf_attempt | default(false) | bool
+  tags: ["go", "user"]

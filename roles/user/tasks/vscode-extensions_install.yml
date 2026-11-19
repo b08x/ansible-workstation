@@ -1,0 +1,40 @@
+---
+# Install missing VS Code extensions (non-fatal per-extension failures)
+
+- name: Install missing VS Code extensions
+  tags: ["vscode-extensions", "user"]
+  block:
+    - name: Install each missing VS Code extension
+      # Per-extension failures are non-fatal (script parity): a failing
+      # extension never stops the remaining ones; failures are reported below.
+      ansible.builtin.command:
+        argv: "{{ _user_vscode_cli + ['--install-extension', item] }}"
+      loop: "{{ _user_vscode_targets }}"
+      loop_control:
+        label: "{{ item }}"
+      register: _user_vscode_install_results
+      changed_when: true
+      failed_when: false
+      when: not (ansible_check_mode | default(false))
+      tags: ["vscode-extensions", "user"]
+
+    - name: Report per-extension installation failures
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install {{ item.item }}; the publisher or extension may
+          no longer exist on the marketplace. Other extensions continue;
+          re-run with -vv for details.
+      loop: >-
+        {{ _user_vscode_install_results.results | default([])
+           | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list }}
+      loop_control:
+        label: "{{ item.item }}"
+      tags: ["vscode-extensions", "user"]
+
+  rescue:
+    - name: Report VS Code extension group failure
+      ansible.builtin.debug:
+        msg: >-
+          The VS Code extension installation group failed unexpectedly on
+          {{ inventory_hostname }}; see the task output above.
+      tags: ["vscode-extensions", "user"]

@@ -1,0 +1,74 @@
+---
+# Report installation results and enable configured GNOME extensions via dconf
+
+- name: Resolve newly installed extension UUIDs
+  ansible.builtin.set_fact:
+    _user_gnome_newly_installed: >-
+      {{ _user_gnome_installs.results | default([])
+         | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0)
+         | map(attribute='item.uuid') | list }}
+  tags: ["gnome-extensions", "user"]
+
+- name: Report failed extension downloads and installations
+  ansible.builtin.debug:
+    msg: >-
+      Failed to download or install {{ item.item.uuid }} from
+      extensions.gnome.org; it may lack a bundle compatible with GNOME Shell
+      {{ _user_gnome_shell_version | default('unknown') }}.
+  loop: >-
+    {{ _user_gnome_installs.results | default([])
+       | selectattr('rc', 'defined') | selectattr('rc', 'ne', 0) | list }}
+  loop_control:
+    label: "{{ item.item.uuid }}"
+  tags: ["gnome-extensions", "user"]
+
+- name: Enable configured GNOME extensions via dconf
+  tags: ["gnome-extensions", "user"]
+  block:
+    - name: Read currently enabled extensions
+      ansible.builtin.command: dconf read /org/gnome/shell/enabled-extensions
+      register: _user_gnome_enabled_raw
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Parse the currently enabled extension list
+      ansible.builtin.set_fact:
+        _user_gnome_enabled_current: >-
+          {{ (_user_gnome_enabled_raw.stdout | default('') | trim
+          | regex_replace('^\[', '') | regex_replace('\]$', '')
+          | replace("'", "") | split(', ') | select | list) }}
+
+    # Monotonic union invariant: (current ∪ configured) ∩ installed.
+    - name: Resolve extension list to enable
+      ansible.builtin.set_fact:
+        _user_gnome_to_enable: >-
+          {{ _user_gnome_enabled_current
+             | union(user_gnome_extensions)
+             | intersect(_user_gnome_installed | union(_user_gnome_newly_installed | default([])))
+             | unique | list }}
+
+    - name: Enable installed configured extensions
+      community.general.dconf:
+        key: /org/gnome/shell/enabled-extensions
+        value: "{{ _user_gnome_to_enable | to_json }}"
+        state: present
+      when: (_user_gnome_to_enable | length) > 0
+
+  rescue:
+    - name: Report dconf enable unavailability
+      ansible.builtin.debug:
+        msg: >-
+          Could not enable GNOME extensions via dconf on {{ inventory_hostname }}
+          (no D-Bus session or dconf service). The extensions are installed
+          and will be picked up on next login; they can also be enabled
+          manually with 'gnome-extensions enable'.
+
+- name: Recommend re-login when extensions were installed
+  ansible.builtin.debug:
+    msg: >-
+      {{ _user_gnome_newly_installed | default([]) | length }} GNOME
+      extension(s) were installed. A re-login (or GNOME Shell restart) is
+      recommended to load them.
+  when: _user_gnome_newly_installed | default([]) | length > 0
+  tags: ["gnome-extensions", "user"]

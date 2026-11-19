@@ -1,0 +1,72 @@
+---
+# NVIDIA systemd services, kernel command-line arguments, and nouveau blacklist
+
+- name: Enable NVIDIA power management services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+  loop: "{{ gpu_nvidia_power_services }}"
+  when: gpu_nvidia_power_management | default(true) | bool
+  tags: ["gpu", "nvidia"]
+
+- name: Enable NVIDIA persistence daemon
+  ansible.builtin.systemd:
+    name: nvidia-persistenced
+    enabled: true
+  when: _gpu_distro_nvidia_persistenced | default(false) | bool
+  tags: ["gpu", "nvidia"]
+
+- name: Read current kernel command-line arguments
+  ansible.builtin.command: grubby --info=ALL
+  register: _gpu_grubby_info
+  changed_when: false
+  check_mode: false
+  tags: ["gpu", "nvidia"]
+
+- name: Collect per-kernel argument tokens
+  ansible.builtin.set_fact:
+    _gpu_kernel_arg_sets: >-
+      {{ _gpu_grubby_info.stdout_lines
+         | select('match', '^args="(.*)"$')
+         | map('regex_replace', '^args="(.*)"$', '\1')
+         | map('split')
+         | list }}
+  tags: ["gpu", "nvidia"]
+
+- name: Determine missing NVIDIA kernel arguments
+  ansible.builtin.set_fact:
+    _gpu_missing_kernel_args: "{{ _gpu_missing_kernel_args | default([]) + [item] }}"
+  loop: "{{ gpu_nvidia_kernel_args }}"
+  when: >-
+    (_gpu_kernel_arg_sets | map('intersect', [item]) | map('length') | sum)
+    < (_gpu_kernel_arg_sets | length)
+  tags: ["gpu", "nvidia"]
+
+- name: Apply missing NVIDIA kernel arguments
+  ansible.builtin.command:
+    argv:
+      - grubby
+      - --update-kernel=ALL
+      - --args={{ _gpu_missing_kernel_args | join(' ') }}
+  register: _gpu_grubby_update
+  when: (_gpu_missing_kernel_args | default([]) | length) > 0
+  changed_when: (_gpu_missing_kernel_args | default([]) | length) > 0
+  notify:
+    - gpu rebuild initramfs
+    - gpu flag reboot required
+  tags: ["gpu", "nvidia"]
+
+- name: Blacklist nouveau kernel module
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/blacklist-nouveau.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    content: |
+      blacklist nouveau
+      options nouveau modeset=0
+  notify:
+    - gpu rebuild initramfs
+    - gpu flag reboot required
+  tags: ["gpu", "nvidia"]

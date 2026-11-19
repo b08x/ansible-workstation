@@ -1,0 +1,75 @@
+---
+# Negativo 17 NVIDIA driver, CUDA toolkit, utilities, and container CDI payload
+
+- name: Install Negativo 17 NVIDIA driver and CUDA packages
+  ansible.builtin.dnf:
+    name: >-
+      {{ gpu_nvidia_negativo17_packages
+         if (gpu_nvidia_cuda_toolkit | default(true) | bool)
+         else gpu_nvidia_negativo17_packages | difference(['cuda', 'cuda-devel']) }}
+    state: "{{ 'latest' if (gpu_nvidia_force_install | default(false) | bool) else 'present' }}"
+    allowerasing: true
+  tags: ["gpu", "nvidia"]
+
+- name: Create CUDA environment profile script
+  ansible.builtin.copy:
+    dest: /etc/profile.d/cuda.sh
+    content: |
+      #!/bin/bash
+      # NVIDIA CUDA toolkit environment initialization
+      if [ -d /usr/local/cuda/bin ]; then
+          export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
+      fi
+      if [ -d /usr/local/cuda/lib64 ]; then
+          export LD_LIBRARY_PATH=/usr/local/cuda/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+      fi
+    mode: "0755"
+    owner: root
+    group: root
+    backup: true
+  when: gpu_nvidia_cuda_toolkit | default(true) | bool
+  tags: ["gpu", "nvidia"]
+
+- name: Install NVIDIA container toolkit
+  ansible.builtin.dnf:
+    name: nvidia-container-toolkit
+    state: present
+  when: gpu_nvidia_container_toolkit | default(true) | bool
+  tags: ["gpu", "nvidia"]
+
+- name: Install NVIDIA utilities
+  ansible.builtin.dnf:
+    name: "{{ gpu_nvidia_utils_packages }}"
+    state: present
+  when: gpu_nvidia_utils | default(true) | bool
+  tags: ["gpu", "nvidia"]
+
+- name: Configure NVIDIA CDI generation for containers
+  when: gpu_nvidia_container_toolkit | default(true) | bool
+  tags: ["gpu", "nvidia", "nvidia-container-toolkit"]
+  block:
+    - name: Install NVIDIA CDI generation script
+      ansible.builtin.copy:
+        src: nvidia-cdi-generate.sh
+        dest: /usr/local/bin/nvidia-cdi-generate.sh
+        owner: root
+        group: root
+        mode: "0755"
+        backup: true
+
+    - name: Install NVIDIA CDI refresh service unit
+      ansible.builtin.copy:
+        src: nvidia-cdi-refresh.service
+        dest: /etc/systemd/system/nvidia-cdi-refresh.service
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
+
+    - name: Enable NVIDIA CDI refresh service
+      ansible.builtin.systemd:
+        name: nvidia-cdi-refresh
+        enabled: true
+        daemon_reload: true
+      # Intentionally left stopped: the oneshot service runs at boot and
+      # needs the NVIDIA module loaded to generate the CDI specification.

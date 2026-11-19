@@ -1,268 +1,34 @@
 ---
 # tasks file for user-space Go toolchain management in roles/user
-# Decision tree (human amendment 2026-11, mirrors roles/user cargo):
-#   1. Probe the SYSTEM go at /usr/bin/go (never via PATH - PATH can resolve
-#      to a user-space install and mask the system one).
-#   2. When system go is ABSENT, first probe DNF availability for golang;
-#      when available install it (single escalation idiom), then re-probe.
-#      DNF install failure falls through to the user-space install with a
-#      warn-debug.
-#   3. When the system go (initial or freshly installed) is older than
-#      user_go_min_version, install the official Go binary tarball into
-#      ~/.local/go (unprivileged) and symlink go/gofmt into ~/.local/bin.
-#   4. user_go_force_install forces the user-space (re)install.
-#
-# PATH alignment (verified): ~/.local/bin and ~/go/bin (GOPATH bin) are on
-# PATH via Tier 1 workstation_path_dirs and the Layer 2 ~/.zshrc; the Go
-# tree itself lives at ~/.local/go (its internal bin dir is NOT a PATH
-# surface - the ~/.local/bin symlinks cover discovery). This role writes no
-# rc files; PATH is owned by Yadm dotfiles.
 
-- name: Record the workstation user home directory
-  ansible.builtin.set_fact:
-    _user_go_home: "{{ user.home | default('/home/' ~ user.name) }}"
-  tags: ["go", "user"]
-
-- name: Ensure user local bin and go directories exist
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: "0755"
-  loop:
-    - "{{ _user_go_home }}/.local/bin"
-    - "{{ _user_go_home }}/go/bin"
-  tags: ["go", "user"]
-
-- name: Probe the SYSTEM go version
-  # /usr/bin/go specifically - never via PATH, which can resolve to a
-  # user-space installation and mask the system one.
-  ansible.builtin.command: /usr/bin/go version
-  register: _user_system_go_version
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  tags: ["go", "user"]
-
-- name: Check for an existing user-space go binary
-  ansible.builtin.stat:
-    path: "{{ user_go_dest_dir }}/bin/go"
-  register: _user_go_stat
-  tags: ["go", "user"]
-
-- name: Probe system golang package availability via DNF
-  ansible.builtin.command: dnf info golang
-  register: _user_go_dnf_available
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when:
-    - (_user_system_go_version.stdout | default('')) | length == 0
-    - not (_user_go_stat.stat.exists | default(false))
-    - not (user_go_force_install | default(false) | bool)
-  tags: ["go", "user"]
-
-- name: Resolve whether a system golang DNF install should be attempted
-  ansible.builtin.set_fact:
-    _user_go_dnf_attempt: >-
-      {{ ((_user_system_go_version.stdout | default('')) | length == 0)
-         and (_user_go_dnf_available.rc | default(1)) == 0
-         and not (_user_go_stat.stat.exists | default(false))
-         and not (user_go_force_install | default(false) | bool) }}
-  tags: ["go", "user"]
-
-- name: Install the system golang package from DNF
-  when: _user_go_dnf_attempt | default(false) | bool
-  tags: ["go", "user"]
-  block:
-    - name: Install golang via the system package manager
-      ansible.builtin.dnf:
-        name: golang
-        state: present
+- name: Probe system and user-space Go availability
+  ansible.builtin.include_tasks:
+    file: go_probe.yml
+    apply:
       become: true
-      become_user: root
-      when: not (ansible_check_mode | default(false))
-      tags: ["go", "user"]
-
-  rescue:
-    - name: Report system golang DNF installation failure
-      ansible.builtin.debug:
-        msg: >-
-          Failed to install the system golang package via DNF; falling
-          through to the user-space Go toolchain install. Re-run with -vv
-          for the exact dnf failure.
-      tags: ["go", "user"]
-
-- name: Re-probe the system go version after the DNF decision
-  ansible.builtin.command: /usr/bin/go version
-  register: _user_system_go_reprobe
-  changed_when: false
-  failed_when: false
-  check_mode: false
-  when: _user_go_dnf_attempt | default(false) | bool
+      become_user: "{{ user.name }}"
   tags: ["go", "user"]
 
-- name: Resolve the effective system go version
-  ansible.builtin.set_fact:
-    _user_go_system_final_version: >-
-      {{ (  (_user_system_go_reprobe.stdout | default(''))
-           if (_user_go_dnf_attempt | default(false) | bool)
-           else (_user_system_go_version.stdout | default('')) ) | trim }}
-    _user_go_dnf_installed: >-
-      {{ (_user_go_dnf_attempt | default(false) | bool)
-         and ((_user_system_go_reprobe.stdout | default('')) | length > 0) }}
+- name: Resolve Go toolchain installation strategy
+  ansible.builtin.include_tasks:
+    file: go_decide.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   tags: ["go", "user"]
 
-- name: Resolve the Go toolchain strategy
-  ansible.builtin.set_fact:
-    _user_go_strategy: >-
-      {{ 'userspace-forced'
-         if (user_go_force_install | default(false) | bool)
-         else ('system'
-               if (_user_go_system_final_version | length > 0)
-                  and ((_user_go_system_final_version | regex_search('[0-9]+\.[0-9]+') | default('0', true))
-                       is version(user_go_min_version | default('1.22'), '>='))
-               else ('userspace-older'
-                     if (_user_go_system_final_version | length > 0)
-                     else 'userspace-unavailable')) }}
-  tags: ["go", "user"]
-
-- name: Resolve the user-space install gate and decision note
-  # Separate set_fact: set_fact evaluates all keys of one task up-front, so
-  # consumers of _user_go_strategy must live in a later task than the one
-  # that defines it (failure point 17, lazy evaluation).
-  ansible.builtin.set_fact:
-    _user_go_install_userspace: >-
-      {{ ((user_go_force_install | default(false) | bool)
-          or (_user_go_strategy in ['userspace-older', 'userspace-unavailable']))
-          and ((not (_user_go_stat.stat.exists | default(false)))
-               or (user_go_force_install | default(false) | bool)) }}
-    _user_go_decision_note: >-
-      {{ 'user_go_force_install bypasses the system Go check'
-         ~ ' and forces the user-space toolchain'
-         if (user_go_force_install | default(false) | bool)
-         else ('system Go ' ~ (_user_go_system_final_version | regex_search('[0-9]+\.[0-9]+') | default('?'))
-               ~ ' satisfies minimum; no user toolchain needed'
-               if _user_go_strategy == 'system'
-               else ('system Go compares older than ' ~ user_go_min_version
-                     ~ '; installing the user-space Go toolchain'
-                     if _user_go_strategy == 'userspace-older'
-                     else ('system Go is absent' ~ (
-                            ' and the DNF golang install did not produce a usable toolchain'
-                            if (_user_go_dnf_attempt | default(false) | bool)
-                            else ' (no usable golang package available via DNF)')
-                            ~ '; installing the user-space Go toolchain'))) }}
-  tags: ["go", "user"]
-
-- name: Report the Go toolchain decision
-  ansible.builtin.debug:
-    msg: >-
-      Go toolchain decision: {{ _user_go_strategy }} -
-      system go: {{ _user_go_system_final_version | default('absent') }},
-      user-space go present: {{ _user_go_stat.stat.exists | default(false) | bool }},
-      minimum version: {{ user_go_min_version }},
-      user-space install: {{ _user_go_install_userspace | default(false) | bool }}.
-      {{ _user_go_decision_note }}.
-  tags: ["go", "user"]
-
-- name: Install the user-space Go toolchain
+- name: Install user-space Go toolchain when required
+  ansible.builtin.include_tasks:
+    file: go_install.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when:
     - _user_go_install_userspace | default(false) | bool
     - not (ansible_check_mode | default(false))
   tags: ["go", "user"]
-  block:
-    - name: Create temporary directory for the Go archive
-      ansible.builtin.tempfile:
-        state: directory
-        suffix: -go-install
-      register: _user_go_tempdir
-      tags: ["go", "user"]
-
-    - name: Download the Go release tarball
-      # Checksum decision (hardening review): go.dev publishes a matching
-      # .sha256 next to every release tarball, but it is NOT wired in here.
-      # The URL is version-pinned (user_go_version, not /latest/, not
-      # anything host-controlled), fetched over TLS from the official host,
-      # and an integrity pin would come from the same origin - so a side
-      # checksum would only catch transport corruption, which TLS already
-      # guards, while doubling the fetch surface and adding failure modes
-      # (e.g. sha256 file format drift). Revisit only if the supply-chain
-      # posture starts pinning checksums out-of-band.
-      ansible.builtin.get_url:
-        url: "{{ user_go_url }}"
-        dest: "{{ _user_go_tempdir.path }}/go.tar.gz"
-        mode: "0644"
-        timeout: 60
-      tags: ["go", "user"]
-
-    - name: Ensure the user-space Go parent directory exists
-      ansible.builtin.file:
-        path: "{{ user_go_dest_dir | dirname }}"
-        state: directory
-        mode: "0755"
-      tags: ["go", "user"]
-
-    - name: Remove any prior user-space Go toolchain directory
-      ansible.builtin.file:
-        path: "{{ user_go_dest_dir }}"
-        state: absent
-      tags: ["go", "user"]
-
-    - name: Extract the Go archive into user space
-      ansible.builtin.unarchive:
-        src: "{{ _user_go_tempdir.path }}/go.tar.gz"
-        dest: "{{ user_go_dest_dir | dirname }}"
-        remote_src: true
-      tags: ["go", "user"]
-
-    - name: Ensure the user-space Go toolchain directory is 0755
-      ansible.builtin.file:
-        path: "{{ user_go_dest_dir }}"
-        state: directory
-        mode: "0755"
-      tags: ["go", "user"]
-
-    - name: Symlink the user-space go binary into local bin
-      ansible.builtin.file:
-        src: "{{ user_go_dest_dir }}/bin/go"
-        dest: "{{ _user_go_home }}/.local/bin/go"
-        state: link
-      tags: ["go", "user"]
-
-    - name: Symlink the user-space gofmt binary into local bin
-      ansible.builtin.file:
-        src: "{{ user_go_dest_dir }}/bin/gofmt"
-        dest: "{{ _user_go_home }}/.local/bin/gofmt"
-        state: link
-      tags: ["go", "user"]
-
-  rescue:
-    - name: Report user-space Go installation failure
-      ansible.builtin.debug:
-        msg: >-
-          Failed to install the user-space Go toolchain from {{ user_go_url }}
-          into {{ user_go_dest_dir }}. Check network reachability of
-          go.dev and the task output above.
-      tags: ["go", "user"]
-
-    - name: Fail on user-space Go installation failure
-      ansible.builtin.fail:
-        msg: "User-space Go toolchain installation failed - see the preceding task output."
-      tags: ["go", "user"]
-
-  always:
-    - name: Clean up the Go archive temporary directory
-      ansible.builtin.file:
-        path: "{{ _user_go_tempdir.path }}"
-        state: absent
-      when:
-        - _user_go_tempdir is defined
-        - _user_go_tempdir.path is defined
-        - not (ansible_check_mode | default(false))
-      tags: ["go", "user"]
 
 - name: Probe the effective Go compiler executable
-  # PATH resolution: the ~/.local/bin symlink wins when the user-space
-  # toolchain was installed; otherwise this resolves to the system go.
   ansible.builtin.command: which go
   environment:
     PATH: "{{ _user_go_home }}/.local/bin:/usr/local/bin:/usr/bin:/bin:{{ ansible_env.PATH | default('') }}"
@@ -284,9 +50,6 @@
   tags: ["go", "user"]
 
 - name: Assert proper Go environment is in place
-  # Verification step (human amendment 3.5): after the decision tree the
-  # effective Go must exist and satisfy user_go_min_version - this stays
-  # a hard failure with a human-readable remedy.
   ansible.builtin.assert:
     that:
       - (_user_go_check.rc | default(1)) == 0

@@ -6,9 +6,7 @@
     that:
       - ansible_os_family is defined
       - ansible_distribution is defined
-    fail_msg: >-
-      Ansible facts must be gathered before executing the user role.
-      Ensure 'gather_facts: true' is set or execute 'ansible.builtin.setup'.
+    fail_msg: "Ansible facts must be gathered before executing the user role. Ensure 'gather_facts: true' is set."
     quiet: true
   tags: ["user", "assert", "always"]
 
@@ -18,10 +16,8 @@
       - ansible_os_family == 'RedHat'
       - ansible_distribution in ['Fedora', 'AlmaLinux', 'Rocky', 'RedHat', 'CentOS']
     fail_msg: >-
-      The user role only supports RedHat-family distributions
-      (Fedora, AlmaLinux, Rocky Linux). Current host is
-      {{ ansible_distribution | default('Unknown') }}
-      ({{ ansible_os_family | default('Unknown') }}).
+      The user role only supports RedHat-family distributions (Fedora, AlmaLinux, Rocky Linux).
+      Current: {{ ansible_distribution | default('Unknown') }}.
     success_msg: "Supported platform verified: {{ ansible_distribution }} {{ ansible_distribution_major_version | default('') }}"
     quiet: false
   tags: ["user", "assert", "always"]
@@ -32,9 +28,7 @@
       - user is defined
       - user.name is defined
       - user.name | length > 0
-    fail_msg: >-
-      The user role requires Tier 1 host variable 'user.name' to manage user configurations.
-      Ensure 'user.name' is set in inventory, host_vars, or group_vars.
+    fail_msg: "The user role requires Tier 1 host variable 'user.name' to manage user configurations."
     quiet: true
   tags: ["user", "assert", "always"]
 
@@ -42,21 +36,7 @@
   ansible.builtin.assert:
     that:
       - user.home is not defined or (user.home is defined and user.home.startswith('/'))
-    fail_msg: >-
-      When defined, 'user.home' must be an absolute path starting with '/'.
-      Current value: '{{ user.home | default('') }}'.
-    quiet: true
-  tags: ["user", "assert", "always"]
-
-- name: Assert uv Python version format
-  ansible.builtin.assert:
-    that:
-      - user_uv_python_version is defined
-      - user_uv_python_version | string | length > 0
-      - user_uv_python_version | string is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
-    fail_msg: >-
-      'user_uv_python_version' must be a valid version string (e.g. '3.14',
-      '3.14.7'). Current value: '{{ user_uv_python_version | default("") }}'.
+    fail_msg: "When defined, 'user.home' must be an absolute path starting with '/'. Current value: '{{ user.home | default('') }}'."
     quiet: true
   tags: ["user", "assert", "always"]
 
@@ -79,9 +59,6 @@
   tags: ["user", "assert", "always"]
 
 - name: Assert role runs as the expected workstation user
-  # User-space toolchains install into $HOME unprivileged; running as the
-  # wrong account (e.g. root without become_user) would scatter artifacts across
-  # home directories. Effective user identity verified via id.
   ansible.builtin.assert:
     that:
       - _user_effective_user.stdout | trim == user.name
@@ -93,233 +70,27 @@
     quiet: true
   tags: ["user", "assert", "always"]
 
-- name: Assert user-space destinations stay under the workstation home
-  # Become-model safety net: the role runs unprivileged (play become: false),
-  # so every managed destination must resolve under the workstation user's
-  # home. Tier 2 defaults derive these paths from user.home, but a host/group
-  # override pointing user_bun_dest or user_go_dest_dir at a root-owned path
-  # (e.g. /usr/local/bin) would silently break the become contract and
-  # scatter files the user cannot manage.
-  vars:
-    _user_expected_home: "{{ user.home | default('/home/' ~ user.name) }}"
-  ansible.builtin.assert:
-    that:
-      - user_bun_dest | default('') == '' or (user_bun_dest | default('')).startswith(_user_expected_home)
-      - user_go_dest_dir | default('') == '' or (user_go_dest_dir | default('')).startswith(_user_expected_home)
-    fail_msg: >-
-      user_bun_dest and user_go_dest_dir must stay under the workstation
-      home ('{{ _user_expected_home }}'). Got user_bun_dest
-      '{{ user_bun_dest | default('') }}' and user_go_dest_dir
-      '{{ user_go_dest_dir | default('') }}'; the user role never writes
-      outside user space.
-    quiet: true
-  tags: ["user", "assert", "always"]
-
-- name: Assert cargo manifest shape
-  ansible.builtin.assert:
-    that:
-      - user_cargo_crates | default([]) is sequence
-      - user_cargo_crates | default([]) is not string
-      - user_cargo_crates | default([]) | length > 0
-      - user_cargo_crates | default([]) | select('string') | list | length == user_cargo_crates | length
-      - user_cargo_crate_dnf_map | default({}) | list | difference(user_cargo_crates | default([])) | length == 0
-      - user_cargo_force_crates | default([]) is sequence
-      - user_cargo_min_system_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
-    fail_msg: >-
-      Invalid cargo manifest: 'user_cargo_crates' must be a non-empty list of
-      crate name strings, every 'user_cargo_crate_dnf_map' key must name a
-      crate from that list, 'user_cargo_force_crates' must be a list, and
-      'user_cargo_min_system_version' must be a version string.
-    quiet: true
-  tags: ["user", "assert", "always"]
-
-- name: Assert Go toolchain configuration shape
-  ansible.builtin.assert:
-    that:
-      - user_go_min_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
-      - user_go_version | default('') is match('^[0-9]+\.[0-9]+(\.[0-9]+)?$')
-    fail_msg: >-
-      'user_go_min_version' and 'user_go_version' must be version strings
-      (e.g. '1.22', '1.27.1').
-    quiet: true
-  tags: ["user", "assert", "always"]
-
-- name: Assert GNOME extension manifest shape
-  ansible.builtin.assert:
-    that:
-      - user_gnome_extensions | default([]) is sequence
-      - user_gnome_extensions | default([]) is not string
-      - user_gnome_extensions | default([]) | reject('search', '^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$') | length == 0
-    fail_msg: >-
-      'user_gnome_extensions' must be a list of extension UUIDs shaped like
-      'name@author.domain' (got: {{ user_gnome_extensions | default([]) | join(', ') }}).
-    quiet: true
-  tags: ["user", "assert", "always"]
-
-- name: Assert VS Code extension manifest shape
-  ansible.builtin.assert:
-    that:
-      - user_vscode_extensions | default([]) is sequence
-      - user_vscode_extensions | default([]) is not string
-      - user_vscode_extensions | default([]) | reject('search', '^[A-Za-z0-9._-]+\.[A-Za-z0-9_-]+$') | length == 0
-      - user_vscode_command | default('') is string
-    fail_msg: >-
-      'user_vscode_extensions' must be a list of 'publisher.name' extension
-      identifiers and 'user_vscode_command' must be a string when set.
-    quiet: true
-  tags: ["user", "assert", "always"]
-
 - name: Assert package manager is DNF family
-  # The role reaches root DNF from the go/cargo decision trees (the three
-  # bounded escalation sites), and the repo's assert discipline checks the
-  # package manager wherever the dnf module is reachable.
   ansible.builtin.assert:
     that:
       - ansible_pkg_mgr in ['dnf', 'dnf5']
-    fail_msg: >-
-      The user role reaches DNF/DNF5 package management (Go/cargo system
-      fallbacks). Detected package manager: '{{ ansible_pkg_mgr | default('unknown') }}'.
+    fail_msg: "The user role reaches DNF/DNF5 package management (Go/cargo system fallbacks). Detected: '{{ ansible_pkg_mgr | default('unknown') }}'."
     quiet: true
   tags: ["user", "assert", "always"]
 
-# -- Firstboot surface (goal two-stage-firstboot, Phase 4 hardener) ----------
-# Everything below extends the existing surface; the firstboot assertions
-# carry their own feature-flag gate in the repo dialect so
-# `tasks_from: assert.yml` with no role defaults loaded stays quiet. The suite
-# runs in root context (ADR-6); these checks stay in the user context and only
-# validate controller-side and read-only facts.
+- name: Validate toolchain and extension manifests
+  ansible.builtin.include_tasks:
+    file: assert_manifests.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
+  tags: ["user", "assert", "always"]
 
-- name: Assert firstboot suite manifest shape
-  ansible.builtin.assert:
-    that:
-      - user_firstboot_files | default([]) is sequence
-      - user_firstboot_files | default([]) is not string
-      - user_firstboot_files | default([]) | length > 0
-    fail_msg: >-
-      'user_firstboot_files' must be a non-empty list of { src, dest, owner,
-      group, mode } entries mirroring the osbuild blueprint injection table.
-    quiet: true
+- name: Validate firstboot suite contracts
+  ansible.builtin.include_tasks:
+    file: assert_firstboot.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
   when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Assert each firstboot entry references a real source file and a sane destination
-  # Controller-side existence probe (fileglob matches exact names, no error on
-  # a miss) so a drifted manifest fails fast here instead of mid-deployment
-  # with a raw copy-module error. Destinations stay on the three root-owned
-  # system paths the suite owns, with the SSOT modes: 0755 for /usr/local/bin
-  # executables, 0644 for the /etc profile.d and autostart files.
-  ansible.builtin.assert:
-    that:
-      - item.src | default('') | length > 0
-      - lookup('ansible.builtin.fileglob', role_path ~ '/files/firstboot/' ~ (item.src | default(''))) | length > 0
-      - item.dest | default('') is match('^/(usr/local/bin|etc/profile\.d|etc/xdg/autostart)/[^/]+$')
-      - item.owner | default('root') == 'root'
-      - item.dest | default('') is not match('^/usr/local/bin/') or item.mode | default('') == '0755'
-      - item.dest | default('') is not match('^/etc/') or item.mode | default('') == '0644'
-    fail_msg: >-
-      Invalid firstboot manifest entry {{ item }}: 'src' must name an existing
-      file under roles/user/files/firstboot/, 'dest' must be a filename under
-      /usr/local/bin/ (mode 0755) or /etc/profile.d/ or /etc/xdg/autostart/
-      (mode 0644), owned by root.
-    quiet: true
-  loop: "{{ user_firstboot_files | default([]) }}"
-  loop_control:
-    label: "{{ item.src | default('?') }}"
-  when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Assert the machine pull marker path is the home-based marker
-  # ADR-3, phase-4 human amendment: the marker is machine state written by
-  # the privileged pull, but it must live INSIDE the primary workstation
-  # user's home — /root is 0550 root:root on stock installs, so a /root
-  # marker would be unstat-able by the non-root console user and the tty1
-  # hook would re-fire stage 1 at every login. The home location keeps the
-  # 0644 root:root (world-readable, plain test -f, no sudo) semantics of the
-  # human gate decision 2.
-  vars:
-    _user_expected_home: "{{ user.home | default('/home/' ~ user.name) }}"
-  ansible.builtin.assert:
-    that:
-      - user_firstboot_marker_path is defined
-      - user_firstboot_marker_path | default('') is match('^/[^/].*')
-      - (user_firstboot_marker_path | default('')).startswith(_user_expected_home)
-      - user_firstboot_marker_path | default('') is match('^.*/\.initial-firstboot$')
-    fail_msg: >-
-      'user_firstboot_marker_path' must be an absolute path ending in
-      .initial-firstboot, inside the workstation home
-      ('{{ _user_expected_home }}'); the marker moved out of /root in the
-      phase-4 human amendment because non-root users cannot stat /root
-      (0550 root:root on stock installs). Current value:
-      '{{ user_firstboot_marker_path | default('') }}'.
-    quiet: true
-  when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Stat the machine pull marker parent directory
-  # The marker's parent is expected to be the primary workstation user's home
-  # itself, whose existence is worth asserting pre-deployment (the writer
-  # never mkdirs).
-  ansible.builtin.stat:
-    path: "{{ user_firstboot_marker_path | dirname }}"
-  register: _user_firstboot_marker_dir_stat
-  when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Assert the machine pull marker parent directory exists in the workstation home
-  ansible.builtin.assert:
-    that:
-      - _user_firstboot_marker_dir_stat.stat.exists | default(false)
-    fail_msg: >-
-      The machine pull marker '{{ user_firstboot_marker_path | default('') }}'
-      must live under an existing directory inside the workstation home —
-      its parent '{{ user_firstboot_marker_path | default('') | dirname }}'
-      is missing. The marker file itself is still root:root 0644 (written by
-      the privileged pull); only its location moved into the user's home
-      (phase-4 amendment; /root is unreadable by non-root users).
-    quiet: true
-  when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Probe for the osbuild-baked workstation user conf
-  # local.yml's pre-flight seeds workstation_user from this conf; the role
-  # depends on the same contract, so a malformed conf must fail fast instead
-  # of silently falling back to a hardcoded account on ISO machines.
-  ansible.builtin.stat:
-    path: /etc/syncopated-user.conf
-  register: _user_firstboot_conf_stat
-  check_mode: false
-  when: user_firstboot_enabled | default(false) | bool
-  tags: ["user", "assert", "always"]
-
-- name: Read the osbuild-baked workstation user conf when present and readable
-  ansible.builtin.slurp:
-    src: /etc/syncopated-user.conf
-  register: _user_firstboot_conf
-  check_mode: false
-  when:
-    - user_firstboot_enabled | default(false) | bool
-    - _user_firstboot_conf_stat.stat.exists | default(false)
-  tags: ["user", "assert", "always"]
-
-- name: Assert the osbuild-baked user conf honors the pre-flight contract when present
-  vars:
-    _user_firstboot_conf_name: >-
-      {{ (_user_firstboot_conf.content | default('')
-          | b64decode | regex_findall('(?m)^WORKSTATION_USER=(\S+)')
-          | first | default('', true)) | trim }}
-  ansible.builtin.assert:
-    that:
-      - _user_firstboot_conf_name | length > 0
-      - _user_firstboot_conf_name is match('^[a-z_][a-z0-9_-]{0,31}$')
-    fail_msg: >-
-      /etc/syncopated-user.conf is present but breaks the firstboot
-      pre-flight contract: it must carry a readable
-      'WORKSTATION_USER=<account>' line (baked 0644 by osbuild) so this role
-      and the pull resolve the same workstation user. Rebuild the image or
-      repair the conf on this host. Current parsed value:
-      '{{ _user_firstboot_conf_name | default('') }}'.
-    quiet: true
-  when:
-    - user_firstboot_enabled | default(false) | bool
-    - _user_firstboot_conf_stat.stat.exists | default(false)
   tags: ["user", "assert", "always"]

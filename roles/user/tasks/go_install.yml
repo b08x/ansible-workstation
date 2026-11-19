@@ -1,0 +1,72 @@
+---
+# Install the user-space Go release tarball and symlink go/gofmt
+
+- name: Install the user-space Go toolchain
+  tags: ["go", "user"]
+  block:
+    - name: Create temporary directory for the Go archive
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: -go-install
+      register: _user_go_tempdir
+
+    - name: Download the Go release tarball
+      ansible.builtin.get_url:
+        url: "{{ user_go_url }}"
+        dest: "{{ _user_go_tempdir.path }}/go.tar.gz"
+        mode: "0644"
+        timeout: 60
+
+    - name: Ensure the user-space Go parent directory exists
+      ansible.builtin.file:
+        path: "{{ user_go_dest_dir | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: Remove any prior user-space Go toolchain directory
+      ansible.builtin.file:
+        path: "{{ user_go_dest_dir }}"
+        state: absent
+
+    - name: Extract the Go archive into user space
+      ansible.builtin.unarchive:
+        src: "{{ _user_go_tempdir.path }}/go.tar.gz"
+        dest: "{{ user_go_dest_dir | dirname }}"
+        remote_src: true
+
+    - name: Ensure the user-space Go toolchain directory is 0755
+      ansible.builtin.file:
+        path: "{{ user_go_dest_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Symlink user-space Go binaries into local bin
+      ansible.builtin.file:
+        src: "{{ user_go_dest_dir }}/bin/{{ item }}"
+        dest: "{{ _user_go_home }}/.local/bin/{{ item }}"
+        state: link
+      loop:
+        - go
+        - gofmt
+
+  rescue:
+    - name: Report user-space Go installation failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install the user-space Go toolchain from {{ user_go_url }}
+          into {{ user_go_dest_dir }}. Check network reachability of
+          go.dev and the task output above.
+
+    - name: Fail on user-space Go installation failure
+      ansible.builtin.fail:
+        msg: "User-space Go toolchain installation failed - see the preceding task output."
+
+  always:
+    - name: Clean up the Go archive temporary directory
+      ansible.builtin.file:
+        path: "{{ _user_go_tempdir.path }}"
+        state: absent
+      when:
+        - _user_go_tempdir is defined
+        - _user_go_tempdir.path is defined
+        - not (ansible_check_mode | default(false))

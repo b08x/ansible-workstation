@@ -1,0 +1,53 @@
+---
+# NVIDIA repository configuration (RPM Fusion + NVIDIA Container Toolkit)
+
+- name: Ensure RPM Fusion Free repository is installed (Fedora)
+  ansible.builtin.dnf:
+    name: "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when:
+    - gpu_nvidia_ensure_rpmfusion | default(true) | bool
+    - ansible_distribution == 'Fedora'
+  tags: ["gpu", "nvidia"]
+
+- name: Ensure RPM Fusion Non-Free repository is installed (Fedora)
+  ansible.builtin.dnf:
+    name: "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when:
+    - gpu_nvidia_ensure_rpmfusion | default(true) | bool
+    - ansible_distribution == 'Fedora'
+  tags: ["gpu", "nvidia"]
+
+- name: Ensure RPM Fusion repositories are installed (Enterprise Linux)
+  ansible.builtin.dnf:
+    name:
+      - "https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+      - "https://mirrors.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when:
+    - gpu_nvidia_ensure_rpmfusion | default(true) | bool
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution != 'Fedora'
+  tags: ["gpu", "nvidia"]
+
+- name: Configure NVIDIA container toolkit repository
+  when: gpu_nvidia_container_toolkit | default(true) | bool
+  tags: ["gpu", "nvidia", "nvidia-container-toolkit"]
+  block:
+    - name: Import NVIDIA container toolkit repository GPG key
+      ansible.builtin.rpm_key:
+        state: present
+        key: "{{ _gpu_nvidia_container_repo_gpgkey }}"
+
+    - name: Add NVIDIA container toolkit repository
+      ansible.builtin.yum_repository:
+        name: nvidia-container-toolkit
+        description: "NVIDIA Container Toolkit repository (libnvidia-container)"
+        baseurl: "{{ _gpu_nvidia_container_repo_baseurl }}"
+        enabled: true
+        gpgcheck: true
+        gpgkey: "{{ _gpu_nvidia_container_repo_gpgkey }}"

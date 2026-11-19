@@ -1,0 +1,77 @@
+---
+# Firstboot suite pre-flight assertions for user role (goal two-stage-firstboot)
+
+- name: Assert firstboot suite manifest shape
+  ansible.builtin.assert:
+    that:
+      - user_firstboot_files | default([]) is sequence
+      - user_firstboot_files | default([]) is not string
+      - user_firstboot_files | default([]) | length > 0
+    fail_msg: >-
+      'user_firstboot_files' must be a non-empty list of { src, dest, owner,
+      group, mode } entries mirroring the osbuild blueprint injection table.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Assert each firstboot entry references a real source file and a sane destination
+  ansible.builtin.assert:
+    that:
+      - item.src | default('') | length > 0
+      - lookup('ansible.builtin.fileglob', role_path ~ '/files/firstboot/' ~ (item.src | default(''))) | length > 0
+      - item.dest | default('') is match('^/(usr/local/bin|etc/profile\.d|etc/xdg/autostart)/[^/]+$')
+      - item.owner | default('root') == 'root'
+      - item.dest | default('') is not match('^/usr/local/bin/') or item.mode | default('') == '0755'
+      - item.dest | default('') is not match('^/etc/') or item.mode | default('') == '0644'
+    fail_msg: >-
+      Invalid firstboot manifest entry {{ item }}: 'src' must name an existing
+      file under roles/user/files/firstboot/, 'dest' must be a filename under
+      /usr/local/bin/ (mode 0755) or /etc/profile.d/ or /etc/xdg/autostart/
+      (mode 0644), owned by root.
+    quiet: true
+  loop: "{{ user_firstboot_files | default([]) }}"
+  loop_control:
+    label: "{{ item.src | default('?') }}"
+  tags: ["user", "assert", "always"]
+
+- name: Assert the machine pull marker path is the home-based marker
+  vars:
+    _user_expected_home: "{{ user.home | default('/home/' ~ user.name) }}"
+  ansible.builtin.assert:
+    that:
+      - user_firstboot_marker_path is defined
+      - user_firstboot_marker_path | default('') is match('^/[^/].*')
+      - (user_firstboot_marker_path | default('')).startswith(_user_expected_home)
+      - user_firstboot_marker_path | default('') is match('^.*/\.initial-firstboot$')
+    fail_msg: >-
+      'user_firstboot_marker_path' must be an absolute path ending in
+      .initial-firstboot, inside the workstation home
+      ('{{ _user_expected_home }}'); Current value:
+      '{{ user_firstboot_marker_path | default('') }}'.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Stat the machine pull marker parent directory
+  ansible.builtin.stat:
+    path: "{{ user_firstboot_marker_path | dirname }}"
+  register: _user_firstboot_marker_dir_stat
+  tags: ["user", "assert", "always"]
+
+- name: Assert the machine pull marker parent directory exists in the workstation home
+  ansible.builtin.assert:
+    that:
+      - _user_firstboot_marker_dir_stat.stat.exists | default(false)
+    fail_msg: >-
+      The machine pull marker '{{ user_firstboot_marker_path | default('') }}'
+      must live under an existing directory inside the workstation home —
+      its parent '{{ user_firstboot_marker_path | default('') | dirname }}'
+      is missing.
+    quiet: true
+  tags: ["user", "assert", "always"]
+
+- name: Validate osbuild-baked workstation user conf
+  ansible.builtin.include_tasks:
+    file: assert_firstboot_conf.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
+  tags: ["user", "assert", "always"]

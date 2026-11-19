@@ -1,0 +1,64 @@
+---
+# Decide between system Go and user-space Go tarball installation
+
+- name: Resolve the effective system go version
+  ansible.builtin.set_fact:
+    _user_go_system_final_version: >-
+      {{ (  (_user_system_go_reprobe.stdout | default(''))
+           if (_user_go_dnf_attempt | default(false) | bool)
+           else (_user_system_go_version.stdout | default('')) ) | trim }}
+    _user_go_dnf_installed: >-
+      {{ (_user_go_dnf_attempt | default(false) | bool)
+         and ((_user_system_go_reprobe.stdout | default('')) | length > 0) }}
+  tags: ["go", "user"]
+
+- name: Resolve the Go toolchain strategy
+  ansible.builtin.set_fact:
+    _user_go_strategy: >-
+      {{ 'userspace-forced'
+         if (user_go_force_install | default(false) | bool)
+         else ('system'
+               if (_user_go_system_final_version | length > 0)
+                  and ((_user_go_system_final_version | regex_search('[0-9]+\.[0-9]+') | default('0', true))
+                       is version(user_go_min_version | default('1.22'), '>='))
+               else ('userspace-older'
+                     if (_user_go_system_final_version | length > 0)
+                     else 'userspace-unavailable')) }}
+  tags: ["go", "user"]
+
+- name: Resolve the user-space install gate and decision note
+  # Separate set_fact: consumers of _user_go_strategy must live in a later
+  # task than the one that defines it (lazy evaluation).
+  ansible.builtin.set_fact:
+    _user_go_install_userspace: >-
+      {{ ((user_go_force_install | default(false) | bool)
+          or (_user_go_strategy in ['userspace-older', 'userspace-unavailable']))
+          and ((not (_user_go_stat.stat.exists | default(false)))
+               or (user_go_force_install | default(false) | bool)) }}
+    _user_go_decision_note: >-
+      {{ 'user_go_force_install bypasses the system Go check'
+         ~ ' and forces the user-space toolchain'
+         if (user_go_force_install | default(false) | bool)
+         else ('system Go ' ~ (_user_go_system_final_version | regex_search('[0-9]+\.[0-9]+') | default('?'))
+               ~ ' satisfies minimum; no user toolchain needed'
+               if _user_go_strategy == 'system'
+               else ('system Go compares older than ' ~ user_go_min_version
+                     ~ '; installing the user-space Go toolchain'
+                     if _user_go_strategy == 'userspace-older'
+                     else ('system Go is absent' ~ (
+                            ' and the DNF golang install did not produce a usable toolchain'
+                            if (_user_go_dnf_attempt | default(false) | bool)
+                            else ' (no usable golang package available via DNF)')
+                            ~ '; installing the user-space Go toolchain'))) }}
+  tags: ["go", "user"]
+
+- name: Report the Go toolchain decision
+  ansible.builtin.debug:
+    msg: >-
+      Go toolchain decision: {{ _user_go_strategy }} -
+      system go: {{ _user_go_system_final_version | default('absent') }},
+      user-space go present: {{ _user_go_stat.stat.exists | default(false) | bool }},
+      minimum version: {{ user_go_min_version }},
+      user-space install: {{ _user_go_install_userspace | default(false) | bool }}.
+      {{ _user_go_decision_note }}.
+  tags: ["go", "user"]
