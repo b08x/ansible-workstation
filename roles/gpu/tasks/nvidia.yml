@@ -106,16 +106,16 @@
         - name: Import NVIDIA container toolkit repository GPG key
           ansible.builtin.rpm_key:
             state: present
-            key: "{{ gpu_nvidia_container_repo_gpgkey }}"
+            key: "{{ _gpu_nvidia_container_repo_gpgkey }}"
 
         - name: Add NVIDIA container toolkit repository
           ansible.builtin.yum_repository:
             name: nvidia-container-toolkit
             description: "NVIDIA Container Toolkit repository (libnvidia-container)"
-            baseurl: "{{ gpu_nvidia_container_repo_baseurl }}"
+            baseurl: "{{ _gpu_nvidia_container_repo_baseurl }}"
             enabled: true
             gpgcheck: true
-            gpgkey: "{{ gpu_nvidia_container_repo_gpgkey }}"
+            gpgkey: "{{ _gpu_nvidia_container_repo_gpgkey }}"
 
     - name: Install Negativo 17 NVIDIA driver and CUDA packages
       ansible.builtin.dnf:
@@ -197,7 +197,7 @@
       ansible.builtin.systemd:
         name: nvidia-persistenced
         enabled: true
-      when: gpu_nvidia_persistenced | default(false) | bool
+      when: _gpu_distro_nvidia_persistenced | default(false) | bool
 
     - name: Read current kernel command-line arguments
       ansible.builtin.command: grubby --info=ALL

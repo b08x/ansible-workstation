@@ -1,0 +1,69 @@
+---
+argument_specs:
+  main:
+    short_description: Container runtime engine orchestration (Podman, Docker CE, Distrobox)
+    description:
+      - Deploys and configures container runtime engines (Podman or Docker CE) and Distrobox on Fedora and Enterprise Linux workstations.
+    options:
+      containerd_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      containerd_engine:
+        type: str
+        description: Container runtime engine to install and configure.
+        choices:
+          - podman
+          - docker
+          - none
+        default: podman
+      containerd_podman_packages:
+        type: list
+        elements: str
+        description: List of Podman packages installed when containerd_engine is 'podman'.
+        default:
+          - podman
+          - podman-compose
+          - podman-docker
+      containerd_docker_version:
+        type: str
+        description: Optional specific Docker CE version string to pin (e.g. "27.3.1").
+        default: ""
+      containerd_docker_packages:
+        type: list
+        elements: str
+        description: Core Docker packages installed across all platforms when containerd_engine is 'docker'.
+        default:
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+          - docker-model-plugin
+      containerd_docker_gpg_key_url:
+        type: str
+        description: GPG key URL used to verify official Docker CE packages.
+        default: "https://download.docker.com/linux/fedora/gpg"
+      containerd_docker_service_name:
+        type: str
+        description: Name of the systemd unit for the Docker daemon.
+        default: "docker.service"
+      containerd_docker_service_enabled:
+        type: bool
+        description: Whether to enable and start the Docker systemd service (defaults to true on Fedora).
+      containerd_docker_manage_users:
+        type: bool
+        description: Whether to add containerd_docker_users to the docker group (defaults to true on Fedora).
+      containerd_docker_manage_storage:
+        type: bool
+        description: Whether to configure --data-root in the Docker systemd unit (defaults to true on Fedora).
+      containerd_docker_users:
+        type: list
+        elements: str
+        description: List of user accounts added to the docker system group.
+      containerd_docker_storage:
+        type: str
+        description: Custom data root directory path for the Docker daemon (--data-root).
+        default: "/var/lib/docker"
+      containerd_docker_daemon_config:
+        type: dict
+        description: Key-value mapping rendered into /etc/docker/daemon.json.
+        default: {}

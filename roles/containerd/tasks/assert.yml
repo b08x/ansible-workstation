@@ -53,6 +53,16 @@
     quiet: true
   tags: ["containerd", "assert", "always"]
 
+- name: Assert containerd_engine is valid
+  ansible.builtin.assert:
+    that:
+      - containerd_engine in ['podman', 'docker', 'none']
+    fail_msg: >-
+      Invalid containerd_engine '{{ containerd_engine | default('undefined') }}'.
+      Supported values: 'podman', 'docker', 'none'.
+    quiet: true
+  tags: ["containerd", "assert", "always"]
+
 - name: Assert workstation user identity for Docker group membership
   ansible.builtin.assert:
     that:
@@ -60,8 +70,8 @@
       - user.name is defined
       - user.name | length > 0
     fail_msg: >-
-      containerd_use_docker is enabled, but 'user.name' is not defined.
+      containerd_engine is 'docker', but 'user.name' is not defined.
       Define 'user.name' in inventory (e.g. group_vars/all.yml) to add the user to the docker group.
     quiet: true
-  when: containerd_use_docker | default(false) | bool
+  when: containerd_engine == 'docker'
   tags: ["containerd", "assert", "docker"]

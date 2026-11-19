@@ -2,8 +2,13 @@
 # defaults file for containerd
 
 containerd_assert_enabled: true
-containerd_use_docker: false
-containerd_use_podman: true
+containerd_engine: "podman"
+
+# defaults file for podman
+containerd_podman_packages:
+  - podman
+  - podman-compose
+  - podman-docker
 
 # defaults file for docker
 
@@ -24,7 +29,13 @@ containerd_docker_gpg_key_url: "https://download.docker.com/linux/fedora/gpg"
 containerd_docker_service_name: "docker.service"
 
 # Whether to enable the Docker service to start on boot.
-containerd_docker_service_enabled: true
+containerd_docker_service_enabled: "{{ ansible_distribution == 'Fedora' }}"
+
+# Whether to manage Docker group membership for configured users.
+containerd_docker_manage_users: "{{ ansible_distribution == 'Fedora' }}"
+
+# Whether to configure Docker data-root storage in the systemd unit.
+containerd_docker_manage_storage: "{{ ansible_distribution == 'Fedora' }}"
 
 # List of users to add to the 'docker' group.
 containerd_docker_users:
@@ -34,11 +45,3 @@ containerd_docker_storage: "/var/lib/docker"
 
 # Dictionary of key-value pairs for /etc/docker/daemon.json.
 containerd_docker_daemon_config: {}
-# Whether to remove known conflicting packages (e.g., podman-docker).
-containerd_docker_remove_conflicting_packages: false
-
-# defaults file for podman
-containerd_podman_packages:
-  - podman
-  - podman-compose
-  - podman-docker

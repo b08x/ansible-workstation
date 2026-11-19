@@ -11,16 +11,16 @@ argument_specs:
         default: true
       tools_install_gui_apps:
         type: bool
-        description: Master gate for graphical desktop applications; lazily consumes the Tier 1 auto_enable_desktop flag.
-        default: "{{ auto_enable_desktop | default(true) | bool }}"
-      tools_install_vscode:
-        type: bool
-        description: Install Visual Studio Code (real opt-in - false by default; extensions live in roles/user).
-        default: false
-      tools_vscode_flatpak:
-        type: bool
-        description: Install VS Code via Flatpak instead of the native DNF repo.
-        default: false
+        description: Master gate for graphical desktop applications; derives from auto_enable_desktop or desktop_environment != 'none'.
+        default: "{{ auto_enable_desktop | default((desktop_environment | default('none')) != 'none') | bool }}"
+      tools_vscode_install_method:
+        type: str
+        description: Visual Studio Code installation method (real opt-in - 'none' by default; extensions live in roles/user).
+        choices:
+          - none
+          - rpm
+          - flatpak
+        default: none
       tools_vscode_force_install:
         type: bool
         description: Force install VS Code even if the code binary exists.
@@ -28,14 +28,12 @@ argument_specs:
       tools_install_flatpaks:
         type: bool
         description: Enable Flatpak package, Flathub remote, and Flatpak application installations.
-        default: "{{ tools_install_gui_apps | default(true) | bool }}"
+        default: "{{ tools_install_gui_apps | default(false) | bool }}"
       tools_system_flatpaks:
         type: list
         elements: str
         description: List of system Flatpak application IDs to install.
         default:
-          - com.mattjakeman.ExtensionManager
-          - page.tesk.Refine
           - com.github.tchx84.Flatseal
           - io.github.flattool.Warehouse
           - io.github.dvlv.boxbuddyrs
@@ -56,4 +54,4 @@ argument_specs:
       tools_install_input_remapper:
         type: bool
         description: Install and configure the input-remapper service.
-        default: "{{ tools_install_gui_apps | default(true) | bool }}"
+        default: "{{ tools_install_gui_apps | default(false) | bool }}"

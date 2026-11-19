@@ -46,3 +46,13 @@
       the input-remapper service. Ensure 'become: true' is enabled.
     quiet: true
   tags: ["tools", "assert", "always"]
+
+- name: Assert tools_vscode_install_method is valid
+  ansible.builtin.assert:
+    that:
+      - tools_vscode_install_method in ['none', 'rpm', 'flatpak']
+    fail_msg: >-
+      Invalid tools_vscode_install_method '{{ tools_vscode_install_method | default('undefined') }}'.
+      Supported values: 'none', 'rpm', 'flatpak'.
+    quiet: true
+  tags: ["tools", "assert", "always"]

@@ -17,20 +17,20 @@
 - name: Include Flatpak management and application tasks
   ansible.builtin.include_tasks: flatpak.yml
   when:
-    - tools_install_gui_apps | default(true) | bool
-    - tools_install_flatpaks | default(true) | bool
+    - tools_install_gui_apps | default(false) | bool
+    - tools_install_flatpaks | default(false) | bool
   tags: ["flathub", "flatpaks", "tools"]
 
 - name: Include input-remapper configuration tasks
   ansible.builtin.include_tasks: input-remapper.yml
   when:
-    - tools_install_gui_apps | default(true) | bool
-    - tools_install_input_remapper | default(true) | bool
+    - tools_install_gui_apps | default(false) | bool
+    - tools_install_input_remapper | default(false) | bool
   tags: ["input-remapper", "tools"]
 
 - name: Include Visual Studio Code installation tasks
   ansible.builtin.include_tasks: vscode.yml
   when:
-    - tools_install_gui_apps | default(true) | bool
-    - tools_install_vscode | default(false) | bool
+    - tools_install_gui_apps | default(false) | bool
+    - tools_vscode_install_method != 'none'
   tags: ["vscode", "tools"]

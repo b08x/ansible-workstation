@@ -9,31 +9,28 @@
     key: "{{ containerd_docker_gpg_key_url }}"
     state: present
 
-- name: Set docker repo baseurl dynamically
+- name: Set docker repo baseurl and package list
   ansible.builtin.set_fact:
-    containerd_docker_baseurl: >-
-      https://download.docker.com/linux/{{ containerd_docker_repo_os }}/$releasever/$basearch/stable
+    _containerd_docker_baseurl: >-
+      https://download.docker.com/linux/{{ _containerd_distro_docker_repo_os }}/$releasever/$basearch/stable
+    _containerd_docker_package_list: "{{ containerd_docker_packages + _containerd_distro_docker_packages }}"
 
 - name: Add Docker CE repository
   ansible.builtin.yum_repository:
     name: docker-ce-stable
     description: Docker CE Stable - x86_64
-    baseurl: "{{ containerd_docker_baseurl }}"
+    baseurl: "{{ _containerd_docker_baseurl }}"
     enabled: true
     gpgcheck: true
     gpgkey: "{{ containerd_docker_gpg_key_url }}"
     state: present
 
-- name: Determine Docker packages
-  ansible.builtin.set_fact:
-    containerd_docker_package_list: "{{ containerd_docker_packages + containerd_docker_distro_packages }}"
-
 - name: Install Docker packages
   ansible.builtin.dnf:
     name: >-
       {{
-        containerd_docker_package_list | map('regex_replace', '^(.*)$', '\\1-' + containerd_docker_version) | list
-        if containerd_docker_version else containerd_docker_package_list
+        _containerd_docker_package_list | map('regex_replace', '^(.*)$', '\\1-' + containerd_docker_version) | list
+        if containerd_docker_version else _containerd_docker_package_list
       }}
     state: present
     update_cache: true
@@ -74,15 +71,12 @@
     owner: root
     group: root
     mode: "0644"
-
     backup: true
-- name: Reload systemd
-  ansible.builtin.systemd:
-    daemon_reload: true
 
 - name: Ensure Docker service is started and enabled
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: "{{ containerd_docker_service_name }}"
     state: started
     enabled: "{{ containerd_docker_service_enabled }}"
+    daemon_reload: true
   when: containerd_docker_service_enabled

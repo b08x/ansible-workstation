@@ -2,7 +2,7 @@
 - name: Check if input-remapper is installed
   ansible.builtin.stat:
     path: /usr/bin/input-remapper-gtk
-  register: tools_input_remapper_service
+  register: _tools_input_remapper_service
   tags: ["input-remapper", "tools"]
 
 - name: Setup input-remapper
@@ -15,12 +15,12 @@
         state: present
       when:
         - ansible_distribution == "Fedora"
-        - not tools_input_remapper_service.stat.exists | default(false)
+        - not _tools_input_remapper_service.stat.exists | default(false)
 
     - name: Build and install input-remapper from source (EL family)
       when:
         - ansible_distribution != "Fedora"
-        - not tools_input_remapper_service.stat.exists | default(false)
+        - not _tools_input_remapper_service.stat.exists | default(false)
       block:
         - name: Install dependencies
           ansible.builtin.pip:

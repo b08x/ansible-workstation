@@ -24,7 +24,7 @@
       when: gpu_intel_graphics_required | default(false) | bool
 
 - name: Install Intel oneAPI Toolkit
-  when: (gpu_install_intel_oneapi | default(false) | bool) or (intel_oneapi_install | default(false) | bool)
+  when: gpu_install_intel_oneapi | default(false) | bool
   tags: ["intel_oneapi", "intel", "gpu"]
   block:
     - name: Import Intel oneAPI GPG Key

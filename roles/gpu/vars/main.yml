@@ -7,7 +7,7 @@
 # (playbooks/tasks/repositories/negativo17.yml), per the one-owner rule.
 
 # Distro-major combinations the NVIDIA CUDA stack supports
-gpu_nvidia_supported:
+_gpu_nvidia_supported:
   - Fedora-43
   - Fedora-44
   - Rocky-9
@@ -17,5 +17,5 @@ gpu_nvidia_supported:
 
 # NVIDIA container toolkit (libnvidia-container) repository — identical across
 # supported distros (matches the osbuild nvidia component's repository table).
-gpu_nvidia_container_repo_baseurl: https://nvidia.github.io/libnvidia-container/stable/rpm/x86_64/
-gpu_nvidia_container_repo_gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey
+_gpu_nvidia_container_repo_baseurl: https://nvidia.github.io/libnvidia-container/stable/rpm/x86_64/
+_gpu_nvidia_container_repo_gpgkey: https://nvidia.github.io/libnvidia-container/gpgkey

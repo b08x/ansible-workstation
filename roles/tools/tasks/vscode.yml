@@ -1,7 +1,7 @@
 ---
 - name: Check if VS Code binary is present
   ansible.builtin.command: which code
-  register: tools_vscode_check
+  register: _tools_vscode_check
   changed_when: false
   failed_when: false
   check_mode: false
@@ -9,12 +9,12 @@
 
 - name: Install Visual Studio Code
   when: >
-    (tools_vscode_check.rc != 0) or
+    (_tools_vscode_check.rc != 0) or
     (tools_vscode_force_install | default(false) | bool)
   tags: ["vscode", "tools"]
   block:
     - name: Install VS Code via Flatpak
-      when: tools_vscode_flatpak | default(false) | bool
+      when: tools_vscode_install_method == 'flatpak'
       community.general.flatpak:
         name: com.visualstudio.code
         state: present
@@ -23,7 +23,7 @@
       tags: ["vscode", "tools"]
 
     - name: Install VS Code from dnf repo
-      when: not (tools_vscode_flatpak | default(false) | bool)
+      when: tools_vscode_install_method == 'rpm'
       tags: ["vscode", "tools"]
       block:
         - name: Import Microsoft GPG key

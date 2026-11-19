@@ -1,6 +1,6 @@
 ---
 # NVIDIA data for Fedora 43 (osbuild nvidia component parity)
 # Negativo 17 endpoints come from the repositories task file (fedora-43 branch)
-# Vars remain role-scoped (Tier 2): only gpu_nvidia_persistenced differs
+# Internal distro var: only _gpu_distro_nvidia_persistenced differs
 # per distro-major (EL true, Fedora false, matching the osbuild component).
-gpu_nvidia_persistenced: false
+_gpu_distro_nvidia_persistenced: false

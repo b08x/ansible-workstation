@@ -11,9 +11,7 @@ argument_specs:
         default: true
       gpu_install_intel_oneapi:
         type: bool
-        description: >-
-          Install the Intel oneAPI toolkit. Lazily consumes the Tier 1
-          intel_oneapi_install host flag; resolves to false when unset.
+        description: Install the Intel oneAPI toolkit.
         default: false
       gpu_intel_oneapi_packages:
         type: list
@@ -37,9 +35,7 @@ argument_specs:
         description: Intel graphics driver package list.
       gpu_install_nvidia:
         type: bool
-        description: >-
-          Install the NVIDIA CUDA stack. Lazily consumes the Tier 1
-          nvidia_cuda_install host flag; resolves to false when unset.
+        description: Install the NVIDIA CUDA stack.
         default: false
       gpu_nvidia_force_install:
         type: bool
@@ -88,13 +84,6 @@ argument_specs:
         type: list
         elements: str
         description: Systemd services managed when NVIDIA power management is enabled.
-      gpu_nvidia_persistenced:
-        type: bool
-        description: >-
-          Enable the nvidia-persistenced service. Loaded from
-          vars/<Distro>-<major>.yml (EL defaults true, Fedora
-          false); the nvidia-persistenced package is always installed with
-          the driver set.
       gpu_nvidia_kernel_args:
         type: list
         elements: str
@@ -106,19 +95,3 @@ argument_specs:
           NVIDIA driver and CUDA package list installed from the Negativo 17
           repository when NVIDIA is enabled (osbuild nvidia component payload
           parity).
-      gpu_nvidia_container_repo_baseurl:
-        type: str
-        description: >-
-          Internal. NVIDIA container toolkit (libnvidia-container) repository
-          base URL, loaded from vars/main.yml (distro-independent).
-      gpu_nvidia_container_repo_gpgkey:
-        type: str
-        description: >-
-          Internal. NVIDIA container toolkit repository GPG key URL, loaded
-          from vars/main.yml (distro-independent).
-      gpu_nvidia_supported:
-        type: list
-        elements: str
-        description: >-
-          Internal. Supported Distro-major combinations for the NVIDIA CUDA
-          stack, loaded from vars/main.yml.

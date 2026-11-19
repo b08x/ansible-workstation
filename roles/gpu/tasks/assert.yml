@@ -72,7 +72,7 @@
     - name: Assert NVIDIA CUDA is supported on this distribution
       ansible.builtin.assert:
         that:
-          - ansible_distribution ~ '-' ~ ansible_distribution_major_version in gpu_nvidia_supported
+          - ansible_distribution ~ '-' ~ ansible_distribution_major_version in _gpu_nvidia_supported
         fail_msg: "gpu: NVIDIA CUDA is not supported on {{ ansible_distribution }} {{ ansible_distribution_major_version }}"
         quiet: false
 

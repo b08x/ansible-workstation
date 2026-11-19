@@ -40,10 +40,10 @@ The role was carved out of `roles/tools` (which previously carried the Intel tas
 ```
 
 > [!NOTE]
-> **Both stacks are off by default.** They are enabled per host through the
-> Tier 1 inventory flags `intel_oneapi_install` (existing; set on tinybot)
-> and `nvidia_cuda_install` (new). With neither flag set, the role performs
-> no changes — no repositories, packages, or files.
+> **Both stacks are off by default.** They are enabled per host through
+> `gpu_install_intel_oneapi` (set on tinybot) and `gpu_install_nvidia`
+> (set on gir). With neither flag set, the role performs no changes —
+> no repositories, packages, or files.
 
 > [!IMPORTANT]
 > **Soft dependency on `roles/common`.** `common`'s hardware detection
@@ -62,7 +62,7 @@ The role was carved out of `roles/tools` (which previously carried the Intel tas
 
 The role implements ten of the repository's 15 Ansible Design Patterns (canon numbering referenced at `local.yml:8-17`; the list below follows this document's own order — e.g. pre-flight assertions are canon Pattern 5):
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` dispatches to `assert.yml`, `intel.yml`, and `nvidia.yml`, each gated by explicit boolean flags (`gpu_install_intel_oneapi`, `gpu_install_intel_graphics`, `gpu_install_nvidia`) that lazily consume the Tier 1 host flags.
+1. **Task Dispatcher Pattern**: `tasks/main.yml` dispatches to `assert.yml`, `intel.yml`, and `nvidia.yml`, each gated by explicit boolean flags (`gpu_install_intel_oneapi`, `gpu_install_intel_graphics`, `gpu_install_nvidia`).
 2. **Pre-flight Assertions (Fail-Fast Pattern)**: `tasks/assert.yml` validates facts gathered, RedHat family, supported distribution, `dnf`/`dnf5` package manager, `systemd` init manager, and effective root (`id -u` registered as `_gpu_effective_uid`), plus NVIDIA-specific gates: supported Distro-major assert (fails with `gpu: NVIDIA CUDA is not supported on <distro> <version>`), an osbuild-style NVIDIA driver **provider mutual-exclusion preflight** (classifies computed Negativo 17 URLs plus every
   `baseurl`/`mirrorlist` in the enabled sections of `/etc/yum.repos.d/*.repo`
   against the provider regex table — upstream CUDA, negativo17-lts,
@@ -71,12 +71,12 @@ The role implements ten of the repository's 15 Ansible Design Patterns (canon nu
   for the one-time hard-break migration with
   `gpu_nvidia_provider_preflight: false` — a provider section left at
   `enabled=0` is invisible to the preflight, and repo files not ending in
-  `.repo` are never read), GPU vendor fallback probe, and a Secure Boot (`mokutil --sb-state`) check that warns — never fails — about the manual MOK enrollment step. Escape hatch: `gpu_nvidia_provider_preflight` is consumed inline at the provider-exclusion assert (`tasks/assert.yml`, `| default(true)` fallback); it has no `defaults/main.yml` entry.
-3. **Distro-Switching Pattern (`first_found`)**: The `gpu_nvidia_persistenced` default is loaded from `vars/<Distro>-<major>.yml` (Fedora-43/44, Rocky-9/10, AlmaLinux-9/10) via the `lookup('ansible.builtin.first_found')` shape used by `common` and `tuning`; the Negativo 17 repository URLs replace the former per-distro CUDA repo path and GPG key.
+  `.repo` are never read), GPU vendor fallback probe, and a Secure Boot (`mokutil --sb-state`) check that warns — never fails — about the manual MOK enrollment step.
+3. **Distro-Switching Pattern (`first_found`)**: The `_gpu_distro_nvidia_persistenced` default is loaded from `vars/<Distro>-<major>.yml` (Fedora-43/44, Rocky-9/10, AlmaLinux-9/10) via the `lookup('ansible.builtin.first_found')` shape used by `common` and `tuning`; the Negativo 17 repository URLs replace the former per-distro CUDA repo path and GPG key.
 4. **Tag-as-Select**: Every task and include carries the `gpu` role tag plus feature tags (`intel`, `intel_oneapi`, `nvidia`, `assert`, `distro`) and the playbook-level `system` domain tag.
 5. **Block-as-Unit**: Mutating groups (Intel graphics, Intel oneAPI, NVIDIA stack, CDI configuration) run as `block:` units; the Intel groups keep their `block/rescue` diagnostic structure with human-readable failure messages.
 6. **Handler Notification**: Kernel argument and nouveau blacklist changes notify `gpu rebuild initramfs` (`dracut -f --regenerate-all`) and `gpu flag reboot required` (touches `/var/run/reboot-required`, read by the post-flight reboot assessment in `playbooks/workstation.yml`). The role never calls `ansible.builtin.reboot`.
-7. **Two-Tier Variable Scoping**: Tier 1 unprefixed host flags (`intel_oneapi_install`, `nvidia_cuda_install`) are consumed lazily by Tier 2 `gpu_*` defaults; all registrations are `_gpu_*`-prefixed (`_gpu_effective_uid`, `_gpu_vendor`, `_gpu_nvidia_active`, `_gpu_grubby_info`, `_gpu_missing_kernel_args`).
+7. **Two-Tier Variable Scoping**: Role defaults use `gpu_*`; internal constants and distro maps use `_gpu_*` / `_gpu_distro_*`; all registrations are `_gpu_*`-prefixed (`_gpu_effective_uid`, `_gpu_vendor`, `_gpu_nvidia_active`, `_gpu_grubby_info`, `_gpu_missing_kernel_args`).
 8. **Backup-on-Write**: `/etc/profile.d/intel-oneapi.sh`, the CDI script/unit, and `/etc/modprobe.d/blacklist-nouveau.conf` are written with `backup: true`.
 9. **Idempotency**: The kernel-argument step reads `grubby --info=ALL` first and only invokes `grubby --update-kernel=ALL` for arguments missing from any installed kernel, keeping reruns at `changed=0` — verify by running `ansible-playbook --tags gpu --check` twice and recording `changed=0`; the `gpu_intel_oneapi_force_install` and `gpu_nvidia_force_install` overrides force a `state: latest` re-evaluation pass over the pinned package sets.
 10. **Data-Driven Configuration**: Package lists, kernel arguments, and repo URLs are variables — nothing vendor-specific is hardcoded in tasks.
@@ -185,34 +185,27 @@ Seven task units deliver the two stacks — two Intel units in `tasks/intel.yml`
 
 ## Role Variables
 
-### Tier 1: Host & Domain Scope Variables (inventory `host_vars`/`group_vars`)
-
-| Variable | Default | Description |
-|---|---|---|
-| `intel_oneapi_install` | *(undefined → false)* | Enable the Intel oneAPI toolkit on this host (set on tinybot). |
-| `nvidia_cuda_install` | *(undefined → false)* | Enable the NVIDIA CUDA stack on this host. |
-
 ### Tier 2: Role Defaults (`defaults/main.yml`)
 
 | Variable | Default | Description |
 |---|---|---|
 | `gpu_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`). |
-| `gpu_install_intel_oneapi` | `{{ intel_oneapi_install | default(false) | bool }}` | Install the Intel oneAPI toolkit. |
+| `gpu_install_intel_oneapi` | `false` | Install the Intel oneAPI toolkit. |
 | `gpu_intel_oneapi_packages` | *(56 pinned packages)* | Pinned oneAPI package list (overridable per host). |
 | `gpu_intel_oneapi_force_install` | `false` | Force the oneAPI package set to `state: latest`. |
 | `gpu_install_intel_graphics` | `false` | Install Intel graphics driver packages. |
 | `gpu_intel_graphics_required` | `false` | Whether Intel graphics failure is fatal. |
 | `gpu_intel_graphics_packages` | *(7 packages)* | Intel graphics driver package list. |
-| `gpu_install_nvidia` | `{{ nvidia_cuda_install | default(false) | bool }}` | Install the NVIDIA CUDA stack. |
+| `gpu_install_nvidia` | `false` | Install the NVIDIA CUDA stack. |
 | `gpu_nvidia_force_install` | `false` | Force the NVIDIA driver set to `state: latest`. |
 | `gpu_nvidia_cuda_toolkit` | `true` | Include `cuda`/`cuda-devel` in the Negativo 17 payload. |
 | `gpu_nvidia_container_toolkit` | `true` | Install `nvidia-container-toolkit` + CDI script/unit. |
 | `gpu_nvidia_utils` | `true` | Install `nvidia-settings`, `nvtop`. |
 | `gpu_nvidia_utils_packages` | `nvidia-settings`, `nvtop` | NVIDIA utility package list. |
 | `gpu_nvidia_ensure_rpmfusion` | `true` | Ensure RPM Fusion Free & Non-Free repositories are present (excluded-override strategy keeps driver/CUDA packages unresolvable from RPM Fusion). |
+| `gpu_nvidia_provider_preflight` | `true` | Enable NVIDIA driver provider mutual-exclusion preflight. |
 | `gpu_nvidia_power_management` | `true` | Enable systemd suspend/hibernate/resume power services. |
 | `gpu_nvidia_power_services` | *(3 services)* | Power management service units (`nvidia-suspend`, `nvidia-hibernate`, `nvidia-resume`). |
-| `gpu_nvidia_persistenced` | *(from `vars/<distro>.yml`)* | Enable the `nvidia-persistenced` service (EL true, Fedora false). |
 | `gpu_nvidia_kernel_args` | *(4 osbuild args)* | Kernel command-line arguments applied via grubby. |
 | `gpu_nvidia_negativo17_packages` | *(10 Negativo 17 packages)* | osbuild-standard NVIDIA driver/CUDA payload. |
 
@@ -220,10 +213,10 @@ Seven task units deliver the two stacks — two Intel units in `tasks/intel.yml`
 
 | Variable | Description |
 |---|---|
-| `gpu_nvidia_supported` | Supported `Distro-major` strings for the NVIDIA stack. |
-| `gpu_nvidia_persistenced` | Per-distro nvidia-persistenced service default (EL true, Fedora false). |
-| `gpu_nvidia_container_repo_baseurl` | NVIDIA container toolkit (libnvidia-container) repository base URL (distro-independent). |
-| `gpu_nvidia_container_repo_gpgkey` | NVIDIA container toolkit repository GPG key URL (distro-independent). |
+| `_gpu_nvidia_supported` | Supported `Distro-major` strings for the NVIDIA stack. |
+| `_gpu_distro_nvidia_persistenced` | Per-distro nvidia-persistenced service default (EL true, Fedora false). |
+| `_gpu_nvidia_container_repo_baseurl` | NVIDIA container toolkit (libnvidia-container) repository base URL (distro-independent). |
+| `_gpu_nvidia_container_repo_gpgkey` | NVIDIA container toolkit repository GPG key URL (distro-independent). |
 
 The Negativo 17 repository endpoints and the priority/exclusion override
 drop-in are **not** role variables — they are owned exclusively by the
@@ -294,8 +287,8 @@ to bypass the provider preflight escape hatch above during the one-time migratio
 ### 3. Enabling a stack per host (`inventory/host_vars/<host>.yml`)
 
 ```yaml
-intel_oneapi_install: true
-nvidia_cuda_install: true
+gpu_install_intel_oneapi: true
+gpu_install_nvidia: true
 ```
 
 ---

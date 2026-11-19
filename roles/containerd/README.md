@@ -36,7 +36,7 @@ While the host operating system maintains an immutable or slow-moving, predictab
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` serves as the primary dispatcher routing execution conditionally to `podman.yml` and `docker.yml` based on explicit feature flags (`containerd_use_podman` and `containerd_use_docker`).
+1. **Task Dispatcher Pattern**: `tasks/main.yml` serves as the primary dispatcher routing execution conditionally to `podman.yml` and `docker.yml` based on `containerd_engine` (`"podman"` | `"docker"` | `"none"`).
 2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, cleanly supporting Fedora, AlmaLinux, and Rocky Linux without cluttered inline conditional logic.
 3. **Failure-Shape Pattern (Shape 1: Context Re-raise)**: The `distrobox` installation block catches task failures in a `rescue` clause, emits actionable diagnostic guidance regarding EPEL repository requirements on Enterprise Linux, and cleanly re-raises the failure via `ansible.builtin.fail`.
 4. **Tag-as-Select Pattern**: Every task and include is tagged with domain tags (`containerd`, `virt`) and fine-grained feature tags (`podman`, `docker`, `distrobox`, `packages`) for selective execution.
@@ -51,7 +51,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 ### 1. Podman (Default Container Engine)
 
-**Enabled by default** (`containerd_use_podman: true`).
+**Enabled by default** (`containerd_engine: "podman"`).
 
 Podman is the first-class container runtime across modern Fedora and Enterprise Linux systems:
 - **Daemonless & Rootless**: Containers run without a root-owned background daemon by default, leveraging Linux user namespaces and cgroups v2 for enhanced security and resource isolation.
@@ -61,10 +61,10 @@ Podman is the first-class container runtime across modern Fedora and Enterprise 
 
 ### 2. Docker Community Edition (Optional Engine)
 
-**Disabled by default** (`containerd_use_docker: false`).
+**Disabled by default** (enabled when `containerd_engine: "docker"`).
 
 For workflows requiring the native Moby/Docker daemon:
-- **Dynamic Repository Configuration**: Ingests Docker's official GPG signing key (`containerd_docker_gpg_key_url`) and establishes the appropriate stable yum repository based on `containerd_docker_repo_os` (`fedora`, `alma`, or `rocky`).
+- **Dynamic Repository Configuration**: Ingests Docker's official GPG signing key (`containerd_docker_gpg_key_url`) and establishes the appropriate stable yum repository based on `_containerd_distro_docker_repo_os` (`fedora`, `alma`, or `rocky`).
 - **Distribution-Specific Packaging**: Deploys `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`, and `docker-model-plugin`. On Fedora, installs the complete engine stack (`docker-ce`, `docker-ce-cli`, `docker-ce-rootless-extras`).
 - **Daemon Configuration**: Templates `/etc/docker/daemon.json` from the `containerd_docker_daemon_config` dictionary.
 - **Storage Redirection**: Supports relocating Docker's root data directory via `--data-root` in systemd unit definitions (`containerd_docker_storage`).
@@ -112,30 +112,27 @@ These variables are namespaced with `containerd_*` and control role-specific beh
 | Variable | Default | Description |
 |---|---|---|
 | `containerd_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
-| `containerd_use_podman` | `true` | Enable Podman runtime and related CLI packages. |
-| `containerd_use_docker` | `false` | Enable Docker Community Edition engine and repository configuration. |
+| `containerd_engine` | `"podman"` | Container runtime engine selector (`"podman"`, `"docker"`, or `"none"`). |
 | `containerd_podman_packages` | `["podman", "podman-compose", "podman-docker"]` | List of Podman packages installed on the host. |
 | `containerd_docker_version` | `""` | Optional specific Docker CE version string to pin (e.g. `"27.3.1"`). |
 | `containerd_docker_packages` | `["containerd.io", "docker-buildx-plugin", "docker-compose-plugin", "docker-model-plugin"]` | Core Docker packages installed across all platforms. |
 | `containerd_docker_gpg_key_url` | `"https://download.docker.com/linux/fedora/gpg"` | GPG key URL used to sign official Docker CE packages. |
 | `containerd_docker_service_name` | `"docker.service"` | Name of the systemd unit for the Docker daemon. |
-| `containerd_docker_service_enabled` | `true` | Whether to enable and start the Docker systemd service (overridden by distro vars). |
+| `containerd_docker_service_enabled` | `{{ ansible_distribution == 'Fedora' }}` | Whether to enable and start the Docker systemd service. |
+| `containerd_docker_manage_users` | `{{ ansible_distribution == 'Fedora' }}` | Whether to manage `docker` group membership. |
+| `containerd_docker_manage_storage` | `{{ ansible_distribution == 'Fedora' }}` | Whether to override `--data-root` in systemd service definitions. |
 | `containerd_docker_users` | `["{{ user.name }}"]` | List of user accounts added to the `docker` system group. |
 | `containerd_docker_storage` | `"/var/lib/docker"` | Custom data root directory path for the Docker daemon (`--data-root`). |
 | `containerd_docker_daemon_config` | `{}` | Key-value mapping rendered into `/etc/docker/daemon.json`. |
-| `containerd_docker_remove_conflicting_packages` | `false` | Gate to uninstall conflicting container packages if necessary. |
 
-### Tier 2: Distribution Variables (`vars/*.yml`)
+### Tier 2: Internal Distribution Variables (`vars/*.yml`)
 
-These variables are dynamically included based on `{{ ansible_distribution }}.yml`:
+These internal variables are dynamically included based on `{{ ansible_distribution }}.yml`:
 
 | Variable | Fedora | AlmaLinux | Rocky Linux | Description |
 |---|---|---|---|---|
-| `containerd_docker_distro_packages` | `[docker-ce, docker-ce-cli, docker-ce-rootless-extras]` | `[]` | `[]` | Additional distribution-specific packages for Docker CE. |
-| `containerd_docker_repo_os` | `"fedora"` | `"alma"` | `"rocky"` | Docker repository slug in `download.docker.com/linux/<repo_os>/`. |
-| `containerd_docker_service_enabled` | `true` | `false` | `false` | Distribution default for starting the Docker daemon. |
-| `containerd_docker_manage_users` | `true` | `false` | `false` | Whether to manage `docker` group membership. |
-| `containerd_docker_manage_storage` | `true` | `false` | `false` | Whether to override `--data-root` in systemd service definitions. |
+| `_containerd_distro_docker_packages` | `[docker-ce, docker-ce-cli, docker-ce-rootless-extras]` | `[]` | `[]` | Additional distribution-specific packages for Docker CE. |
+| `_containerd_distro_docker_repo_os` | `"fedora"` | `"alma"` | `"rocky"` | Docker repository slug in `download.docker.com/linux/<repo_os>/`. |
 
 ---
 
@@ -210,7 +207,7 @@ ansible-playbook local.yml --tags "podman,distrobox"
 Enable Docker CE explicitly via extra variables:
 
 ```bash
-ansible-playbook local.yml --tags "containerd" -e "containerd_use_docker=true"
+ansible-playbook local.yml --tags "containerd" -e "containerd_engine=docker"
 ```
 
 ---
@@ -245,7 +242,7 @@ distrobox enter test-box -- echo "Distrobox working correctly"
 distrobox rm -f test-box
 ```
 
-### Docker Verification (when `containerd_use_docker: true`)
+### Docker Verification (when `containerd_engine: "docker"`)
 
 ```bash
 # Check Docker daemon service state

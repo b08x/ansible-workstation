@@ -1,10 +1,7 @@
 ---
-containerd_docker_distro_packages:
+_containerd_distro_docker_packages:
   - docker-ce
   - docker-ce-cli
   - docker-ce-rootless-extras
 
-containerd_docker_repo_os: "fedora"
-containerd_docker_service_enabled: true
-containerd_docker_manage_users: true
-containerd_docker_manage_storage: true
+_containerd_distro_docker_repo_os: "fedora"

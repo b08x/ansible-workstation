@@ -10,16 +10,15 @@ tools_assert_enabled: true
 
 # -- Graphical Desktop Tools & Applications --
 
-tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"
+tools_install_gui_apps: "{{ auto_enable_desktop | default((desktop_environment | default('none')) != 'none') | bool }}"
 
-# Visual Studio Code (REAL opt-in: install only by setting this to true;
+# Visual Studio Code (REAL opt-in: set to 'rpm' or 'flatpak' to install;
 # the extension list lives in roles/user as user_vscode_extensions)
-tools_install_vscode: false
-tools_vscode_flatpak: false
+tools_vscode_install_method: "none"
 tools_vscode_force_install: false
 
 # System Flatpaks and Flathub Remote
-tools_install_flatpaks: "{{ tools_install_gui_apps | default(true) | bool }}"
+tools_install_flatpaks: "{{ tools_install_gui_apps | default(false) | bool }}"
 tools_system_flatpaks:
   - com.github.tchx84.Flatseal
   - io.github.flattool.Warehouse
@@ -40,4 +39,4 @@ tools_system_flatpaks:
   - org.audacityteam.Audacity
 
 # input-remapper
-tools_install_input_remapper: "{{ tools_install_gui_apps | default(true) | bool }}"
+tools_install_input_remapper: "{{ tools_install_gui_apps | default(false) | bool }}"

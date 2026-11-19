@@ -2,15 +2,14 @@
 # defaults file for gpu
 # Defines default configuration and feature flags for host GPU compute stacks
 # (Intel oneAPI / Intel graphics, NVIDIA CUDA driver and toolkits).
-# Both stacks are OFF by default; enable per host through the Tier 1 vars
-# `intel_oneapi_install` and `nvidia_cuda_install` (inventory host_vars).
+# Both stacks are OFF by default; enable per host through `gpu_install_intel_oneapi`
+# and `gpu_install_nvidia` (inventory host_vars).
 
 # Control pre-flight assertions (Fail-Fast Pattern)
 gpu_assert_enabled: true
 
 # -- Intel oneAPI Toolkit --
-# Lazily consumes the Tier 1 flag set on tinybot (intel_oneapi_install).
-gpu_install_intel_oneapi: "{{ intel_oneapi_install | default(false) | bool }}"
+gpu_install_intel_oneapi: false
 
 # Pinned oneAPI package list (moved from roles/tools; duplicate
 # runtime-dpcpp-sycl-core entry removed). Overridable per host.
@@ -90,8 +89,7 @@ gpu_intel_graphics_packages:
   - libva-intel-driver
 
 # -- NVIDIA CUDA driver, toolkit and container toolkit --
-# Lazily consumes the new Tier 1 flag (nvidia_cuda_install).
-gpu_install_nvidia: "{{ nvidia_cuda_install | default(false) | bool }}"
+gpu_install_nvidia: false
 
 # Force-install override for the NVIDIA driver set (idempotency pattern):
 # when true the driver packages are re-evaluated with state latest instead of
@@ -108,6 +106,9 @@ gpu_nvidia_utils_packages:
 
 # RPM Fusion repository management toggle
 gpu_nvidia_ensure_rpmfusion: true
+
+# NVIDIA driver provider mutual-exclusion preflight toggle
+gpu_nvidia_provider_preflight: true
 
 # Driver/CUDA packages installed from the Negativo 17 repository when NVIDIA
 # is enabled (osbuild nvidia component payload parity). Safe to install
@@ -133,7 +134,7 @@ gpu_nvidia_power_services:
   - nvidia-hibernate
   - nvidia-resume
 
-# gpu_nvidia_persistenced is loaded from vars/<Distro>-<major>.yml
+# _gpu_distro_nvidia_persistenced is loaded from vars/<Distro>-<major>.yml
 # (EL defaults true, Fedora defaults false, matching the osbuild component).
 # The nvidia-persistenced package is always part of the driver set; this
 # toggle governs only the systemd service.

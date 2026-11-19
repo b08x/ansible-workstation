@@ -5,7 +5,7 @@ Provisions host-level graphical desktop utilities — Visual Studio Code (real o
 Coding agent CLIs are provisioned by the standalone playbooks in [`playbooks/agent-harness/`](../../playbooks/agent-harness/). transcribe.cpp (Whisper transcription CLI) is built by the standalone [`playbooks/transcribe-cpp.yml`](../../playbooks/transcribe-cpp.yml) playbook.
 
 **Migration note (2026-11):** this role divested its CLI toolchain surface.
-`inxi` and `gitflow-avh` moved to [`roles/common`](../common); `bun`, the Go toolchain, cargo/crates, GNOME Shell extensions, and VS Code extensions moved to [`roles/user`](../user). Homebrew support was dropped entirely. VS Code itself is now a **real opt-in** (`tools_install_vscode` defaults to `false`).
+`inxi` and `gitflow-avh` moved to [`roles/common`](../common); `bun`, the Go toolchain, cargo/crates, GNOME Shell extensions, and VS Code extensions moved to [`roles/user`](../user). Homebrew support was dropped entirely. VS Code itself is now a **real opt-in** (`tools_vscode_install_method` defaults to `"none"`).
 
 ---
 
@@ -44,8 +44,8 @@ It establishes a strict boundary separating binary installation from user config
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
 1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the primary dispatcher routing execution to modular installers (`vscode.yml`, `flatpak.yml`, `input-remapper.yml`) gated by explicit boolean feature flags (`tools_install_*`).
-2. **GUI Availability Gating**: Graphical desktop tools (VS Code, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default(true) | bool }}"`. Headless systems automatically skip graphical installations.
-3. **Real Opt-In Flip**: VS Code installs only when BOTH `tools_install_gui_apps` AND `tools_install_vscode` are true; the latter defaults to `false` so the IDE is a deliberate choice, never a side effect.
+2. **GUI Availability Gating**: Graphical desktop tools (VS Code, system Flatpaks, input-remapper) are gated on `tools_install_gui_apps: "{{ auto_enable_desktop | default((desktop_environment | default('none')) != 'none') | bool }}"`. Headless systems automatically skip graphical installations.
+3. **Real Opt-In Flip**: VS Code installs only when BOTH `tools_install_gui_apps` is true AND `tools_vscode_install_method` is `'rpm'` or `'flatpak'`; the latter defaults to `'none'` so the IDE is a deliberate choice, never a side effect.
 4. **Idempotency Stat Guards & Check-Mode Safety**: Every installer performs a preliminary stat check or binary probe to bypass redundant work on converged hosts. Probe commands (`which code`) declare `check_mode: false` and defensive filters (`rc | default(1)`).
 5. **Handler Notification Pattern**: Changes to service unit files (`input-remapper.service`) notify `Daemon reload` (`systemd daemon_reload: true`).
 6. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`tools`, `system`) and dedicated tool tags (`vscode`, `flathub`, `flatpaks`, `input-remapper`).
@@ -57,14 +57,14 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 ## Core Components
 
 ### 1. Visual Studio Code (`tasks/vscode.yml`) — opt-in
-- Installs only when `tools_install_vscode: true` (default `false`) AND `tools_install_gui_apps` is true.
-- Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`).
-- Supports native RPM installation (default) or Flatpak distribution (`tools_vscode_flatpak: true`).
+- Installs only when `tools_vscode_install_method` is `'rpm'` or `'flatpak'` (default `'none'`) AND `tools_install_gui_apps` is true.
+- Configures Microsoft's official yum repository and GPG signing key (`https://packages.microsoft.com/keys/microsoft.asc`) when `tools_vscode_install_method == 'rpm'`.
+- Supports native RPM installation (`tools_vscode_install_method: "rpm"`) or Flatpak distribution (`tools_vscode_install_method: "flatpak"`).
 - The extension list is **not** managed here — [`roles/user`](../user) installs extensions (`user_vscode_extensions`, gate `user_install_vscode_extensions`).
 
 ### 2. System Flatpaks & Flathub Remote (`tasks/flatpak.yml`)
 - Configures the official Flathub remote repository (`https://dl.flathub.org/repo/flathub.flatpakrepo`) under system scope (`method: system`).
-- Deploys administrative, utility, and creative Flatpak applications defined in `tools_system_flatpaks` (overridable via `system_flatpaks`).
+- Deploys administrative, utility, and creative Flatpak applications defined in `tools_system_flatpaks`.
 - Gated by `tools_install_gui_apps` and `tools_install_flatpaks`.
 
 ### 3. Hardware Key Remapper (`tasks/input-remapper.yml`)
@@ -95,21 +95,20 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 
 | Variable | Default | Description |
 |---|---|---|
-| `auto_enable_desktop` | `true` | Capability flag evaluated during `local.yml` preflight checks; feeds `tools_install_gui_apps`. |
-| `system_flatpaks` | *(undefined)* | Optional global override for the system Flatpak list. |
+| `auto_enable_desktop` | *(derived)* | Capability flag evaluated during `local.yml` preflight checks; feeds `tools_install_gui_apps`. |
+| `desktop_environment` | `"none"` | Active desktop environment; used to derive `tools_install_gui_apps` when `auto_enable_desktop` is undefined. |
 
 ### Tier 2: Role Defaults (`defaults/main.yml`)
 
 | Variable | Default | Description |
 |---|---|---|
 | `tools_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`). |
-| `tools_install_gui_apps` | `{{ auto_enable_desktop \| default(true) \| bool }}` | Master gate for graphical desktop applications. |
-| `tools_install_vscode` | `false` | Enable/disable Visual Studio Code installation (real opt-in). |
-| `tools_vscode_flatpak` | `false` | When true, installs VS Code via Flatpak instead of native RPM. |
+| `tools_install_gui_apps` | `{{ auto_enable_desktop \| default((desktop_environment \| default('none')) != 'none') \| bool }}` | Master gate for graphical desktop applications. |
+| `tools_vscode_install_method` | `"none"` | Visual Studio Code installation method (`"none"`, `"rpm"`, or `"flatpak"`). |
 | `tools_vscode_force_install` | `false` | When true, forces installation even if `code` binary is present. |
-| `tools_install_flatpaks` | `{{ tools_install_gui_apps }}` | Enable/disable Flatpak package and system Flatpaks. |
-| `tools_system_flatpaks` | *(19 packages)* | System Flatpak application IDs to install. |
-| `tools_install_input_remapper` | `{{ tools_install_gui_apps }}` | Enable/disable input-remapper service configuration. |
+| `tools_install_flatpaks` | `{{ tools_install_gui_apps \| default(false) \| bool }}` | Enable/disable Flatpak package and system Flatpaks. |
+| `tools_system_flatpaks` | *(17 packages)* | System Flatpak application IDs to install. |
+| `tools_install_input_remapper` | `{{ tools_install_gui_apps \| default(false) \| bool }}` | Enable/disable input-remapper service configuration. |
 
 ---
 
