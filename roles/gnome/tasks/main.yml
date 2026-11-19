@@ -1,0 +1,32 @@
+---
+# tasks file for roles/gnome
+
+- name: Announce gnome role execution
+  ansible.builtin.debug:
+    msg: "Configuring GNOME desktop environment, GDM, and Shell extensions"
+  tags: ["gnome", "always"]
+
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: gnome_assert_enabled | default(true) | bool
+  tags: ["gnome", "assert", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["gnome", "distro"]
+
+- name: Include GNOME package and Flatpak installation tasks
+  ansible.builtin.include_tasks: packages.yml
+  tags: ["gnome", "desktop", "packages"]
+
+- name: Include GDM and graphical target configuration tasks
+  ansible.builtin.include_tasks: gdm.yml
+  tags: ["gnome", "desktop", "gdm"]
+
+- name: Include GNOME Shell extensions tasks
+  ansible.builtin.include_tasks: extensions.yml
+  tags: ["gnome", "desktop", "extensions"]
+
+- name: Flush pending handlers
+  ansible.builtin.meta: flush_handlers
+  tags: ["gnome", "desktop", "gdm"]

@@ -1,0 +1,11 @@
+---
+# distribution package variables for roles/cosmic on AlmaLinux
+
+_cosmic_distro_packages:
+  core:
+    - "@cosmic-desktop"
+    - cosmic-greeter
+    - cutecosmic-qt6
+    - xdg-desktop-portal-cosmic
+  apps:
+    - "@cosmic-desktop-apps"

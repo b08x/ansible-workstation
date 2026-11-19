@@ -1,0 +1,26 @@
+---
+# tasks file for GNOME Shell extensions management in roles/gnome
+
+- name: Install system GNOME Shell extensions via DNF
+  ansible.builtin.dnf:
+    name: "{{ gnome_extensions | default([]) }}"
+    state: present
+  when: gnome_extensions | default([]) | length > 0
+  tags: ["gnome", "desktop", "extensions", "packages"]
+
+- name: Convert system extension package names to extension IDs
+  ansible.builtin.set_fact:
+    _gnome_system_extension_ids: >-
+      {{ gnome_extensions | default([]) |
+      select('in', _gnome_package_to_id_map) |
+      map('extract', _gnome_package_to_id_map) | list }}
+  tags: ["gnome", "desktop", "extensions"]
+
+- name: Enable installed GNOME extensions in user dconf context
+  ansible.builtin.include_tasks:
+    file: extensions_enable.yml
+    apply:
+      become: true
+      become_user: "{{ user.name }}"
+  when: gnome_extensions_enable | default(false) | bool
+  tags: ["gnome", "desktop", "extensions"]

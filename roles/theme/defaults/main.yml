@@ -1,0 +1,14 @@
+---
+# defaults file for roles/theme
+
+# Control pre-flight assertions (Fail-Fast Pattern)
+theme_assert_enabled: true
+
+# Install Qt5/Qt6 and GTK3/GTK4 runtime toolkit packages
+theme_install_toolkits: true
+
+# System desktop theme to install ('yaru' or 'none')
+theme_name: "{{ 'yaru' if (desktop_environment | default('none')) == 'gnome' else 'none' }}"
+
+# Force Yaru reinstallation/rebuild even when /usr/share/themes/Yaru exists
+theme_force_install: false

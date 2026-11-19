@@ -1,0 +1,17 @@
+---
+# tasks file for Qt and GTK toolkit packages in roles/theme
+
+- name: Report missing toolkit package keys for this distribution
+  ansible.builtin.debug:
+    msg: >-
+      _theme_distro_packages has no {{ item }} key for {{ ansible_distribution }};
+      skipping those packages.
+  loop: "{{ ['qt', 'gtk'] | reject('in', _theme_distro_packages | default({})) | list }}"
+  tags: ["theme", "desktop", "toolkits"]
+
+- name: Install Qt and GTK toolkit packages
+  ansible.builtin.dnf:
+    name: "{{ (_theme_distro_packages.qt | default([])) + (_theme_distro_packages.gtk | default([])) }}"
+    state: present
+  when: ((_theme_distro_packages.qt | default([]) | length) > 0) or ((_theme_distro_packages.gtk | default([]) | length) > 0)
+  tags: ["theme", "desktop", "toolkits"]

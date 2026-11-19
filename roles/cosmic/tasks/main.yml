@@ -1,0 +1,38 @@
+---
+# tasks file for roles/cosmic
+
+- name: Announce cosmic role execution
+  ansible.builtin.debug:
+    msg: "Configuring COSMIC desktop environment (greeter: {{ cosmic_display_manager }})"
+  tags: ["cosmic", "always"]
+
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: cosmic_assert_enabled | default(true) | bool
+  tags: ["cosmic", "assert", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["cosmic", "distro"]
+
+- name: Include COSMIC package installation tasks
+  ansible.builtin.include_tasks: packages.yml
+  tags: ["cosmic", "desktop", "packages"]
+
+- name: Include COSMIC environment and skeleton configuration tasks
+  ansible.builtin.include_tasks: environment.yml
+  tags: ["cosmic", "desktop", "environment"]
+
+- name: Include cosmic-greeter display manager tasks
+  ansible.builtin.include_tasks: greeter_cosmic.yml
+  when: cosmic_display_manager == 'cosmic-greeter'
+  tags: ["cosmic", "desktop", "greeter"]
+
+- name: Include GDM display manager tasks for COSMIC
+  ansible.builtin.include_tasks: greeter_gdm.yml
+  when: cosmic_display_manager == 'gdm'
+  tags: ["cosmic", "desktop", "greeter"]
+
+- name: Flush pending handlers
+  ansible.builtin.meta: flush_handlers
+  tags: ["cosmic", "desktop", "greeter"]

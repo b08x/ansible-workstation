@@ -1,0 +1,28 @@
+---
+# argument spec file for roles/theme
+
+argument_specs:
+  main:
+    short_description: System desktop toolkit (Qt5/Qt6, GTK3/GTK4) and Yaru theme provisioning role.
+    options:
+      theme_assert_enabled:
+        type: bool
+        default: true
+        description: Enable pre-flight environment, platform, and privilege assertions.
+      theme_install_toolkits:
+        type: bool
+        default: true
+        description: Install Qt5/Qt6 and GTK3/GTK4 runtime toolkit packages.
+      theme_name:
+        type: str
+        default: "{{ 'yaru' if (desktop_environment | default('none')) == 'gnome' else 'none' }}"
+        choices:
+          - "yaru"
+          - "none"
+        description: >-
+          System desktop theme to install (yaru or none). Defaults to yaru when
+          desktop_environment is gnome, otherwise none.
+      theme_force_install:
+        type: bool
+        default: false
+        description: Force reinstallation or rebuild of Yaru theme even when /usr/share/themes/Yaru exists.

@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  author: Robert Pannick
+  description: COSMIC desktop environment, Qt6 cutecosmic integration, /etc/skel defaults, and display manager role.
+  company: Syncopated
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "10"
+
+  galaxy_tags:
+    - cosmic
+    - desktop
+    - wayland
+    - greeter
+
+dependencies: []

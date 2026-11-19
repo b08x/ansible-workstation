@@ -1,0 +1,28 @@
+---
+# tasks file for GNOME packages and Flatpaks in roles/gnome
+
+- name: Report missing GNOME package list for this distribution
+  ansible.builtin.debug:
+    msg: >-
+      _gnome_distro_packages is empty for {{ ansible_distribution }};
+      skipping GNOME package install.
+  when: (_gnome_distro_packages | default([]) | length) == 0
+  tags: ["gnome", "desktop", "packages"]
+
+- name: Install GNOME packages
+  ansible.builtin.dnf:
+    name: "{{ _gnome_distro_packages | default([]) }}"
+    state: present
+    allowerasing: true
+  when: (_gnome_distro_packages | default([]) | length) > 0
+  tags: ["gnome", "desktop", "packages"]
+
+- name: Install GNOME Flatpak applications
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: system
+    remote: flathub
+  loop: "{{ gnome_flatpaks | default([]) }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["gnome", "desktop", "packages", "flatpaks"]

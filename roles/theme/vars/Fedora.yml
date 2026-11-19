@@ -1,0 +1,29 @@
+---
+# distribution package variables for roles/theme on Fedora
+
+_theme_distro_packages:
+  qt:
+    - qt6-qtbase
+    - qt6-qttools
+    - qt6-qtmultimedia
+    - qt6-qtdeclarative
+    - qt5-qtbase
+    - qt5-qttools
+    - qt5-qtquickcontrols2
+    - qt5-qtgraphicaleffects
+    - qscintilla-qt5
+    - qt5ct
+    - qt6ct
+  gtk:
+    - gtk4
+    - gtk3-devel
+    - gtksourceview4
+    - gtksourceview5
+  yaru:
+    - gnome-shell-theme-yaru
+    - yaru-gtk3-theme
+    - yaru-gtk4-theme
+    - yaru-gtksourceview-theme
+    - yaru-icon-theme
+    - yaru-sound-theme
+    - yaru-theme

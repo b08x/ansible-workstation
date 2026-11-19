@@ -1,0 +1,33 @@
+---
+# defaults file for roles/gnome
+
+# Control pre-flight assertions (Fail-Fast Pattern)
+gnome_assert_enabled: true
+
+# System Flatpaks for GNOME management
+gnome_flatpaks:
+  - com.mattjakeman.ExtensionManager
+  - page.tesk.Refine
+
+# GNOME Shell Extensions to ensure are installed via DNF
+gnome_extensions:
+  - gnome-shell-extension-appindicator
+  - gnome-shell-extension-apps-menu
+  - gnome-shell-extension-auto-move-windows
+  - gnome-shell-extension-dash-to-dock
+  - gnome-shell-extension-places-menu
+  - gnome-shell-extension-user-theme
+  - gnome-shell-extension-window-list
+  - gnome-shell-extension-launch-new-instance
+  - gnome-shell-extension-workspace-indicator
+
+# User extensions (installed to ~/.local/share/gnome-shell/extensions/)
+# Enabled in dconf if present on disk
+gnome_user_extensions:
+  - notification-timeout@chlumskyvaclav.gmail.com
+  - notification-configurator@exposedcat
+  - junk-notification-cleaner@murar8.github.com
+  - kando-integration@kando-menu.github.io
+
+# Control whether installed extensions are enabled in dconf (disabled by default)
+gnome_extensions_enable: false

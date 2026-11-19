@@ -1,0 +1,37 @@
+---
+# tasks file for COSMIC package installation in roles/cosmic
+
+- name: Ensure COSMIC Flatpak remote repository is present
+  community.general.flatpak_remote:
+    name: cosmic
+    flatpakrepo_url: https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
+    method: user
+    state: present
+  become: false
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags: ["cosmic", "desktop", "packages", "flatpak"]
+
+- name: Enable ryanabx/cosmic-epoch COPR repository
+  community.general.copr:
+    name: ryanabx/cosmic-epoch
+    state: enabled
+  when:
+    - cosmic_use_copr | default(false) | bool
+    - ansible_distribution == 'Fedora'
+  tags: ["cosmic", "desktop", "packages", "copr"]
+
+- name: Install COSMIC core packages
+  ansible.builtin.dnf:
+    name: "{{ _cosmic_distro_packages.core | default([]) }}"
+    state: present
+  when: (_cosmic_distro_packages.core | default([]) | length) > 0
+  tags: ["cosmic", "desktop", "packages"]
+
+- name: Install COSMIC supplementary applications
+  ansible.builtin.dnf:
+    name: "{{ _cosmic_distro_packages.apps | default([]) }}"
+    state: present
+  when:
+    - cosmic_install_supplementary_apps | default(false) | bool
+    - (_cosmic_distro_packages.apps | default([]) | length) > 0
+  tags: ["cosmic", "desktop", "packages"]

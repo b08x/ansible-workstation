@@ -1,0 +1,8 @@
+---
+# distribution package variables for roles/gnome on AlmaLinux
+
+_gnome_distro_packages:
+  - "@gnome-desktop"
+  - gdm
+  - gnome-tweaks
+  - zenity

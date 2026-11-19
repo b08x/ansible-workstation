@@ -1,0 +1,48 @@
+---
+# tasks file for GDM and graphical target configuration in roles/gnome
+
+- name: Ensure GDM configuration directory exists
+  ansible.builtin.file:
+    path: /etc/gdm
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["gnome", "desktop", "gdm"]
+
+- name: Configure GDM to use Wayland in /etc/gdm/custom.conf
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: WaylandEnable
+    value: "true"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart GDM
+  tags: ["gnome", "desktop", "gdm"]
+
+- name: Get the current default systemd target
+  ansible.builtin.command: systemctl get-default
+  changed_when: false
+  check_mode: false
+  register: _gnome_current_target
+  tags: ["gnome", "desktop", "gdm", "systemd"]
+
+- name: Set default target to graphical
+  ansible.builtin.command: systemctl set-default graphical.target
+  when: _gnome_current_target.stdout | default('') | trim != 'graphical.target'
+  register: _gnome_set_default_target
+  changed_when: _gnome_set_default_target.rc == 0
+  tags: ["gnome", "desktop", "gdm", "systemd"]
+
+- name: Ensure GDM service is enabled and started
+  ansible.builtin.service:
+    name: gdm
+    enabled: true
+    state: started
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+  tags: ["gnome", "desktop", "gdm", "systemd"]

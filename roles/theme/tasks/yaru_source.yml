@@ -1,0 +1,52 @@
+---
+# tasks file for building Yaru theme from source on Enterprise Linux
+
+- name: Build and install Yaru theme from source (EL family)
+  tags: ["theme", "desktop", "yaru"]
+  block:
+    - name: Install Yaru build dependencies (EL family)
+      ansible.builtin.dnf:
+        name: "{{ _theme_distro_packages.yaru | default([]) }}"
+        state: present
+        allowerasing: true
+
+    - name: Ensure clean state for Yaru clone
+      ansible.builtin.file:
+        path: /tmp/yaru
+        state: absent
+
+    - name: Clone Yaru repository
+      ansible.builtin.git:
+        repo: https://github.com/ubuntu/yaru.git
+        dest: /tmp/yaru
+        update: false
+        version: "master"
+      become: false
+
+    - name: Configure Yaru meson build
+      ansible.builtin.command:
+        cmd: meson setup build
+        chdir: /tmp/yaru
+      changed_when: false
+      become: false
+
+    - name: Install Yaru theme (ninja install)
+      ansible.builtin.command:
+        cmd: ninja -C build install
+        chdir: /tmp/yaru
+      changed_when: false
+
+    - name: Clean up Yaru clone
+      ansible.builtin.file:
+        path: /tmp/yaru
+        state: absent
+  rescue:
+    - name: Report EL theme build failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to build the Yaru theme from source. Verify meson, ninja,
+          and _theme_distro_packages.yaru build dependencies.
+
+    - name: Fail the play on EL theme build failure
+      ansible.builtin.fail:
+        msg: "Yaru theme source build failed - see the preceding task output."

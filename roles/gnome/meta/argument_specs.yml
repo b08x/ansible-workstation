@@ -1,0 +1,45 @@
+---
+# argument spec file for roles/gnome
+
+argument_specs:
+  main:
+    short_description: GNOME desktop environment, GDM Wayland display manager, and Shell extension role.
+    options:
+      gnome_assert_enabled:
+        type: bool
+        default: true
+        description: Enable pre-flight environment, platform, and privilege assertions.
+      gnome_flatpaks:
+        type: list
+        elements: str
+        default:
+          - com.mattjakeman.ExtensionManager
+          - page.tesk.Refine
+        description: System Flatpak applications to install for GNOME management.
+      gnome_extensions:
+        type: list
+        elements: str
+        default:
+          - gnome-shell-extension-appindicator
+          - gnome-shell-extension-apps-menu
+          - gnome-shell-extension-auto-move-windows
+          - gnome-shell-extension-dash-to-dock
+          - gnome-shell-extension-places-menu
+          - gnome-shell-extension-user-theme
+          - gnome-shell-extension-window-list
+          - gnome-shell-extension-launch-new-instance
+          - gnome-shell-extension-workspace-indicator
+        description: System GNOME Shell extension RPM package names to install via DNF.
+      gnome_user_extensions:
+        type: list
+        elements: str
+        default:
+          - notification-timeout@chlumskyvaclav.gmail.com
+          - notification-configurator@exposedcat
+          - junk-notification-cleaner@murar8.github.com
+          - kando-integration@kando-menu.github.io
+        description: User GNOME Shell extension UUIDs to enable in dconf if present.
+      gnome_extensions_enable:
+        type: bool
+        default: false
+        description: Control whether installed GNOME extensions are enabled in dconf.

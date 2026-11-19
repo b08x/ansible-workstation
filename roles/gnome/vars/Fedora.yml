@@ -1,0 +1,10 @@
+---
+# distribution package variables for roles/gnome on Fedora
+
+_gnome_distro_packages:
+  - "@gnome-desktop"
+  - gdm
+  - gnome-shell
+  - gnome-session-wayland-session
+  - gnome-tweaks
+  - zenity

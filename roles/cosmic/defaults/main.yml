@@ -1,0 +1,14 @@
+---
+# defaults file for roles/cosmic
+
+# Control pre-flight assertions (Fail-Fast Pattern)
+cosmic_assert_enabled: true
+
+# Target display manager for COSMIC desktop ('cosmic-greeter' or 'gdm')
+cosmic_display_manager: "cosmic-greeter"
+
+# Enable ryanabx/cosmic-epoch COPR repository on Fedora
+cosmic_use_copr: false
+
+# Install supplementary COSMIC desktop applications (@cosmic-desktop-apps)
+cosmic_install_supplementary_apps: false

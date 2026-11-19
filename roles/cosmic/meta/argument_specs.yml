@@ -1,0 +1,26 @@
+---
+# argument spec file for roles/cosmic
+
+argument_specs:
+  main:
+    short_description: COSMIC desktop environment, Qt6 cutecosmic integration, and display manager role.
+    options:
+      cosmic_assert_enabled:
+        type: bool
+        default: true
+        description: Enable pre-flight environment, platform, and privilege assertions.
+      cosmic_display_manager:
+        type: str
+        default: "cosmic-greeter"
+        choices:
+          - "cosmic-greeter"
+          - "gdm"
+        description: Target display manager for COSMIC desktop (cosmic-greeter or gdm).
+      cosmic_use_copr:
+        type: bool
+        default: false
+        description: Enable ryanabx/cosmic-epoch COPR repository on Fedora before installing packages.
+      cosmic_install_supplementary_apps:
+        type: bool
+        default: false
+        description: Install supplementary COSMIC desktop applications (@cosmic-desktop-apps).

@@ -1,0 +1,40 @@
+---
+# tasks file for Yaru theme installation in roles/theme
+
+- name: Check if Yaru theme is installed
+  ansible.builtin.stat:
+    path: /usr/share/themes/Yaru
+  register: _theme_yaru_stat
+  check_mode: false
+  tags: ["theme", "desktop", "yaru"]
+
+- name: Install Yaru theme packages (Fedora)
+  tags: ["theme", "desktop", "yaru"]
+  when:
+    - ansible_distribution == "Fedora"
+    - (not _theme_yaru_stat.stat.exists | default(false)) or
+      (theme_force_install | default(false) | bool)
+  block:
+    - name: Install Yaru theme from DNF (Fedora)
+      ansible.builtin.dnf:
+        name: "{{ _theme_distro_packages.yaru | default([]) }}"
+        state: present
+        allowerasing: true
+  rescue:
+    - name: Report Fedora theme package failure
+      ansible.builtin.debug:
+        msg: >-
+          Failed to install the Yaru theme packages listed in
+          _theme_distro_packages.yaru. Verify enabled Fedora repositories.
+
+    - name: Fail the play on Fedora theme package failure
+      ansible.builtin.fail:
+        msg: "Yaru theme package installation failed - see the preceding task output."
+
+- name: Include EL source build tasks for Yaru theme
+  ansible.builtin.include_tasks: yaru_source.yml
+  when:
+    - ansible_distribution in ["AlmaLinux", "Rocky"]
+    - (not _theme_yaru_stat.stat.exists | default(false)) or
+      (theme_force_install | default(false) | bool)
+  tags: ["theme", "desktop", "yaru"]

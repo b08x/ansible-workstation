@@ -1,0 +1,26 @@
+---
+# tasks file for roles/theme
+
+- name: Announce theme role execution
+  ansible.builtin.debug:
+    msg: "Configuring desktop toolkits and system theme ({{ theme_name }})"
+  tags: ["theme", "always"]
+
+- name: Validate pre-flight assertions and platform support
+  ansible.builtin.include_tasks: assert.yml
+  when: theme_assert_enabled | default(true) | bool
+  tags: ["theme", "assert", "always"]
+
+- name: Include distribution package variables
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+  tags: ["theme", "distro"]
+
+- name: Include toolkit package installation tasks
+  ansible.builtin.include_tasks: toolkits.yml
+  when: theme_install_toolkits | default(true) | bool
+  tags: ["theme", "desktop", "toolkits"]
+
+- name: Include Yaru theme installation tasks
+  ansible.builtin.include_tasks: yaru.yml
+  when: theme_name == 'yaru'
+  tags: ["theme", "desktop", "yaru"]

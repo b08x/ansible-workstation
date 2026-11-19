@@ -1,0 +1,48 @@
+---
+# handlers file for roles/cosmic
+
+- name: Display manager restart | list sessions on local seats
+  ansible.builtin.shell: |
+    set -o pipefail
+    loginctl list-sessions --no-legend --no-pager 2>/dev/null | while read -r _session _uid _user _seat _rest; do
+      if [ -n "${_seat}" ]; then
+        printf '%s %s\n' "${_user}" "${_uid}"
+      fi
+    done | sort -u
+  args:
+    executable: /bin/bash
+  register: _cosmic_dm_seat_sessions
+  changed_when: false
+  check_mode: false
+  listen: "Restart display manager"
+
+- name: Display manager restart | restart active display manager service
+  ansible.builtin.service:
+    name: "{{ cosmic_display_manager | default('cosmic-greeter') }}"
+    state: restarted
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - _cosmic_dm_seat_sessions.stdout | default('') | trim | length == 0
+  listen: "Restart display manager"
+
+- name: Display manager restart | show pending-restart window to logged-in users
+  ansible.builtin.command:
+    cmd: >-
+      runuser -u {{ _cosmic_dm_session_user }} -- env
+      DISPLAY=:0
+      XDG_RUNTIME_DIR=/run/user/{{ _cosmic_dm_session_uid }}
+      DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/{{ _cosmic_dm_session_uid }}/bus
+      zenity --info --timeout 300
+      --title 'Display Manager configuration changed'
+      --text 'Display manager settings ({{ cosmic_display_manager | default("cosmic-greeter") }}) were updated,
+      but you are logged in. Log out and back in (or reboot) to apply them.'
+  vars:
+    _cosmic_dm_session_user: "{{ item.split(' ')[0] }}"
+    _cosmic_dm_session_uid: "{{ item.split(' ')[1] }}"
+  loop: "{{ _cosmic_dm_seat_sessions.stdout_lines | default([]) }}"
+  loop_control:
+    label: "{{ item.split(' ')[0] }}"
+  changed_when: false
+  failed_when: false
+  listen: "Restart display manager"

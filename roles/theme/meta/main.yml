@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  author: Robert Pannick
+  description: System desktop toolkit (Qt5/Qt6, GTK3/GTK4) and Yaru theme provisioning role.
+  company: Syncopated
+  license: MIT
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+
+  galaxy_tags:
+    - theme
+    - desktop
+    - yaru
+    - gtk
+    - qt
+
+dependencies: []

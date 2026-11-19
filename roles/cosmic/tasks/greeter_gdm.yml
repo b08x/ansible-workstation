@@ -1,0 +1,75 @@
+---
+# tasks file for GDM display manager configuration in roles/cosmic
+
+- name: Verify current default systemd target
+  ansible.builtin.command: systemctl get-default
+  changed_when: false
+  check_mode: false
+  register: _cosmic_current_target
+  tags: ["cosmic", "desktop", "greeter", "systemd"]
+
+- name: Set default systemd target to graphical.target
+  ansible.builtin.command: systemctl set-default graphical.target
+  when: _cosmic_current_target.stdout | default('') | trim != 'graphical.target'
+  register: _cosmic_set_target
+  changed_when: _cosmic_set_target.rc == 0
+  tags: ["cosmic", "desktop", "greeter", "systemd"]
+
+- name: Check if cosmic-greeter systemd unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/cosmic-greeter.service
+  register: _cosmic_greeter_unit
+  check_mode: false
+  tags: ["cosmic", "desktop", "greeter", "systemd"]
+
+- name: Check if GDM systemd unit exists
+  ansible.builtin.stat:
+    path: /usr/lib/systemd/system/gdm.service
+  register: _cosmic_gdm_unit
+  check_mode: false
+  tags: ["cosmic", "desktop", "greeter", "systemd"]
+
+- name: Ensure GDM configuration directory exists
+  ansible.builtin.file:
+    path: /etc/gdm
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  tags: ["cosmic", "desktop", "greeter", "gdm"]
+
+- name: Configure GDM to use Wayland in /etc/gdm/custom.conf
+  community.general.ini_file:
+    path: /etc/gdm/custom.conf
+    section: daemon
+    option: WaylandEnable
+    value: "true"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart display manager
+  tags: ["cosmic", "desktop", "greeter", "gdm"]
+
+- name: Disable and stop cosmic-greeter service when GDM is selected
+  ansible.builtin.service:
+    name: cosmic-greeter
+    enabled: false
+    state: stopped
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - _cosmic_greeter_unit.stat.exists | default(false)
+  tags: ["cosmic", "desktop", "greeter", "systemd"]
+
+- name: Ensure GDM service is enabled and started when GDM is selected
+  ansible.builtin.service:
+    name: gdm
+    enabled: true
+    state: started
+  when:
+    - ansible_service_mgr == 'systemd'
+    - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
+    - (_cosmic_gdm_unit.stat.exists | default(false)) or not ansible_check_mode
+  notify: Restart display manager
+  tags: ["cosmic", "desktop", "greeter", "gdm", "systemd"]
