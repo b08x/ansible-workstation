@@ -13,6 +13,14 @@ argument_specs:
         type: bool
         description: Enable baseline system and interactive package installation.
         default: true
+      common_syncopated_copr_enabled:
+        type: bool
+        description: Enable centralized Syncopated COPR repository configuration on Fedora and EL10+.
+        default: true
+      common_syncopated_copr:
+        type: str
+        description: Centralized Syncopated COPR repository slug.
+        default: "b08x/syncopated"
       common_hardware_detection_enabled:
         type: bool
         description: Enable hardware capability auto-detection (chassis, CPU, GPU, CUDA, Vulkan).
@@ -111,12 +119,8 @@ argument_specs:
         default: true
       common_install_gitflow:
         type: bool
-        description: Install gitflow-avh (COPR package on Fedora, source build on Enterprise Linux).
+        description: Install gitflow-avh (COPR package on Fedora and EL10+, source build on EL9).
         default: true
-      common_gitflow_copr_fedora:
-        type: str
-        description: COPR repository for gitflow on Fedora.
-        default: "b08x/syncopated"
       common_gitflow_force_install:
         type: bool
         description: Force gitflow source deployment even when git-flow is already present.

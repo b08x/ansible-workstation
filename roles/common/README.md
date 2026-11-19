@@ -26,10 +26,11 @@ In accordance with the workstation architecture:
   - Native RPM installation for `yadm` with automatic fallback to standalone binary download.
 - **Baseline Developer CLI Utilities (`tasks/inxi.yml`, `tasks/gitflow.yml`)** — moved from [`roles/tools`](../tools/README.md) (2026-11 migration):
   - `inxi` system information tool (DNF package, with a standalone upstream download fallback).
-  - `gitflow-avh`: Fedora installs it through the `common_gitflow_copr_fedora` COPR; Enterprise Linux builds it from the `gitflow-avh` source into `/usr/local/bin/git-flow` (guarded by `common_gitflow_force_install`).
-- **Interactive Troubleshooting Baseline (`tasks/main.yml`, `tasks/zsh.yml`, `tasks/yadm.yml`)**:
-  - Installs modern interactive CLI utilities (`zsh`, `fzf`, `gum`, `yadm`, `git`, `curl`, `openssh-server`, `tar`, `unzip`, `policycoreutils-python-utils`, `tuned`, `audit`) plus the baseline developer runtimes (`golang`, `nodejs`, `npm`) from the per-distro `common_packages` lists (`vars/{AlmaLinux,Fedora,Rocky-9,Rocky-10}.yml`).
-  - Native RPM installation for `yadm` with automatic fallback to standalone binary download.
+  - `gitflow-avh`: Fedora and EL10+ install it through the centralized Syncopated COPR (`common_syncopated_copr`); EL9 builds it from the `gitflow-avh` source into `/usr/local/bin/git-flow` (guarded by `common_gitflow_force_install`).
+- **Centralized COPR & Baseline Packages (`tasks/repos.yml`, `tasks/packages.yml`, `tasks/tools.yml`, `tasks/zsh.yml`, `tasks/yadm.yml`)**:
+  - Enables the centralized `b08x/syncopated` COPR (`common_syncopated_copr`) on Fedora and EL10+ when `common_syncopated_copr_enabled` is true.
+  - Installs modern interactive CLI utilities (`zsh`, `fzf`, `gum`, `yadm`, `git`, `curl`, `openssh-server`, `tar`, `unzip`, `policycoreutils-python-utils`, `tuned`, `audit`) plus the baseline developer runtimes (`golang`, `nodejs`, `npm`) from the per-distro `_common_distro_packages` lists (`vars/{AlmaLinux,Fedora,Rocky-9,Rocky-10}.yml`) when `common_packages_enabled` is true.
+  - Native RPM installation for `yadm` with automatic fallback to standalone binary download (or forced standalone download via `common_yadm_force_install`).
 - **Decoupled Responsibilities**:
   - **Repositories & System Updates**: Decoupled into `playbooks/repositories.yml` and `playbooks/tasks/repositories/`.
   - **User-Space Toolchains**: `bun`, the Go decision tree, cargo/crates, and GNOME/VS Code extensions are decoupled into [`roles/user`](../user/README.md); `inxi` and `gitflow` are **owned here** (moved in from `roles/tools`; homebrew was dropped entirely); vendor GPU toolchains (`intel.yml` / oneAPI) are decoupled into [`roles/gpu`](../gpu/README.md).
@@ -44,6 +45,8 @@ In accordance with the workstation architecture:
 |---|---|---|
 | `common_assert_enabled` | `true` | Enable pre-flight environment, platform, and privilege assertions. |
 | `common_packages_enabled` | `true` | Enable baseline interactive and system package installation. |
+| `common_syncopated_copr_enabled` | `true` | Enable centralized Syncopated COPR repository configuration on Fedora and EL10+. |
+| `common_syncopated_copr` | `"b08x/syncopated"` | Centralized Syncopated COPR repository slug. |
 | `common_hardware_detection_enabled` | `true` | Enable hardware capability auto-detection. |
 | `common_tuned_enabled` | `true` | Enable tuned daemon service and active profile enforcement. |
 | `common_tuned_profile` | `""` | Active tuned profile name; defaults to `recommended_tuned_profile` when empty. |
@@ -68,8 +71,7 @@ In accordance with the workstation architecture:
 | `common_yadm_url` | `"https://github.com/TheLocehiliosan/yadm/raw/master/yadm"` | Upstream download URL for standalone `yadm` fallback. |
 | `common_yadm_force_install` | `false` | Force standalone `yadm` binary installation even if present. |
 | `common_install_inxi` | `true` | Install the `inxi` system information tool (moved from `roles/tools`). |
-| `common_install_gitflow` | `true` | Install `gitflow-avh` (COPR package on Fedora; source build on Enterprise Linux; moved from `roles/tools`). |
-| `common_gitflow_copr_fedora` | `"b08x/syncopated"` | COPR repository for the gitflow package on Fedora. |
+| `common_install_gitflow` | `true` | Install `gitflow-avh` (COPR package on Fedora and EL10+; source build on EL9; moved from `roles/tools`). |
 | `common_gitflow_force_install` | `false` | Force the gitflow source deployment even when `git-flow` is already present. |
 | `common_gitflow_build_dir` | `"/tmp/gitflow-avh"` | Scratch directory for the gitflow-avh source build (cleaned up after install). |
 
@@ -89,6 +91,7 @@ In accordance with the workstation architecture:
 | `crypto` | Crypto policy enforcement |
 | `limits` | Umask and core dump limits |
 | `packages` | Common baseline package installation |
+| `repos` / `copr` | Centralized Syncopated COPR repository enablement |
 | `zsh` | Zsh package verification |
 | `yadm` | Yadm native RPM and standalone fallback installation |
 | `inxi` | inxi system information tool (DNF with upstream download fallback) |

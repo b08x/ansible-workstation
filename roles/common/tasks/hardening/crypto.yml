@@ -3,7 +3,7 @@
 
 - name: Query active system crypto policy
   ansible.builtin.command: update-crypto-policies --show
-  register: common_crypto_policy_current
+  register: _common_crypto_policy_current
   changed_when: false
   failed_when: false
   check_mode: false
@@ -12,7 +12,7 @@
 - name: Enforce declarative system crypto policy
   ansible.builtin.command: "update-crypto-policies --set {{ common_crypto_policy | default('DEFAULT') }}"
   when:
-    - common_crypto_policy_current.rc == 0
-    - (common_crypto_policy | default('DEFAULT')) not in common_crypto_policy_current.stdout
+    - _common_crypto_policy_current.rc == 0
+    - (common_crypto_policy | default('DEFAULT')) not in _common_crypto_policy_current.stdout
   changed_when: true
   tags: ["hardening", "crypto", "common"]

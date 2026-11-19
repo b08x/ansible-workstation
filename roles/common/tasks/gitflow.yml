@@ -1,23 +1,14 @@
 ---
 # tasks file for gitflow installation in roles/common
-# Fedora ships gitflow through a COPR. AlmaLinux has no package in its base
-# repositories or EPEL, so it builds from source if needed.
+# Fedora and EL10+ ship gitflow through the centralized Syncopated COPR;
+# EL9 builds gitflow-avh from source if needed.
 
-- name: Install gitflow from COPR
+- name: Install gitflow package from COPR
+  ansible.builtin.dnf:
+    name: gitflow
+    state: present
+  when: ansible_distribution == 'Fedora' or (ansible_distribution_major_version | int) >= 10
   tags: ["gitflow", "common"]
-  block:
-    - name: Enable gitflow COPR repository
-      community.general.copr:
-        name: "{{ common_gitflow_copr_fedora | default('b08x/syncopated') }}"
-        state: enabled
-      when: ansible_distribution == 'Fedora'
-      tags: ["gitflow", "common"]
-
-    - name: Install gitflow package
-      ansible.builtin.dnf:
-        name: gitflow
-        state: present
-      tags: ["gitflow", "common"]
 
 - name: Check if git-flow is installed
   ansible.builtin.command: which git-flow

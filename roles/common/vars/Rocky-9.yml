@@ -1,6 +1,6 @@
 ---
 # Rocky 9 package set: pruned to essential system hygiene and interactive troubleshooting baseline.
-common_packages:
+_common_distro_packages:
   - aria2
   - audit
   - bat

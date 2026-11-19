@@ -1,0 +1,30 @@
+---
+# Centralized Syncopated COPR repository enablement (Fedora and EL10+)
+
+- name: Enable Syncopated COPR repository on Fedora
+  community.general.copr:
+    name: "{{ common_syncopated_copr }}"
+    state: enabled
+  register: _common_syncopated_copr_enable
+  when: ansible_distribution == 'Fedora'
+  tags: ["common", "repos", "copr"]
+
+- name: Check if Syncopated COPR repo file exists on Enterprise Linux
+  ansible.builtin.stat:
+    path: "/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:{{ common_syncopated_copr | replace('/', ':') }}.repo"
+  register: _common_syncopated_copr_repo
+  when:
+    - ansible_distribution != 'Fedora'
+    - (ansible_distribution_major_version | int) >= 10
+  tags: ["common", "repos", "copr"]
+
+- name: Enable Syncopated COPR repository on Enterprise Linux
+  ansible.builtin.command:
+    cmd: "dnf copr enable -y {{ common_syncopated_copr }}"
+    creates: "/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:{{ common_syncopated_copr | replace('/', ':') }}.repo"
+  register: _common_syncopated_copr_enable
+  when:
+    - ansible_distribution != 'Fedora'
+    - (ansible_distribution_major_version | int) >= 10
+    - not (_common_syncopated_copr_repo.stat.exists | default(false))
+  tags: ["common", "repos", "copr"]

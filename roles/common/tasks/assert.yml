@@ -77,23 +77,19 @@
     quiet: true
   tags: ["common", "assert", "always"]
 
-- name: Assert inxi and gitflow feature gates are bool-shaped
-  # common_install_inxi / common_install_gitflow gate include_tasks via
-  # '| default(true) | bool'; anything not a native bool or a
-  # bool-coercible string (the inventory-override case) must fail fast
-  # here rather than half-branch later in the dispatcher.
+- name: Assert common feature gates are bool-shaped
   ansible.builtin.assert:
     that:
-      - common_install_inxi | default(true) is boolean
-        or common_install_inxi | default(true) | string | lower
-        in ['true', 'false', 'yes', 'no', 'on', 'off', '1', '0']
-      - common_install_gitflow | default(true) is boolean
-        or common_install_gitflow | default(true) | string | lower
+      - item | default(true) is boolean
+        or item | default(true) | string | lower
         in ['true', 'false', 'yes', 'no', 'on', 'off', '1', '0']
     fail_msg: >-
-      'common_install_inxi' and 'common_install_gitflow' must be booleans
-      (or bool-coercible strings like 'true'/'no'). Got
-      common_install_inxi {{ common_install_inxi | default(true) | type_debug }}
-      and common_install_gitflow {{ common_install_gitflow | default(true) | type_debug }}.
+      Common feature gates (inxi, gitflow, packages, syncopated_copr) must be
+      booleans (or bool-coercible strings). Got {{ item | default(true) | type_debug }}.
     quiet: true
+  loop:
+    - "{{ common_install_inxi | default(true) }}"
+    - "{{ common_install_gitflow | default(true) }}"
+    - "{{ common_packages_enabled | default(true) }}"
+    - "{{ common_syncopated_copr_enabled | default(true) }}"
   tags: ["common", "assert", "always"]

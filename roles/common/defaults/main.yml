@@ -4,8 +4,10 @@
 # Pre-flight assertions
 common_assert_enabled: true
 
-# Package installation
+# Package installation and centralized Syncopated COPR
 common_packages_enabled: true
+common_syncopated_copr_enabled: true
+common_syncopated_copr: "b08x/syncopated"
 
 # Hardware auto-detection
 common_hardware_detection_enabled: true
@@ -51,10 +53,9 @@ common_yadm_force_install: false
 common_install_inxi: true
 
 # gitflow-avh (moved from roles/tools)
-# Fedora ships gitflow through a COPR; AlmaLinux/Rocky have no package in
-# their base repositories or EPEL, so gitflow-avh builds from source.
+# Fedora and EL10+ ship gitflow through the centralized Syncopated COPR;
+# EL9 builds gitflow-avh from source.
 common_install_gitflow: true
-common_gitflow_copr_fedora: "b08x/syncopated"
 common_gitflow_force_install: false
 
 # Scratch directory for the gitflow-avh source build (cleaned up after).
