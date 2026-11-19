@@ -81,3 +81,9 @@
     - ansible_virtualization_type | default('') not in ['container', 'docker', 'podman']
     - (_sway_greetd_unit.stat.exists | default(false)) or not ansible_check_mode
   tags: ["sway", "greetd", "systemd"]
+
+- name: Set default graphical-target for systemd
+  ansible.builtin.systemd:
+    name: graphical.target
+    enabled: true
+  tags: ["sway", "greetd", "systemd"]
