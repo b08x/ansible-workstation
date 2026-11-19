@@ -85,4 +85,4 @@
       Each enabled NAS protocol must define a non-empty list of shares/exports/modules
       (nas_nfs_exports, nas_samba_shares, nas_rsync_modules).
     quiet: true
-  tags: ["nas", "assert", "nas_nfs", "nas_samba", "nas_rsync"]
+  tags: ["nas", "assert", "always", "nas_nfs", "nas_samba", "nas_rsync"]

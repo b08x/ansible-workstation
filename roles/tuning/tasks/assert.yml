@@ -76,4 +76,14 @@
       Define 'user.name' in inventory (e.g. group_vars/all.yml) or set workstation_user.
     quiet: true
   when: tuning_groups_enabled | default(true) | bool
-  tags: ["tuning", "assert", "groups"]
+  tags: ["tuning", "assert", "always", "groups"]
+
+- name: Assert tuning_cpupower_governor is valid
+  ansible.builtin.assert:
+    that:
+      - tuning_cpupower_governor in ['powersave', 'performance', 'ondemand', 'conservative', 'userspace', 'schedutil']
+    fail_msg: >-
+      Invalid CPU governor '{{ tuning_cpupower_governor | default('undefined') }}'.
+      Allowed values: powersave, performance, ondemand, conservative, userspace, schedutil.
+    quiet: true
+  tags: ["tuning", "assert", "always"]

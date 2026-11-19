@@ -74,4 +74,4 @@
       Define 'user.name' in inventory (e.g. group_vars/all.yml) to add the user to the docker group.
     quiet: true
   when: containerd_engine == 'docker'
-  tags: ["containerd", "assert", "docker"]
+  tags: ["containerd", "assert", "always", "docker"]
