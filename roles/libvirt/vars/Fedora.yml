@@ -1,4 +1,4 @@
 ---
-libvirt_packages:
+_libvirt_distro_packages:
   - "@virtualization"
-libvirt_bridge_conf_path: /etc/qemu/bridge.conf
+_libvirt_distro_bridge_conf_path: /etc/qemu/bridge.conf

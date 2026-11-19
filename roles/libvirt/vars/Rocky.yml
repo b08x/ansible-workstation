@@ -3,9 +3,9 @@
 # with BaseOS, AppStream, CRB, EPEL and RPM Fusion enabled (2026-10-01):
 # all packages resolve and the virtualization-host-environment comps
 # environment exists on both majors.
-libvirt_packages:
+_libvirt_distro_packages:
   - "@virtualization-host-environment"
   - virt-manager
   - qemu-kvm
   - virt-install
-libvirt_bridge_conf_path: /etc/qemu-kvm/bridge.conf
+_libvirt_distro_bridge_conf_path: /etc/qemu-kvm/bridge.conf

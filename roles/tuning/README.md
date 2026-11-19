@@ -155,7 +155,7 @@ These variables are namespaced with `tuning_*` and control role-specific behavio
 | `tuning_tuned_enabled` | `true` | Enable Tuned service and profile enforcement. |
 | `tuning_rtirq_enabled` | `true` | Enable rtirq IRQ thread prioritization. |
 | `tuning_rtkit_enabled` | `true` | Enable rtkit-daemon service. |
-| `tuning_cpupower_enabled` | `true` | Enable CPU scaling governor configuration (service start and restart handlers skipped on VM guests). |
+| `tuning_cpupower_enabled` | `{{ ansible_distribution == 'Fedora' }}` | Enable CPU scaling governor configuration (defaults to `true` on Fedora, `false` on EL; service start and restart handlers skipped on VM guests). |
 | `tuning_irqbalance_enabled`| `false` | Enable/disable irqbalance service. |
 
 #### Sysctl & Memory Configuration
@@ -180,7 +180,7 @@ These variables are namespaced with `tuning_*` and control role-specific behavio
 | `tuning_systemd_timeout_stop_sec` | `"10s"` | Systemd unit stop timeout limit. |
 | `tuning_systemd_user_limit_nofile` | `"1024:1048576"` | Systemd user NOFILE file descriptor limits. |
 | `tuning_tuned_profile` | `"throughput-performance"`| Active tuned profile. |
-| `tuning_cpupower_config_file` | `/etc/default/cpupower` | Path to cpupower configuration file (`/etc/cpupower-service.conf` on Fedora via [Fedora.yml](file:///home/b08x/WorkspaceV3/Syncopated/workstation/roles/tuning/vars/Fedora.yml)). |
+| `tuning_cpupower_config_file` | `/etc/cpupower-service.conf` (Fedora) / `/etc/default/cpupower` (EL) | Path to cpupower configuration file derived in `defaults/main.yml` from `ansible_distribution`. |
 | `tuning_cpupower_governor` | `"powersave"` | Active CPU scaling governor (`powersave`, `performance`, `ondemand`, `conservative`, `userspace`, `schedutil`). |
 | `tuning_cpupower_min_freq` | `""` | Optional minimum CPU frequency boundary limit (e.g., `"1.2GHz"`). |
 | `tuning_cpupower_max_freq` | `""` | Optional maximum CPU frequency boundary limit (e.g., `"3.8GHz"`). |

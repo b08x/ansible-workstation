@@ -33,12 +33,12 @@
         {{ tuning_sysctl | dict2items
            | selectattr('key', 'in', tuning_sysctl_optional)
            | list }}
-      register: tuning_sysctl_optional_test
+      register: _tuning_sysctl_optional_test
 
     - name: Collect optional sysctl keys this host does not support
       ansible.builtin.set_fact:
-        tuning_sysctl_unsupported: >-
-          {{ tuning_sysctl_optional_test.results
+        _tuning_sysctl_unsupported: >-
+          {{ _tuning_sysctl_optional_test.results
              | selectattr('rc', 'ne', 0)
              | map(attribute='item.key')
              | list }}
@@ -47,8 +47,8 @@
       ansible.builtin.debug:
         msg: >-
           Skipping optional sysctl keys unsupported on {{ inventory_hostname }}:
-          {{ tuning_sysctl_unsupported | join(', ') }}
-      when: tuning_sysctl_unsupported | length > 0
+          {{ _tuning_sysctl_unsupported | join(', ') }}
+      when: _tuning_sysctl_unsupported | length > 0
 
     - name: Set sysctl parameters
       ansible.posix.sysctl:
@@ -59,7 +59,7 @@
         reload: true
       loop: >-
         {{ tuning_sysctl | dict2items
-           | rejectattr('key', 'in', tuning_sysctl_unsupported)
+           | rejectattr('key', 'in', _tuning_sysctl_unsupported)
            | list }}
       loop_control:
         label: "{{ item.key }}"

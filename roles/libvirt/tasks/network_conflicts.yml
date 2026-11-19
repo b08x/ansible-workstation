@@ -1,7 +1,7 @@
 ---
 - name: Check if iptables command is available
   ansible.builtin.command: which iptables
-  register: libvirt_iptables_check
+  register: _libvirt_iptables_check
   changed_when: false
   failed_when: false
   check_mode: false
@@ -9,11 +9,11 @@
 
 - name: Check if DOCKER-USER chain exists
   ansible.builtin.command: iptables -L DOCKER-USER -n
-  register: libvirt_docker_user_chain
+  register: _libvirt_docker_user_chain
   changed_when: false
   failed_when: false
   check_mode: false
-  when: (libvirt_iptables_check.rc | default(1)) == 0
+  when: (_libvirt_iptables_check.rc | default(1)) == 0
   tags: ["kvm", "docker", "network", "libvirt"]
 
 - name: Ensure libvirt inbound traffic is accepted in DOCKER-USER chain
@@ -25,8 +25,8 @@
     rule_num: 1
     state: present
   when:
-    - (libvirt_iptables_check.rc | default(1)) == 0
-    - (libvirt_docker_user_chain.rc | default(1)) == 0
+    - (_libvirt_iptables_check.rc | default(1)) == 0
+    - (_libvirt_docker_user_chain.rc | default(1)) == 0
   tags: ["kvm", "docker", "network", "libvirt"]
 
 - name: Ensure libvirt outbound traffic is accepted in DOCKER-USER chain
@@ -38,6 +38,6 @@
     rule_num: 1
     state: present
   when:
-    - (libvirt_iptables_check.rc | default(1)) == 0
-    - (libvirt_docker_user_chain.rc | default(1)) == 0
+    - (_libvirt_iptables_check.rc | default(1)) == 0
+    - (_libvirt_docker_user_chain.rc | default(1)) == 0
   tags: ["kvm", "docker", "network", "libvirt"]

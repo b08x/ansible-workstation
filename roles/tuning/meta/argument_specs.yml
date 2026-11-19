@@ -51,16 +51,11 @@ argument_specs:
         default: true
       tuning_cpupower_enabled:
         type: bool
-        description: Enable CPU frequency governor configuration.
-        default: true
+        description: Enable CPU frequency governor configuration (defaults to true on Fedora, false on EL).
       tuning_irqbalance_enabled:
         type: bool
         description: State of irqbalance service.
         default: false
-      tuning_distro_packages:
-        type: list
-        elements: str
-        description: Distribution packages required for system tuning.
       tuning_groups:
         type: list
         elements: str
@@ -157,12 +152,18 @@ argument_specs:
         default: "1024:1048576"
       tuning_cpupower_config_file:
         type: str
-        description: Configuration file path for cpupower service.
-        default: /etc/default/cpupower
+        description: Configuration file path for cpupower service (/etc/cpupower-service.conf on Fedora, /etc/default/cpupower on EL).
       tuning_cpupower_governor:
         type: str
         description: CPU frequency scaling governor.
         default: powersave
+        choices:
+          - powersave
+          - performance
+          - ondemand
+          - conservative
+          - userspace
+          - schedutil
       tuning_cpupower_min_freq:
         type: str
         description: Minimum CPU scaling frequency.

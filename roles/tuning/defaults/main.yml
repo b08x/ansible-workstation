@@ -15,16 +15,8 @@ tuning_zram_enabled: true
 tuning_systemd_enabled: true
 tuning_rtirq_enabled: true
 tuning_rtkit_enabled: true
-tuning_cpupower_enabled: true
+tuning_cpupower_enabled: "{{ ansible_distribution == 'Fedora' }}"
 tuning_irqbalance_enabled: false
-
-# ----------------------------------------------------------------------------
-# Package Dependencies
-# ----------------------------------------------------------------------------
-tuning_distro_packages:
-  - zram-generator
-  - kernel-tools
-  - tuned
 
 # ----------------------------------------------------------------------------
 # User Groups Configuration
@@ -111,9 +103,9 @@ tuning_systemd_timeout_stop_sec: 10s
 tuning_systemd_user_limit_nofile: "1024:1048576"
 
 # ----------------------------------------------------------------------------
-# CPU Power Configuration (/etc/default/cpupower)
+# CPU Power Configuration (/etc/cpupower-service.conf on Fedora, /etc/default/cpupower on EL)
 # ----------------------------------------------------------------------------
-tuning_cpupower_config_file: /etc/default/cpupower
+tuning_cpupower_config_file: "{{ '/etc/cpupower-service.conf' if ansible_distribution == 'Fedora' else '/etc/default/cpupower' }}"
 tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: ""
 tuning_cpupower_max_freq: ""

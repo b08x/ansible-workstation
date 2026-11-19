@@ -63,7 +63,6 @@ These variables are namespaced with `networking_*` and control role-specific beh
 | Variable | Default | Type | Description |
 |---|---|---|---|
 | `networking_assert_enabled` | `true` | `bool` | Enable pre-flight environment, platform, and privilege assertions. |
-| `networking_my_variable` | `"default_value"` | `string` | Baseline role configuration parameter validated against `meta/argument_specs.yml`. |
 
 ---
 
@@ -76,10 +75,10 @@ argument_specs:
   main:
     short_description: Workstation network configuration role.
     options:
-      networking_my_variable:
-        type: str
-        description: A simple string argument for demonstration and role validation.
-        default: "default_value"
+      networking_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
 ```
 
 ---

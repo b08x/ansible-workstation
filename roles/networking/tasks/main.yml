@@ -10,7 +10,3 @@
   ansible.builtin.include_tasks: assert.yml
   when: networking_assert_enabled | default(true) | bool
   tags: ["networking", "assert", "always"]
-
-- name: Display the value of networking_my_variable
-  ansible.builtin.debug:
-    msg: "The value of networking_my_variable is {{ networking_my_variable }}"

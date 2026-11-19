@@ -44,7 +44,7 @@ The role adheres strictly to the **15 Ansible Design Patterns** established for 
 4. **Data-Driven Firewall Pattern**: Implements co-located firewall rules directly within `nfs/firewall.yml` and `samba/firewall.yml` using `ansible.posix.firewalld`, managing both standard services and fixed static ports to eliminate ephemeral port collisions.
 5. **Backup-on-Write Pattern**: All templated configuration files (`/etc/exports`, `/etc/nfs.conf`, `/etc/idmapd.conf`, `/etc/samba/smb.conf`, `/etc/rsyncd.conf`) set `backup: true` to protect administrative modifications.
 6. **Handler Notification Pattern**: Configuration changes notify granular reload and restart handlers (`Reload NFS exports` via `exportfs -arv`, `Restart NFS server`, `Restart Samba`, `Restart rsync daemon`, `Reload firewalld`).
-7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 domain-level network settings (`ansible_domain`, `firewall.nfs.ports`) and Tier 2 namespaced role variables (`nas_*`).
+7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 domain-level network settings (`ansible_domain`) and Tier 2 namespaced role variables (`nas_*`).
 8. **Pre-flight Assertion Pattern**: Frontloads requirement validation (`tasks/assert.yml`) to fail fast when prerequisites (OS family, DNF package manager, systemd init manager, effective root privileges, storage service activation, valid share/export structures) are invalid.
 
 ---
@@ -98,7 +98,6 @@ These variables represent machine hardware, network domain context, or centraliz
 | Variable | Default | Description |
 |---|---|---|
 | `ansible_domain` | `localdomain` | Workstation DNS domain used for NFSv4 ID mapping in `/etc/idmapd.conf`. |
-| `firewall.nfs.ports` | *(dictionary)* | Global definition of fixed daemon ports for RPC, lockd, mountd, and statd. |
 
 ### Tier 2: Role Defaults (`defaults/main.yml`)
 
@@ -111,6 +110,7 @@ These variables are namespaced with `nas_*` and control role-specific behavior:
 | `nas_enable_nfs` | `true` | Enable and configure the NFSv4 server stack. |
 | `nas_enable_samba` | `false` | Enable and configure Samba/SMB file sharing. |
 | `nas_enable_rsync` | `false` | Enable and configure the Rsync daemon. |
+| `nas_nfs_firewall` | *(dictionary)* | Fixed daemon ports (`ports.rpcbind`, `ports.nfs`, `ports.lockd.{tcp,udp}`, `ports.mountd`, `ports.statd`, `ports.rdma`) for firewalld and `/etc/nfs.conf`. |
 
 #### NFS Configuration Variables
 | Variable | Default | Description |

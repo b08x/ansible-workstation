@@ -27,8 +27,8 @@ use-gss-proxy=1
 # set-home=1
 #
 [lockd]
-port={{ firewall.nfs.ports.lockd.tcp }}
-udp-port={{ firewall.nfs.ports.lockd.udp }}
+port={{ nas_nfs_firewall.ports.lockd.tcp }}
+udp-port={{ nas_nfs_firewall.ports.lockd.udp }}
 #
 [exportd]
 # debug="all|auth|call|general|parse"
@@ -41,7 +41,7 @@ udp-port={{ firewall.nfs.ports.lockd.udp }}
 # debug="all|auth|call|general|parse"
 # manage-gids=n
 # descriptors=0
-port={{ firewall.nfs.ports.mountd }}
+port={{ nas_nfs_firewall.ports.mountd }}
 # threads=1
 # reverse-lookup=n
 # state-directory-path=/var/lib/nfs
@@ -73,11 +73,11 @@ vers3=n
 # vers4.1=y
 # vers4.2=y
 rdma=y
-rdma-port=20049
+rdma-port={{ nas_nfs_firewall.ports.rdma }}
 
 [statd]
 # debug=0
-port={{ firewall.nfs.ports.statd }}
+port={{ nas_nfs_firewall.ports.statd }}
 # outgoing-port=0
 # name=
 # state-directory-path=/var/lib/nfs/statd

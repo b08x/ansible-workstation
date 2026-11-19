@@ -17,25 +17,25 @@
 
 - name: Restart NFS server
   ansible.builtin.service:
-    name: "{{ nas_service_nfs }}"
+    name: "{{ _nas_distro_service_nfs }}"
     state: restarted
   when: nas_enable_nfs | default(true)
 
 - name: Restart NFS idmapd
   ansible.builtin.service:
-    name: "{{ nas_service_nfs_idmapd }}"
+    name: "{{ _nas_distro_service_nfs_idmapd }}"
     state: restarted
   when: nas_enable_nfs | default(true)
 
 - name: Reload NFS exports
   ansible.builtin.command: exportfs -arv
-  register: exportfs_result
-  changed_when: exportfs_result.rc == 0
+  register: _nas_exportfs_result
+  changed_when: _nas_exportfs_result.rc == 0
   when: nas_enable_nfs | default(true)
 
 - name: Restart rpcbind
   ansible.builtin.service:
-    name: "{{ nas_service_rpcbind }}"
+    name: "{{ _nas_distro_service_rpcbind }}"
     state: restarted
   when: nas_enable_nfs | default(true)
 
@@ -45,13 +45,13 @@
 
 - name: Restart Samba
   ansible.builtin.service:
-    name: "{{ nas_service_samba }}"
+    name: "{{ _nas_distro_service_samba }}"
     state: restarted
   when: nas_enable_samba | default(true)
 
 - name: Restart Samba NetBIOS
   ansible.builtin.service:
-    name: "{{ nas_service_nmb }}"
+    name: "{{ _nas_distro_service_nmb }}"
     state: restarted
   when:
     - nas_enable_samba | default(true)
@@ -59,7 +59,7 @@
 
 - name: Reload Samba
   ansible.builtin.service:
-    name: "{{ nas_service_samba }}"
+    name: "{{ _nas_distro_service_samba }}"
     state: reloaded
   when: nas_enable_samba | default(true)
 

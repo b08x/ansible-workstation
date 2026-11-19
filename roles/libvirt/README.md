@@ -38,13 +38,13 @@ Under the [workstation layering taxonomy](../../docs/layering-architecture.md), 
 
 The role adheres strictly to the **15 Ansible Design Patterns** established for this repository:
 
-1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the dispatcher coordinating core provisioning with dedicated subtasks (`network_conflicts.yml`).
-2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, defining `libvirt_packages` (`@virtualization`) and `libvirt_bridge_conf_path` across Fedora, AlmaLinux, and Rocky Linux.
-3. **Pre-flight Capability Checks & Check-Mode Safety**: `tasks/network_conflicts.yml` executes capability probes (`which iptables` and `iptables -L DOCKER-USER -n`) configured with `check_mode: false` and `failed_when: false`. This ensures read-only probing commands always execute during Ansible dry runs (`--check`) without reporting spurious failures. Subsequent tasks use defensive Jinja2 fallback filters (`(libvirt_iptables_check.rc | default(1)) == 0` and `(libvirt_docker_user_chain.rc | default(1)) == 0`), guaranteeing safe, idempotent convergence on systems running pure nftables/firewalld, environments without Docker, or runs under check mode.
+1. **Task Dispatcher Pattern**: `tasks/main.yml` acts as the dispatcher coordinating core provisioning with dedicated subtasks (`config.yml`, `network_conflicts.yml`).
+2. **Distro-Switching Pattern (Dialect A)**: Dynamic OS-specific variable inclusion via `vars/{{ ansible_distribution }}.yml`, defining `_libvirt_distro_packages` and `_libvirt_distro_bridge_conf_path` across Fedora, AlmaLinux, and Rocky Linux.
+3. **Pre-flight Capability Checks & Check-Mode Safety**: `tasks/network_conflicts.yml` executes capability probes (`which iptables` and `iptables -L DOCKER-USER -n`) configured with `check_mode: false` and `failed_when: false`. This ensures read-only probing commands always execute during Ansible dry runs (`--check`) without reporting spurious failures. Subsequent tasks use defensive Jinja2 fallback filters (`(_libvirt_iptables_check.rc | default(1)) == 0` and `(_libvirt_docker_user_chain.rc | default(1)) == 0`), guaranteeing safe, idempotent convergence on systems running pure nftables/firewalld, environments without Docker, or runs under check mode.
 4. **Tag-as-Select Pattern**: Every task is tagged with domain tags (`libvirt`, `virt`) and granular feature tags (`install`, `config`, `qemu`, `lvm`, `users`, `service`, `kvm`, `docker`, `network`).
 5. **Backup-on-Write Pattern**: All templated or modified configuration files (`/etc/libvirt/libvirtd.conf`, `/etc/qemu/bridge.conf`, `/etc/lvm/lvm.conf`) specify `backup: true` to prevent data loss.
 6. **Handler Notification Pattern**: Changes to `/etc/libvirt/libvirtd.conf` notify `Restart libvirtd`.
-7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`, `use_kvm`) and Tier 2 role-namespaced variables (`libvirt_*`).
+7. **Two-Tier Variable Scoping**: Clean separation between Tier 1 host identity variables (`user.name`) and Tier 2 role-namespaced variables (`libvirt_*`).
 8. **Pre-flight Assertion Pattern**: Frontloads system requirement verification (`tasks/assert.yml`) to fail fast when prerequisites (OS family, DNF package manager, systemd init manager, effective root privileges, user identity, optional KVM device presence) are not met.
 
 ---
@@ -104,7 +104,6 @@ These variables represent machine hardware, system capabilities, or user identit
 | Variable | Default | Description |
 |---|---|---|
 | `user.name` | `ansible_user_id` | Primary workstation user account name (SSOT). |
-| `use_kvm` | `true` | Hardware capability flag indicating KVM virtualization support. |
 | `auto_enable_libvirt` | `true` | Capability flag evaluated during `local.yml` preflight checks to gate role execution. |
 
 ### Tier 2: Role Defaults (`defaults/main.yml`)
@@ -123,14 +122,14 @@ These variables are namespaced with `libvirt_*` and control role-specific behavi
 | `libvirt_auth_unix_rw` | `"none"` | Authentication scheme for UNIX read-write sockets (`"none"` permits group members). |
 | `libvirt_configure_lvm` | `true` | Whether to set `use_lvmetad = 0` in `/etc/lvm/lvm.conf`. |
 
-### Tier 2: Distribution Variables (`vars/*.yml`)
+### Tier 2: Internal Distribution Variables (`vars/*.yml`)
 
 Loaded dynamically from `vars/{{ ansible_distribution }}.yml`:
 
 | Variable | Type | Description |
 |---|---|---|
-| `libvirt_packages` | `list` | Distribution-specific virtualization package list or package group. |
-| `libvirt_bridge_conf_path` | `string` | Filesystem location for the QEMU bridge ACL configuration. |
+| `_libvirt_distro_packages` | `list` | Distribution-specific virtualization package list or package group. |
+| `_libvirt_distro_bridge_conf_path` | `string` | Filesystem location for the QEMU bridge ACL configuration. |
 
 ---
 
@@ -173,8 +172,10 @@ Included within `playbooks/workstation.yml` as part of the virtualization stack:
       tags: ["networking", "system"]
     - role: containerd
       tags: ["containerd", "virt"]
-    - role: desktop_ui
-      tags: ["desktop_ui", "desktop", "system"]
+    - role: theme
+      tags: ["theme", "desktop", "system"]
+    - role: gnome
+      tags: ["gnome", "desktop", "system"]
     - role: libvirt
       tags: ["libvirt", "virt"]
 ```

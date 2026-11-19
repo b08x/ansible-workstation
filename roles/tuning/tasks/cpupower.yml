@@ -71,8 +71,8 @@
   ansible.builtin.service:
     name: irqbalance
     enabled: "{{ tuning_irqbalance_enabled }}"
-  register: tuning_irqbalance_service
+  register: _tuning_irqbalance_service
   failed_when:
-    - tuning_irqbalance_service.failed
-    - "'Could not find the requested service' not in (tuning_irqbalance_service.msg | default(''))"
+    - _tuning_irqbalance_service.failed
+    - "'Could not find the requested service' not in (_tuning_irqbalance_service.msg | default(''))"
   tags: ["tuning", "cpupower", "irqbalance"]

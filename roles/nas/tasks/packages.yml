@@ -1,124 +1,63 @@
 ---
 # Package installation for NAS role
-# Supports: Fedora, Rocky Linux 9 (RedHat family only)
+# Supports: Fedora, AlmaLinux, Rocky Linux, RedHat (RedHat family only)
 
 - name: Load distribution-specific variables
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
   tags: ["nas", "nas_packages"]
-
-# =============================================================================
-# Package State Detection
-# =============================================================================
-# Performance Optimization: Gather package facts once to avoid repeated
-# DNF queries. This significantly speeds up playbook runs when packages
-# are already installed by skipping unnecessary package manager operations.
 
 - name: Gather package facts
   ansible.builtin.package_facts:
     manager: auto
   tags: ["nas", "nas_packages"]
 
-# =============================================================================
-# NFS Package Management
-# =============================================================================
-
-- name: Check if all NFS packages are installed
+- name: Evaluate NAS package installation state
   ansible.builtin.set_fact:
-    all_nfs_packages_installed: >-
-      {{
-        nas_packages_nfs
-        | map('extract', ansible_facts.packages, [])
-        | select()
-        | list
-        | length == nas_packages_nfs | length
-      }}
-  when: nas_enable_nfs | default(true)
+    _nas_all_nfs_packages_installed: >-
+      {{ (_nas_distro_packages_nfs | map('extract', ansible_facts.packages, []) | select() | list | length)
+         == (_nas_distro_packages_nfs | length) }}
+    _nas_all_samba_packages_installed: >-
+      {{ (_nas_distro_packages_samba | map('extract', ansible_facts.packages, []) | select() | list | length)
+         == (_nas_distro_packages_samba | length) }}
+    _nas_all_rsync_packages_installed: >-
+      {{ (_nas_distro_packages_rsync | map('extract', ansible_facts.packages, []) | select() | list | length)
+         == (_nas_distro_packages_rsync | length) }}
   tags: ["nas", "nas_packages"]
 
-- name: Display NFS package installation status
+- name: Display NAS package installation status
   ansible.builtin.debug:
     msg: >-
-      NFS packages {{ 'already installed, skipping installation'
-      if all_nfs_packages_installed | default(false)
-      else 'not fully installed, proceeding with installation' }}
-  when: nas_enable_nfs | default(true)
+      NAS packages status — NFS({{ nas_enable_nfs | default(true) }}):
+      {{ 'installed' if _nas_all_nfs_packages_installed else 'pending' }},
+      Samba({{ nas_enable_samba | default(false) }}):
+      {{ 'installed' if _nas_all_samba_packages_installed else 'pending' }},
+      Rsync({{ nas_enable_rsync | default(false) }}):
+      {{ 'installed' if _nas_all_rsync_packages_installed else 'pending' }}
   tags: ["nas", "nas_packages"]
 
 - name: Install NFS server packages
   ansible.builtin.dnf:
-    name: "{{ nas_packages_nfs }}"
+    name: "{{ _nas_distro_packages_nfs }}"
     state: present
   when:
-    - nas_enable_nfs | default(true)
-    - not all_nfs_packages_installed | default(false)
-  tags: ["nas", "nas_packages"]
-
-# =============================================================================
-# Samba Package Management
-# =============================================================================
-
-- name: Check if all Samba packages are installed
-  ansible.builtin.set_fact:
-    all_samba_packages_installed: >-
-      {{
-        nas_packages_samba
-        | map('extract', ansible_facts.packages, [])
-        | select()
-        | list
-        | length == nas_packages_samba | length
-      }}
-  when: nas_enable_samba | default(false)
-  tags: ["nas", "nas_packages"]
-
-- name: Display Samba package installation status
-  ansible.builtin.debug:
-    msg: >-
-      Samba packages {{ 'already installed, skipping installation'
-      if all_samba_packages_installed | default(false)
-      else 'not fully installed, proceeding with installation' }}
-  when: nas_enable_samba | default(false)
+    - nas_enable_nfs | default(true) | bool
+    - not _nas_all_nfs_packages_installed | default(false)
   tags: ["nas", "nas_packages"]
 
 - name: Install Samba server packages
   ansible.builtin.dnf:
-    name: "{{ nas_packages_samba }}"
+    name: "{{ _nas_distro_packages_samba }}"
     state: present
   when:
-    - nas_enable_samba | default(false)
-    - not all_samba_packages_installed | default(false)
-  tags: ["nas", "nas_packages"]
-
-# =============================================================================
-# Rsync Package Management
-# =============================================================================
-
-- name: Check if all Rsync packages are installed
-  ansible.builtin.set_fact:
-    all_rsync_packages_installed: >-
-      {{
-        nas_packages_rsync
-        | map('extract', ansible_facts.packages, [])
-        | select()
-        | list
-        | length == nas_packages_rsync | length
-      }}
-  when: nas_enable_rsync | default(false)
-  tags: ["nas", "nas_packages"]
-
-- name: Display Rsync package installation status
-  ansible.builtin.debug:
-    msg: >-
-      Rsync packages {{ 'already installed, skipping installation'
-      if all_rsync_packages_installed | default(false)
-      else 'not fully installed, proceeding with installation' }}
-  when: nas_enable_rsync | default(false)
+    - nas_enable_samba | default(false) | bool
+    - not _nas_all_samba_packages_installed | default(false)
   tags: ["nas", "nas_packages"]
 
 - name: Install Rsync daemon packages
   ansible.builtin.dnf:
-    name: "{{ nas_packages_rsync }}"
+    name: "{{ _nas_distro_packages_rsync }}"
     state: present
   when:
-    - nas_enable_rsync | default(false)
-    - not all_rsync_packages_installed | default(false)
+    - nas_enable_rsync | default(false) | bool
+    - not _nas_all_rsync_packages_installed | default(false)
   tags: ["nas", "nas_packages"]

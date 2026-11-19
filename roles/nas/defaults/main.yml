@@ -97,22 +97,21 @@ nas_nfs_firewall_ports: []
 # 2. Explicit port rules for fixed daemon ports in /etc/nfs.conf
 #
 # This prevents ephemeral port issues and improves firewall manageability
-firewall:
-  nfs:
-    ports:
-      # RPC and core NFS ports (managed by firewalld services)
-      rpcbind: 111 # RPC port mapper (both TCP/UDP)
-      nfs: 2049 # Main NFS server port (both TCP/UDP)
+nas_nfs_firewall:
+  ports:
+    # RPC and core NFS ports (managed by firewalld services)
+    rpcbind: 111 # RPC port mapper (both TCP/UDP)
+    nfs: 2049 # Main NFS server port (both TCP/UDP)
 
-      # NFS auxiliary daemon ports (require explicit configuration)
-      lockd:
-        tcp: 32803 # NFS lock manager TCP port
-        udp: 32769 # NFS lock manager UDP port
-      mountd: 892 # NFS mount daemon port (both TCP/UDP)
-      statd: 662 # NFS status monitor port (both TCP/UDP)
+    # NFS auxiliary daemon ports (require explicit configuration)
+    lockd:
+      tcp: 32803 # NFS lock manager TCP port
+      udp: 32769 # NFS lock manager UDP port
+    mountd: 892 # NFS mount daemon port (both TCP/UDP)
+    statd: 662 # NFS status monitor port (both TCP/UDP)
 
-      # RDMA support (if enabled in /etc/nfs.conf)
-      rdma: 20049 # NFS over RDMA port
+    # RDMA support (if enabled in /etc/nfs.conf)
+    rdma: 20049 # NFS over RDMA port
 
 # =============================================================================
 # Samba Configuration
@@ -205,8 +204,6 @@ nas_samba_disable_printing: true # Disable printer sharing
 # These should match an existing system user for file ownership
 nas_rsync_user: nobody
 nas_rsync_group: nobody
-nas_rsync_uid: 65534
-nas_rsync_gid: 65534
 
 # Rsync Daemon Settings
 nas_rsync_max_connections: 4

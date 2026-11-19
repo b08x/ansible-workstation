@@ -1,10 +1,6 @@
 ---
 # defaults file for b08x.devworkstation.user
 
-# Variable that will be displayed in debug output
-# This demonstrates proper role variable naming with the 'run_' prefix
-user_my_variable: "default_value"
-
 # Control pre-flight assertions (Fail-Fast Pattern)
 user_assert_enabled: true
 
@@ -95,10 +91,8 @@ user_cargo_crate_dnf_map:
 
 # -- GNOME Shell user extensions (migrated from yadm bootstrap.d/40-gnome-extensions.sh) --
 
-# Lazy Tier 1 consumption: only managed when a desktop is enabled and GNOME is the DE
-user_install_gnome_extensions: >-
-  {{ (enable_desktop | default(false) | bool) and
-     ((desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
+# Lazy Tier 1 consumption: only managed when GNOME is the target desktop environment
+user_install_gnome_extensions: "{{ (desktop_environment | default('none')) == 'gnome' }}"
 
 # Force re-installation of every configured extension (skip-if-present override).
 user_gnome_extensions_force_install: false
@@ -200,10 +194,9 @@ user_vscode_extensions:
 #    sole workstation-repo owner; the 7 files are synced byte-identical from
 #    the osbuild SSOT at vendor/osbuild/roles/osbuild/files/firstboot/) --
 
-# Deployment gate for the firstboot suite; lazily consumes the Tier 1
-# inventory knob (set enable_firstboot: false in group_vars/host_vars to
-# opt out per host; default true when absent).
-user_firstboot_enabled: "{{ enable_firstboot | default(true) | bool }}"
+# Deployment gate for the firstboot suite (set user_firstboot_enabled: false
+# in group_vars/host_vars to opt out per host; default true).
+user_firstboot_enabled: true
 
 # The 7-file suite and its system destinations (mirror of the osbuild
 # blueprint injection table; keep in sync with the osbuild SSOT).
@@ -274,6 +267,9 @@ user_firstboot_marker_machine_tags:
   - gpu
   - containerd
   - libvirt
-  - desktop_ui
+  - theme
+  - gnome
+  - cosmic
+  - sway
   - desktop
   - tools

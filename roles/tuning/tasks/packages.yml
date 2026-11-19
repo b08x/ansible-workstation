@@ -4,17 +4,17 @@
 - name: Assert distribution packages are defined
   ansible.builtin.assert:
     that:
-      - tuning_distro_packages is defined
-      - tuning_distro_packages | length > 0
+      - _tuning_distro_packages is defined
+      - _tuning_distro_packages | length > 0
     fail_msg: >-
       No distribution package list found for {{ ansible_distribution }}.
-      Ensure vars/{{ ansible_distribution }}.yml defines tuning_distro_packages.
+      Ensure vars/{{ ansible_distribution }}.yml defines _tuning_distro_packages.
     quiet: true
   tags: ["tuning", "packages", "always"]
 
 - name: Install system tuning distribution packages
   ansible.builtin.package:
-    name: "{{ tuning_distro_packages }}"
+    name: "{{ _tuning_distro_packages }}"
     state: present
-  when: tuning_distro_packages | default([]) | length > 0
+  when: _tuning_distro_packages | default([]) | length > 0
   tags: ["tuning", "packages"]

@@ -9,7 +9,7 @@
     - name: Check if ranger is installed
       ansible.builtin.command:
         cmd: "command -v ranger"
-      register: user_ranger_check
+      register: _user_ranger_check
       changed_when: false
       ignore_errors: true
 
@@ -18,7 +18,7 @@
         name: ranger
         state: present
       become: true
-      when: user_ranger_check.rc != 0
+      when: _user_ranger_check.rc != 0
 
   rescue:
     # Shape 2 (real fallback): ranger is absent from some repository sets, so

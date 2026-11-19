@@ -1,0 +1,45 @@
+---
+# argument spec file for libvirt
+
+argument_specs:
+  main:
+    short_description: Install and configure libvirt/KVM virtualization on RedHat-family hosts.
+    options:
+      libvirt_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      libvirt_require_kvm:
+        type: bool
+        description: Strictly require /dev/kvm device node during pre-flight assertions.
+        default: false
+      libvirt_service:
+        type: str
+        description: Name of the libvirt systemd service.
+        default: "libvirtd.service"
+      libvirt_service_enabled:
+        type: bool
+        description: Whether to enable and start the libvirt service.
+        default: true
+      libvirt_users:
+        type: list
+        elements: str
+        description: List of users to add to the libvirt group for passwordless access.
+        default:
+          - "{{ user.name }}"
+      libvirt_unix_sock_group:
+        type: str
+        description: UNIX domain socket group ownership in libvirtd.conf.
+        default: "libvirt"
+      libvirt_unix_sock_rw_perms:
+        type: str
+        description: UNIX domain socket read-write permissions in libvirtd.conf.
+        default: "0770"
+      libvirt_auth_unix_rw:
+        type: str
+        description: Authentication scheme for UNIX read-write sockets in libvirtd.conf.
+        default: "none"
+      libvirt_configure_lvm:
+        type: bool
+        description: Disable lvmetad in /etc/lvm/lvm.conf for libvirt storage pool compatibility.
+        default: true

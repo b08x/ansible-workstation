@@ -7,7 +7,7 @@
     group: root
     mode: "0644"
     backup: true
-  register: tuning_rtirq_config
+  register: _tuning_rtirq_config
   notify: Restart rtirq
   when: tuning_rtirq_enabled | default(true) | bool
   tags: ["tuning", "rtirq"]
@@ -20,7 +20,7 @@
     group: root
     mode: "0644"
     backup: true
-  register: tuning_rtkit_conf
+  register: _tuning_rtkit_conf
   notify: Restart rtkit
   when: tuning_rtkit_enabled | default(true) | bool
   tags: ["tuning", "rtkit"]
@@ -31,7 +31,7 @@
     dest: /usr/lib/systemd/system/rtkit-daemon.service
     mode: "0644"
     backup: true
-  register: tuning_rtkit_systemd
+  register: _tuning_rtkit_systemd
   notify:
     - Reload systemd
     - Restart rtkit

@@ -1,0 +1,183 @@
+---
+# argument spec file for nas
+
+argument_specs:
+  main:
+    short_description: Provision and configure NFSv4, Samba/SMB, and Rsync NAS services on RedHat-family hosts.
+    options:
+      nas_assert_enabled:
+        type: bool
+        description: Enable pre-flight environment, platform, and privilege assertions.
+        default: true
+      nas_enable_nfs:
+        type: bool
+        description: Enable and configure the NFSv4 server stack.
+        default: true
+      nas_enable_samba:
+        type: bool
+        description: Enable and configure Samba/SMB file sharing.
+        default: false
+      nas_enable_rsync:
+        type: bool
+        description: Enable and configure the Rsync daemon.
+        default: false
+      nas_nfs_user_name:
+        type: str
+        description: System user for unprivileged NFS operations.
+        default: nobody
+      nas_nfs_user_group:
+        type: str
+        description: System group for unprivileged NFS operations.
+        default: nobody
+      nas_nfs_user_uid:
+        type: int
+        description: UID for the NFS user.
+        default: 65534
+      nas_nfs_user_gid:
+        type: int
+        description: GID for the NFS group.
+        default: 65534
+      nas_nfs_domain:
+        type: str
+        description: NFSv4 ID mapping domain.
+        default: "{{ ansible_domain | default('localdomain') }}"
+      nas_nfs_allowed_networks:
+        type: list
+        elements: str
+        description: Allowed client networks/CIDRs for NFS exports.
+      nas_nfs_export_options:
+        type: list
+        elements: str
+        description: Default export options for NFS exports.
+      nas_nfs_root_export_options:
+        type: list
+        elements: str
+        description: Export options for the NFSv4 pseudo-root (fsid=0).
+      nas_nfs_exports:
+        type: list
+        elements: dict
+        description: List of NFS export definitions.
+      nas_nfs_firewall_ports:
+        type: list
+        elements: str
+        description: Optional additional custom NFS firewall ports.
+        default: []
+      nas_nfs_firewall:
+        type: dict
+        description: Fixed NFS daemon port mapping for firewalld and /etc/nfs.conf.
+      nas_samba_user:
+        type: str
+        description: Samba system user account name.
+        default: smbuser
+      nas_samba_group:
+        type: str
+        description: Samba system group name.
+        default: smbgroup
+      nas_samba_uid:
+        type: int
+        description: UID for Samba system user.
+        default: 1036
+      nas_samba_gid:
+        type: int
+        description: GID for Samba system group.
+        default: 1036
+      nas_samba_user_system:
+        type: bool
+        description: Create Samba user as a system account.
+        default: false
+      nas_samba_group_system:
+        type: bool
+        description: Create Samba group as a system group.
+        default: false
+      nas_samba_workgroup:
+        type: str
+        description: Samba workgroup name.
+        default: WORKGROUP
+      nas_samba_server_string:
+        type: str
+        description: Samba server description string.
+        default: "Samba Server %v"
+      nas_samba_netbios_name:
+        type: str
+        description: Samba NetBIOS hostname.
+        default: "{{ ansible_hostname | upper }}"
+      nas_samba_server_min_protocol:
+        type: str
+        description: Minimum SMB server protocol level.
+        default: NT1
+      nas_samba_client_min_protocol:
+        type: str
+        description: Minimum SMB client protocol level.
+        default: NT1
+      nas_samba_client_max_protocol:
+        type: str
+        description: Maximum SMB client protocol level.
+        default: SMB3
+      nas_samba_ntlm_auth:
+        type: str
+        description: Samba NTLM authentication policy.
+        default: ntlmv1-permitted
+      nas_samba_hosts_allow:
+        type: list
+        elements: str
+        description: Allowed hosts/networks for Samba access.
+      nas_samba_create_mask:
+        type: str
+        description: Default file creation mask for Samba shares.
+        default: "0664"
+      nas_samba_directory_mask:
+        type: str
+        description: Default directory creation mask for Samba shares.
+        default: "2755"
+      nas_samba_force_create_mode:
+        type: str
+        description: Forced file creation mode for Samba shares.
+        default: "0644"
+      nas_samba_force_directory_mode:
+        type: str
+        description: Forced directory creation mode for Samba shares.
+        default: "2755"
+      nas_samba_shares:
+        type: list
+        elements: dict
+        description: List of Samba share definitions.
+      nas_samba_enable_nmb:
+        type: bool
+        description: Enable Samba NetBIOS (nmb) service.
+        default: true
+      nas_samba_enable_client_firewall:
+        type: bool
+        description: Enable samba-client firewalld service.
+        default: false
+      nas_samba_enable_homes:
+        type: bool
+        description: Enable Samba [homes] share.
+        default: true
+      nas_samba_disable_printing:
+        type: bool
+        description: Disable Samba printer sharing.
+        default: true
+      nas_rsync_user:
+        type: str
+        description: User account for rsync daemon operations.
+        default: nobody
+      nas_rsync_group:
+        type: str
+        description: Group for rsync daemon operations.
+        default: nobody
+      nas_rsync_max_connections:
+        type: int
+        description: Maximum concurrent rsync daemon connections.
+        default: 4
+      nas_rsync_use_chroot:
+        type: bool
+        description: Enable chroot for rsync daemon modules.
+        default: false
+      nas_rsync_syslog_facility:
+        type: str
+        description: Syslog facility for rsync daemon logging.
+        default: local5
+      nas_rsync_modules:
+        type: list
+        elements: dict
+        description: List of rsync daemon module definitions.

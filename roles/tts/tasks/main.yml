@@ -1,19 +1,12 @@
 ---
-# tasks file for b08x.llmops.whisper
-# TODO (P2, naming) C32: role directory is `tts` but this header and
-# whisper_my_variable say whisper. Settle on one — rename the directory, or
-# rename the vars and argument_specs to tts_*.
+# tasks file for tts
 
 - name: Starting tts tasks
   ansible.builtin.debug:
     msg: "Starting tts tasks"
-  tags: ["always"]
+  tags: ["tts", "always"]
 
 - name: Pre-flight role assertions (Fail-Fast Pattern)
   ansible.builtin.include_tasks: assert.yml
   when: tts_assert_enabled | default(true) | bool
   tags: ["tts", "assert", "always"]
-
-- name: Display the value of whisper_my_variable
-  ansible.builtin.debug:
-    msg: "The value of whisper_my_variable is {{ whisper_my_variable }}"

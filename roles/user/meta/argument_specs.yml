@@ -5,10 +5,6 @@ argument_specs:
   main:
     short_description: User-space developer toolchains (bun, go, cargo) and extension management (GNOME, VS Code) for the workstation user.
     options:
-      user_my_variable:
-        type: str
-        description: A simple string argument for demonstration.
-        default: "default_value"
       user_assert_enabled:
         type: bool
         default: true
@@ -85,7 +81,7 @@ argument_specs:
           above it the system cargo is used and rustup is skipped. Fedora
           43/44 ship newer (skip), EL 10 ships Rust 1.79 (older, triggers
           rustup). Overridable per host/group.
-        default: "1.80"
+        default: "1.99.1"
       user_cargo_crates:
         type: list
         elements: str
@@ -119,11 +115,9 @@ argument_specs:
       user_install_gnome_extensions:
         type: bool
         description: >-
-          Manage GNOME Shell user extensions. Lazily consumes the Tier 1
-          enable_desktop host flag and verifies GNOME is the target DE; resolves to false when unset or non-GNOME.
-        default: >-
-          {{ (enable_desktop | default(false) | bool) and
-             ((desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
+          Manage GNOME Shell user extensions. Derived from Tier 1
+          desktop_environment == 'gnome'; resolves to false when unset or non-GNOME.
+        default: "{{ (desktop_environment | default('none')) == 'gnome' }}"
       user_gnome_extensions:
         type: list
         elements: str
@@ -229,10 +223,9 @@ argument_specs:
       user_firstboot_enabled:
         type: bool
         description: >-
-          Deploy the 7-file two-stage firstboot suite. Lazily consumes the
-          Tier 1 inventory knob enable_firstboot (set it false on hosts that
-          opt out); defaults to true.
-        default: "{{ enable_firstboot | default(true) | bool }}"
+          Deploy the 7-file two-stage firstboot suite (set to false on hosts
+          that opt out); defaults to true.
+        default: true
       user_firstboot_files:
         type: list
         description: >-

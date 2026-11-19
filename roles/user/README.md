@@ -24,7 +24,7 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 +--------------------------------------------------------------------------+
                                    |
                                    | Tier 1 contract: user.name, user.home,
-                                   | enable_desktop, workstation_path_dirs
+                                   | desktop_environment, workstation_path_dirs
                                    v
 +--------------------------------------------------------------------------+
 |             Layer 1: roles/user — tasks/main.yml dispatcher              |
@@ -49,7 +49,7 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 
 1. **Task dispatcher** — `tasks/main.yml` routes to eight includes, each gated by `user_<feature> | default(...) | bool` and tagged `[<feature>, "user"]` (the firstboot include is the dispatcher's only root-context entry).
 2. **Fail-fast assertions** — `assert.yml` validates platform, identity, and manifest shapes before any mutation.
-3. **Lazy Tier 1 consumption** — `user_install_gnome_extensions` derives its gate from `enable_desktop`.
+3. **Lazy Tier 1 consumption** — `user_install_gnome_extensions` derives its gate from `desktop_environment == 'gnome'`.
 4. **Skip-if-present + force overrides** — the installers probe before installing — `uv` is the exception, running `uv python install` unconditionally — and a matching `*_force_install` (or `user_cargo_force_crates`) bypasses the probe.
 5. **Per-item resilience** — looped installs run with `failed_when: false` plus per-failure reports; the enclosing `block/rescue` prints group-level failures (`block` accepts no loop member).
 6. **Bounded escalation** — exactly three root DNF task sites plus one non-DNF root site (the firstboot include: system-path deploys + the marker write); everything else elevates only to `user.name`.
@@ -65,9 +65,9 @@ The role runs at Layer 1 (Ansible machine orchestration) but installs strictly i
 | `bun.yml`               | `user_install_bun` (`true`)                      | User-space Bun at `~/.bun/bin/bun`; skip-if-present guard                                   |
 | `go.yml`                | `user_install_go` (`true`)                       | System-first Go tree, user-space `~/.local/go` fallback; go/gofmt symlinked into `~/.local/bin`; final min-version assert |
 | `cargo.yml`             | `user_install_cargo` (`true`)                    | System-first cargo tree with rustup fallback; DNF-preferred crate installs; non-fatal per-crate failures (`--locked`) |
-| `gnome-extensions.yml`  | `user_install_gnome_extensions` (lazy `enable_desktop`) | Installs the 4-UUID set from extensions.gnome.org; non-fatal per-UUID failures; skips headless hosts |
+| `gnome-extensions.yml`  | `user_install_gnome_extensions` (`desktop_environment == 'gnome'`) | Installs the 4-UUID set from extensions.gnome.org; non-fatal per-UUID failures; skips headless hosts |
 | `vscode-extensions.yml` | `user_install_vscode_extensions` (`false`)       | Opt-in management of the 68-entry list; CLI resolution: override → native `code` → `com.visualstudio.code` Flatpak → friendly skip |
-| `firstboot.yml`         | `user_firstboot_enabled` (lazy `enable_firstboot`) | Deploys the 7-file two-stage firstboot suite (root context) and is the single writer of the machine pull marker |
+| `firstboot.yml`         | `user_firstboot_enabled` (`true`) | Deploys the 7-file two-stage firstboot suite (root context) and is the single writer of the machine pull marker |
 
 **Firstboot suite ownership.** `tasks/firstboot.yml` deploys the 7 files in
 `files/firstboot/` — synced byte-identical from the osbuild SSOT
@@ -112,12 +112,12 @@ re-pin and is never a failure. The run is read-only (`--check` optional).
 
 **Dispatcher notes.**
 
-- The dispatcher opens with a `user_my_variable` debug and a `Starting user tasks` debug (both tagged `["user", "always"]`), then the gated assert include, then an ungated `include_vars "{{ ansible_distribution }}.yml"` tagged `["user", "distro"]`.
+- The dispatcher opens with a `Starting user tasks` debug (tagged `["user", "always"]`), then the gated assert include, then an ungated `include_vars "{{ ansible_distribution }}.yml"` tagged `["user", "distro"]`.
 - The VS Code binary is not installed here — [`roles/tools`](../tools/README.md) owns it as a real opt-in; this role manages extensions only, against whatever CLI is resolvable.
 
 ## 🔧 Key Variables
 
-All defaults live in `defaults/main.yml` with full parity with `meta/argument_specs.yml`. The table holds 28 scalar defaults plus the eight list/map manifests; `user_my_variable` (`"default_value"`, printed by the opening debug) completes the 37 rows.
+All defaults live in `defaults/main.yml` with full parity with `meta/argument_specs.yml` (35 variables).
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -138,11 +138,11 @@ All defaults live in `defaults/main.yml` with full parity with `meta/argument_sp
 | `user_cargo_force_install` | `false` | Force the rustup toolchain install |
 | `user_cargo_force_crates` | `[]` | Crates always re-attempted despite presence |
 | `user_cargo_rustup_url` | `https://sh.rustup.rs` | rustup installer URL |
-| `user_cargo_min_system_version` | `"1.80"` | Minimum acceptable system cargo version |
+| `user_cargo_min_system_version` | `"1.99.1"` | Minimum acceptable system cargo version |
 | `user_cargo_crates` | 10-entry list | bottom, choose, git-cliff, gping, ripgrep_all, sd, gitui, eza, weathr, dua-cli |
 | `user_cargo_crate_bin_map` | `bottom: btm`, `ripgrep_all: rga`, `dua-cli: dua`, `du-dust: dust` | Crate → binary name for skip-if-present probes |
 | `user_cargo_crate_dnf_map` | `dua-cli`, `gitui`, `eza` | Crate → DNF package (DNF-preferred install) |
-| `user_install_gnome_extensions` | `{{ enable_desktop \| default(false) \| bool }}` | Managed only on desktops |
+| `user_install_gnome_extensions` | `{{ (desktop_environment \| default('none')) == 'gnome' }}` | Managed only when GNOME is the target DE |
 | `user_gnome_extensions` | 4-UUID list | GNOME Shell extension manifest |
 | `user_gnome_extensions_force_install` | `false` | Force extension re-installation |
 | `user_gnome_extensions_base_url` | `https://extensions.gnome.org` | Metadata/bundle base URL |
@@ -150,12 +150,12 @@ All defaults live in `defaults/main.yml` with full parity with `meta/argument_sp
 | `user_vscode_command` | `""` | Optional CLI override; empty = auto-detect |
 | `user_vscode_force_install` | `false` | Force extension re-installation |
 | `user_vscode_extensions` | 68-entry list | Marketplace extension manifest |
-| `user_firstboot_enabled` | `{{ enable_firstboot \\| default(true) \\| bool }}` | Gate the 7-file two-stage firstboot suite (lazy Tier 1 `enable_firstboot`) |
+| `user_firstboot_enabled` | `true` | Gate the 7-file two-stage firstboot suite |
 | `user_firstboot_files` | 7-entry list | The suite manifest (`{ src, dest, owner, group, mode }`); mirror of the osbuild SSOT injection table |
 | `user_firstboot_marker_path` | `{{ user.home \| default('/home/' ~ user.name) }}/.initial-firstboot` | Machine pull-success marker (this role is its single writer; lives in the workstation home — `/root` is unstat-able by non-root users) |
 | `user_firstboot_marker_write` | `true` | Escape hatch that leaves the marker untouched |
 | `user_firstboot_marker_force` | `false` | Skip-if-present override for the marker writer (re-stamps the timestamp) |
-| `user_firstboot_marker_machine_tags` | 11-tag list | Tag selection that counts a pull as full convergence for the marker gate |
+| `user_firstboot_marker_machine_tags` | 14-tag list | Tag selection that counts a pull as full convergence for the marker gate |
 
 ### 🌐 Tier 1: Host & Domain Variables (`inventory/group_vars/all.yml`)
 
@@ -167,7 +167,7 @@ Supplied by inventory, never created or mutated by this role:
 | `user.home` | `/home/b08x` | Home directory path (absorbed lazily via `user.home \| default('/home/' ~ user.name)`) |
 | `user.uid` | — | Optional; matched against the effective UID by `assert.yml` |
 | `user.group`, `user.shell`, `user.secondary_groups` | — | Identity facts owned by the Tier 1 inventory; not consumed by this role |
-| `enable_desktop` | `true` | Lazily consumed by `user_install_gnome_extensions` |
+| `desktop_environment` | `gnome` | Lazily consumed by `user_install_gnome_extensions` |
 | `user_uv_python_version` | `"3.14"` | Tier 1 override of the role default `"3.12"` |
 | `workstation_path_dirs` | 7-entry list | `~/.local/bin`, `~/.cargo/bin`, `~/go/bin`, `~/.bun/bin`, `/usr/local/bin`, `/usr/bin`, `/bin` — the PATH contract the role's destinations depend on |
 

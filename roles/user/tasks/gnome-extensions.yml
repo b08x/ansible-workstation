@@ -43,9 +43,9 @@
 - name: Resolve GNOME desktop environment status
   ansible.builtin.set_fact:
     _user_gnome_is_set: >-
-      {{ (desktop_ui_environment | default(desktop_environment | default(''))) == 'gnome' }}
+      {{ (desktop_environment | default('none')) == 'gnome' }}
     _user_de_is_other: >-
-      {{ (desktop_ui_environment | default(desktop_environment | default(''))) not in ['', 'gnome'] }}
+      {{ (desktop_environment | default('none')) not in ['none', 'gnome'] }}
     _user_gnome_is_detected: >-
       {{ (_user_gnome_proc_probe.rc | default(1)) == 0 or
          ((ansible_facts.services['gdm.service'].state | default('')) == 'running') }}
@@ -58,7 +58,7 @@
       {% if (_user_gnome_shell_version_raw.rc | default(1)) != 0 or (_user_gnome_cli_probe.rc | default(1)) != 0 %}
       gnome-shell or gnome-extensions CLI binary is not installed.
       {% elif _user_de_is_other %}
-      desktop environment is configured as '{{ desktop_ui_environment | default(desktop_environment) }}' (not gnome).
+      desktop environment is configured as '{{ desktop_environment | default('none') }}' (not gnome).
       {% else %}
       GNOME is not set or detected as the active desktop environment.
       {% endif %}
@@ -67,7 +67,7 @@
     (_user_gnome_cli_probe.rc | default(1)) != 0 or
     _user_de_is_other or
     not (_user_gnome_is_set or _user_gnome_is_detected or
-         (desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome')
+         (desktop_environment | default('none')) == 'gnome')
   tags: ["gnome-extensions", "user"]
 
 - name: Resolve GNOME extension management availability
@@ -77,7 +77,7 @@
          and (_user_gnome_cli_probe.rc | default(1)) == 0
          and not _user_de_is_other
          and (_user_gnome_is_set or _user_gnome_is_detected or
-              (desktop_ui_environment | default(desktop_environment | default('gnome'))) == 'gnome') }}
+              (desktop_environment | default('none')) == 'gnome') }}
   tags: ["gnome-extensions", "user"]
 
 - name: Parse the GNOME Shell version
@@ -343,7 +343,7 @@
 
     # Monotonic union invariant: (current ∪ configured) ∩ installed.
     # Enabled extensions are NEVER removed. This key is shared with
-    # desktop_ui's optional enable block (roles/desktop_ui/tasks/gnome/
+    # roles/gnome's optional enable block (roles/gnome/tasks/
     # extensions.yml writes the same dconf key) - both writers only ever
     # union, so they cannot fight over entries.
     #

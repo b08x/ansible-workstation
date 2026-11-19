@@ -1,11 +1,6 @@
 ---
 # tasks file for b08x.devworkstation.user
 
-- name: Display the value of user_my_variable
-  ansible.builtin.debug:
-    msg: "The value of user_my_variable is {{ user_my_variable }}"
-  tags: ["user", "always"]
-
 - name: Starting user tasks
   ansible.builtin.debug:
     msg: "Starting user tasks"

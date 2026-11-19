@@ -5,10 +5,6 @@ argument_specs:
   main:
     short_description: Role description.
     options:
-      whisper_my_variable:
-        type: str
-        description: A simple string argument for demonstration.
-        default: "default_value"
       tts_assert_enabled:
         type: bool
         default: true

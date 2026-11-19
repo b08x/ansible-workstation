@@ -11,7 +11,6 @@ Any pre-requisites that may not be covered by Ansible itself or the role should 
 | Variable | Default | Description |
 |---|---|---|
 | `tts_assert_enabled` | `true` | Gate pre-flight assertion tasks (`tasks/assert.yml`) to fail fast on invalid environments. |
-| `whisper_my_variable` | `"default_value"` | Demonstration string variable. |
 
 ## Tags
 

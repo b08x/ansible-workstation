@@ -1,0 +1,17 @@
+---
+# Kernel, memory, and limits tuning tasks
+
+- name: Configure system limits
+  ansible.builtin.include_tasks: limits.yml
+  when: tuning_limits_enabled | default(true) | bool
+  tags: ["tuning", "limits"]
+
+- name: Configure sysctl settings
+  ansible.builtin.include_tasks: sysctl.yml
+  when: tuning_sysctl_enabled | default(true) | bool
+  tags: ["tuning", "sysctl"]
+
+- name: Configure zram
+  ansible.builtin.include_tasks: zram.yml
+  when: tuning_zram_enabled | default(true) | bool
+  tags: ["tuning", "zram"]

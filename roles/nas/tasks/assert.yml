@@ -75,35 +75,14 @@
     quiet: true
   tags: ["nas", "assert", "always"]
 
-- name: Assert NFS export configurations are valid
+- name: Assert enabled NAS protocol configurations are valid
   ansible.builtin.assert:
     that:
-      - nas_nfs_exports is iterable
-      - nas_nfs_exports | length > 0
+      - not (nas_enable_nfs | default(true) | bool) or (nas_nfs_exports is iterable and nas_nfs_exports | length > 0)
+      - not (nas_enable_samba | default(false) | bool) or (nas_samba_shares is iterable and nas_samba_shares | length > 0)
+      - not (nas_enable_rsync | default(false) | bool) or (nas_rsync_modules is iterable and nas_rsync_modules | length > 0)
     fail_msg: >-
-      When 'nas_enable_nfs' is true, 'nas_nfs_exports' must contain at least one valid export definition.
+      Each enabled NAS protocol must define a non-empty list of shares/exports/modules
+      (nas_nfs_exports, nas_samba_shares, nas_rsync_modules).
     quiet: true
-  when: nas_enable_nfs | default(true) | bool
-  tags: ["nas", "assert", "nas_nfs"]
-
-- name: Assert Samba share configurations are valid
-  ansible.builtin.assert:
-    that:
-      - nas_samba_shares is iterable
-      - nas_samba_shares | length > 0
-    fail_msg: >-
-      When 'nas_enable_samba' is true, 'nas_samba_shares' must contain at least one valid share definition.
-    quiet: true
-  when: nas_enable_samba | default(false) | bool
-  tags: ["nas", "assert", "nas_samba"]
-
-- name: Assert Rsync module configurations are valid
-  ansible.builtin.assert:
-    that:
-      - nas_rsync_modules is iterable
-      - nas_rsync_modules | length > 0
-    fail_msg: >-
-      When 'nas_enable_rsync' is true, 'nas_rsync_modules' must contain at least one valid module definition.
-    quiet: true
-  when: nas_enable_rsync | default(false) | bool
-  tags: ["nas", "assert", "nas_rsync"]
+  tags: ["nas", "assert", "nas_nfs", "nas_samba", "nas_rsync"]
