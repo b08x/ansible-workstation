@@ -8,14 +8,21 @@ _common_distro_packages:
   - git
   - golang
   - gum
+  - htop
   - lm_sensors-devel
+  - micro
   - nodejs22
   - nodejs22-npm
   - openssh-server
+  - openssl-devel
   - policycoreutils-python-utils
+  - ruby-devel
+  - ruby-build-all
+  - ruby-build-rbenv
   - tar
   - tuned
   - unzip
+  - uv
   - wl-clipboard
   - zram-generator
   - zsh

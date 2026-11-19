@@ -1,4 +1,6 @@
 ---
+desktop_environment: gnome
+
 gpu_install_intel_oneapi: true
 
 tuning_cpupower_governor: powersave

@@ -68,6 +68,8 @@
       tags: ["networking", "system"]
     - role: containerd
       tags: ["containerd", "virt"]
+    - role: libvirt
+      tags: ["libvirt", "virt"]
     - role: theme
       when: (desktop_environment | default('none')) != 'none'
       tags: ["theme", "desktop", "system"]
@@ -80,8 +82,7 @@
     - role: sway
       when: (desktop_environment | default('none')) == 'sway'
       tags: ["sway", "desktop", "system"]
-    - role: libvirt
-      tags: ["libvirt", "virt"]
+
 
 - name: Host Tools
   hosts: workstations
