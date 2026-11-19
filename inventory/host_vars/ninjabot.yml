@@ -1,7 +1,3 @@
 ---
-# Layer 3: Host-specific capabilities (Headless Server)
-osbuild_host_components:
-  - development
-
 tuning_cpupower_governor: performance
 tuning_irqbalance_enabled: true

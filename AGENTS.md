@@ -13,10 +13,10 @@ All multi-host orchestration playbooks live in `playbooks/`, with `local.yml` at
 
 - `local.yml` — autonomous local workstation pull and convergence playbook for `ansible-pull` and local bootstrap. Lives at the repository root by `ansible-pull` default discovery convention. Implements the 15 Ansible Design Patterns with pre-flight hardware auto-detection (KVM, graphical display, containers, CUDA/Vulkan GPUs), Tag-as-Select role filtering, and reboot assessment.
 - `playbooks/workstation.yml` — full workstation provisioning. Targets the `workstations` group
-  (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, gpu, networking, containerd, desktop_ui, libvirt),
+  (tinybot, gir, soundbot) across modular plays: repositories (import_playbook), common (common), system (tuning, gpu, networking, containerd, theme, gnome, cosmic, sway, libvirt),
   user (user), and tools (tools).
 
-Roles live directly in `roles/`: `common`, `containerd`, `desktop_ui`, `gpu`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning (GNOME core stack, COSMIC desktop environment, display manager dispatch between GDM and cosmic-greeter, extensions, theme, and environment dispatch) is owned by `desktop_ui`. Host developer utilities, IDEs (VS Code), Flatpaks, and input-remapper live in `tools`. Coding agent CLIs and the Antigravity Hub & IDE are provisioned by the standalone playbooks in `playbooks/agent-harness/`. The transcribe.cpp (Whisper) transcription CLI is built by the standalone opt-in playbook `playbooks/transcribe-cpp.yml`.
+Roles live directly in `roles/`: `common`, `containerd`, `cosmic`, `gnome`, `gpu`, `libvirt`, `nas`, `networking`, `sway`, `theme`, `tools`, `tts`, `tuning`, `user`. Desktop-environment provisioning is split into `theme` (shared wallpapers, icon/GTK themes), `gnome` (GNOME core stack, GDM, extensions), `cosmic` (COSMIC desktop environment and `cosmic-greeter`), and `sway` (Sway/SwayFX compositor and Waybar/Eww), dispatched via the Tier 1 `desktop_environment` SSOT (`none` | `gnome` | `cosmic` | `sway`). Host developer utilities, IDEs (VS Code), Flatpaks, and input-remapper live in `tools`. Coding agent CLIs and the Antigravity Hub & IDE are provisioned by the standalone playbooks in `playbooks/agent-harness/`. The transcribe.cpp (Whisper) transcription CLI is built by the standalone opt-in playbook `playbooks/transcribe-cpp.yml`.
 
 
 Image building roles and playbooks (`osbuild`, `composer_cli`) and declarative
@@ -105,7 +105,7 @@ The repository uses a unified pre-commit config.
 - Variable precedence: role defaults < group_vars < host_vars < extra vars
 
 ### Variable Naming & Scoping
-- **Tier 1 (Host & Domain Scope)**: Semantic, unprefixed names (`user.*`, `intel_oneapi_install`, `nvidia_cuda_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`) represent machine hardware, primary user identity (SSOT), or system-wide capabilities in `group_vars/` or `host_vars/`. Do NOT force artificial role prefixes onto them, as doing so distorts their semantic meaning and forces redundant multi-role copies. `var-naming[no-role-prefix]` is deliberately skipped in `.ansible-lint` for this reason.
+- **Tier 1 (Host & Domain Scope)**: Semantic, unprefixed names (`user.*`, `desktop_environment`, `enable_third_party_repos`, `workstation_path_dirs`, `workstation_prompt_reboot`) represent machine hardware, primary user identity (SSOT), or system-wide capabilities in `group_vars/` or `host_vars/`. Do NOT force artificial role prefixes onto them, as doing so distorts their semantic meaning and forces redundant multi-role copies. `var-naming[no-role-prefix]` is deliberately skipped in `.ansible-lint` for this reason.
 - **Tier 2 (Role Scope)**: Variables defined in role `defaults/main.yml`, `vars/main.yml`, and `set_fact` must be role-prefixed (`<role>_*`) to maintain clean namespaces and avoid cross-role leakage.
 - **Task Registrations**: Variables created via `register:` must be role-prefixed (`<role>_*`) because registered variables have global host scope in Ansible and will collide across roles if left generic.
 

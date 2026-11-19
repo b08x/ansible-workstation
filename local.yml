@@ -43,7 +43,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -65,7 +67,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -75,7 +79,7 @@
     - name: Load global group variables if available
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
-      when: _preflight_group_vars_stat.stat.exists | default(false)
+      when: (_preflight_group_vars_stat.stat.exists | default(false)) and (user is not defined)
       tags:
         [
           "system",
@@ -86,7 +90,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -112,7 +118,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -135,7 +143,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -161,7 +171,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -182,7 +194,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -203,7 +217,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -240,7 +256,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -316,6 +334,16 @@
           changed_when: false
           failed_when: false
 
+        - name: Assert valid Tier 1 desktop_environment value
+          ansible.builtin.assert:
+            that:
+              - (desktop_environment | default('none')) in ['none', 'gnome', 'cosmic', 'sway']
+            fail_msg: >-
+              Invalid desktop_environment '{{ desktop_environment | default('') }}'.
+              Allowed values: none, gnome, cosmic, sway.
+            quiet: true
+          tags: ["always", "assert", "desktop"]
+
         - name: Set auto-detected subsystem facts
           ansible.builtin.set_fact:
             auto_enable_libvirt: >-
@@ -323,7 +351,7 @@
             auto_enable_desktop: >-
               {{
                 pull_enable_desktop
-                | default(enable_desktop | default(true))
+                | default((desktop_environment | default('none')) != 'none')
                 | bool
               }}
             auto_enable_containerd: "{{ pull_enable_containerd | default(true) | bool }}"
@@ -400,18 +428,34 @@
       when: auto_enable_libvirt | default(false) | bool
       tags: ["libvirt", "virt", "system", "assert"]
 
-    - name: Execute desktop_ui role
+    - name: Execute theme role
       ansible.builtin.include_role:
-        name: desktop_ui
+        name: theme
       when: auto_enable_desktop | default(false) | bool
-      tags: ["desktop_ui", "desktop", "assert"]
+      tags: ["theme", "desktop", "system", "assert"]
+
+    - name: Execute gnome role
+      ansible.builtin.include_role:
+        name: gnome
+      when:
+        - auto_enable_desktop | default(false) | bool
+        - (desktop_environment | default('none')) == 'gnome'
+      tags: ["gnome", "desktop", "system", "assert"]
+
+    - name: Execute cosmic role
+      ansible.builtin.include_role:
+        name: cosmic
+      when:
+        - auto_enable_desktop | default(false) | bool
+        - (desktop_environment | default('none')) == 'cosmic'
+      tags: ["cosmic", "desktop", "system", "assert"]
 
     - name: Execute sway role
       ansible.builtin.include_role:
         name: sway
       when:
         - auto_enable_desktop | default(false) | bool
-        - desktop_ui_environment | default('') == 'sway'
+        - (desktop_environment | default('none')) == 'sway'
       tags: ["sway", "desktop", "system", "assert"]
 
     - name: Execute tools role
@@ -432,7 +476,9 @@
           "networking",
           "containerd",
           "libvirt",
-          "desktop_ui",
+          "theme",
+          "gnome",
+          "cosmic",
           "sway",
           "desktop",
           "tools",
@@ -508,7 +554,7 @@
     - name: Load global group variables if available
       ansible.builtin.include_vars:
         file: "{{ playbook_dir }}/inventory/group_vars/all.yml"
-      when: _preflight_user_group_vars_stat.stat.exists | default(false)
+      when: (_preflight_user_group_vars_stat.stat.exists | default(false)) and (user is not defined)
       tags: ["user", "assert"]
 
     # Mirror of the Play 1 osbuild-conf seeding (runs with --tags user too,

@@ -1,12 +1,5 @@
 ---
-# Layer 3: Host-specific capabilities (Rocky 10 Builder / Workstation)
-osbuild_host_components:
-  - intel-oneapi
-  - intel-graphics
-  - cockpit
-  - syncopated
-
-intel_oneapi_install: true
+gpu_install_intel_oneapi: true
 
 tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: 400MHz # or "600MHz"

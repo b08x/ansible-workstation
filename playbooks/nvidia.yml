@@ -29,7 +29,6 @@
   vars:
     # Explicitly enforce NVIDIA installation in this standalone playbook
     gpu_install_nvidia: true
-    nvidia_cuda_install: true
 
   pre_tasks:
     - name: Announce NVIDIA provisioning start
@@ -80,7 +79,6 @@
     - role: gpu
       vars:
         gpu_install_nvidia: true
-        nvidia_cuda_install: true
       tags: ["gpu", "nvidia", "system"]
 
   post_tasks:

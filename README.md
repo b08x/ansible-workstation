@@ -3,7 +3,7 @@
 # Ansible Collection: Development Workstation
 
 An Ansible control repository provisioning Fedora 44 / AlmaLinux 10 / Rocky Linux 10
-workstations across eleven modular roles. Positioned as a deterministic execution engine,
+workstations across fourteen modular roles. Positioned as a deterministic execution engine,
 validation gate, and controlled reference dataset within a multi-agent engineering workflow.
 ansible-core >= 2.15 (verified 2.18–2.20), Python 3.12+ (3.14 aligned), x86_64, root required.
 
@@ -43,7 +43,7 @@ The machine is architected across decoupled functional layers:
   or the **bootc immutable container-image pipeline**.
 - **Layer 1 (Ansible)**: This repository. Deterministic host orchestration, system services, daemon
   configuration, desktop environments, developer toolchains, and container engines across
-  eleven modular roles—idempotent by contract. Drives both running workstation convergence and
+  fourteen modular roles—idempotent by contract. Drives both running workstation convergence and
   offline image composition parity.
 - **Layer 2 (yadm)**: User dotfiles, shell profiles, editor configurations, and GPG keys.
   Cloned at first login and owned exclusively by the user; preserved across OS re-imaging.
@@ -149,8 +149,8 @@ into deterministic architectural invariants:
    wire detection results directly into consumer variables.
 4. **Display Manager Session Termination (Failure Point 4)**: A handler triggered an unconditional restart
    of `gdm.service`, killing the active Wayland session of the engineer monitoring convergence. *Remedy*:
-   Seat-filtered session detection via `loginctl list-sessions` in `roles/desktop_ui/handlers/main.yml`. Display
-   manager restarts are inhibited if local seat sessions exist (`_desktop_ui_dm_seat_sessions | length == 0`),
+   Seat-filtered session detection via `loginctl list-sessions` in `roles/gnome/handlers/main.yml` and `roles/cosmic/handlers/main.yml`. Display
+   manager restarts are inhibited if local seat sessions exist (`_<role>_dm_seat_sessions | length == 0`),
    and a desktop alert is dispatched via `zenity`.
 5. **Unauthorized Git Commits (Failure Point 5)**: Agents concluded task runs by staging and committing
    changes unprompted. *Remedy*: Standing repository policy: never auto-commit. Working-tree diffs and status
@@ -257,7 +257,7 @@ To eliminate hallucination and parameter drift, the pipeline routes natural lang
    This step forces unambiguous precondition declaration (`Given`), execution triggers (`When`), and observable
    verification targets (`Then`).
 3. **Deterministic AST Compilation**: The verified Gherkin specification compiles into concrete Ansible plays,
-   role tags, and Tier 1 domain variables (`intel_oneapi_install: true`, `tuning_audio_profile: true`).
+   role tags, and role/domain variables (`gpu_install_intel_oneapi: true`, `tuning_audio_profile: true`).
 4. **Pre-flight Assertion Execution**: Before execution, Ansible's assertion gates validate the hardware,
    kernel, and environment against the Gherkin contract.
 
@@ -330,7 +330,7 @@ The Layer 1 orchestration surface consists of six primary entry points:
     hardware auto-detection (KVM virtualization via `/dev/kvm`, graphical display target via
     `systemctl get-default`, container engines, and discrete CUDA/Vulkan GPUs via PCI vendor IDs
     `0x10de`, `0x8086`, `0x1002`). Executes system roles (`repos`, `common`, `tuning`, `gpu`,
-    `networking`, `containerd`, `libvirt`, `desktop_ui`, `tools`), runs pre-flight assertions,
+    `networking`, `containerd`, `libvirt`, `theme`, `gnome`, `cosmic`, `sway`, `tools`), runs pre-flight assertions,
     and performs post-task reboot assessment (`needs-restarting -r`).
   - **Play 2: User Provisioning** (`become: false`, `become_user: workstation_user`, `--tags user`):
     Runs in unprivileged user space. Configures the user environment via `uv`, `bun`, `go`,
@@ -361,8 +361,8 @@ The Layer 1 orchestration surface consists of six primary entry points:
   and identity preconditions in under one second (<1s) before executing any state changes.
 - **Two-Tier Variable Architecture**:
   - *Tier 1 (Host & Domain Scope)*: Semantic, unprefixed Single Source of Truth keys (`user.name`,
-    `user.home`, `intel_oneapi_install`, `nvidia_cuda_install`, `enable_third_party_repos`, `use_containers`,
-    `use_kvm`) housed in `inventory/group_vars/` and `inventory/host_vars/`. These represent physical hardware
+    `user.home`, `desktop_environment`, `enable_third_party_repos`, `workstation_path_dirs`,
+    `workstation_prompt_reboot`) housed in `inventory/group_vars/` and `inventory/host_vars/`. These represent physical hardware
     and user identity. Artificial role prefixes are explicitly forbidden (`var-naming[no-role-prefix]` is skipped).
   - *Tier 2 (Role Scope)*: Variables defined in role `defaults/main.yml`, `vars/main.yml`, and `set_fact`
     must be role-prefixed (`<role>_*`) to maintain clean namespaces and prevent host variable leakage.
@@ -371,11 +371,11 @@ The Layer 1 orchestration surface consists of six primary entry points:
 - **Strict Single Ownership**: Each managed file on disk is owned by exactly one role. Grep checks
   prevent cross-role template clobbering.
 - **Handler Safety**: Service restarts are guarded against session termination. Display manager
-  handlers (`roles/desktop_ui/handlers/main.yml`) inspect `loginctl list-sessions` for active seats.
+  handlers (`roles/gnome/handlers/main.yml`, `roles/cosmic/handlers/main.yml`) inspect `loginctl list-sessions` for active seats.
   Kernel-level memory tuning (`roles/tuning/tasks/zram.yml`) stages configuration and defers reloading
   to system reboot.
 - **Idempotency Overrides**: Skipped installations provide explicit `*_force_install` override
-  toggles (`user_bun_force_install`, `desktop_ui_theme_force_install`, `common_yadm_force_install`).
+  toggles (`user_bun_force_install`, `theme_force_install`, `common_yadm_force_install`).
 
 ---
 
@@ -410,7 +410,7 @@ ansible-pull -U https://github.com/b08x/workstation.git --tags user local.yml
 
 Specific subsystems can be filtered cleanly using primary functional tags:
 `--tags repos`, `--tags common`, `--tags tuning`, `--tags gpu`, `--tags networking`,
-`--tags containerd`, `--tags libvirt`, `--tags desktop_ui`, `--tags tools`, `--tags user`.
+`--tags containerd`, `--tags libvirt`, `--tags theme`, `--tags gnome`, `--tags cosmic`, `--tags sway`, `--tags tools`, `--tags user`.
 
 ---
 
@@ -518,16 +518,19 @@ Architectural modifications follow the Plan-Do-Check-Act framework. Current ledg
 
 ## The Map
 
-The repository is organized into eleven cohesive roles under `roles/`:
+The repository is organized into fourteen cohesive roles under `roles/`:
 
 | Role | Purpose | Distribution Support | Fail-Fast Pre-Flight Assertions |
 |:-----|:--------|:---------------------|:--------------------------------|
 | [roles/common](roles/common/README.md) | System baseline, repository setup, hardware auto-detect, CIS L2 hardening | Fedora 44, AlmaLinux 10, Rocky Linux 10 | OS family, package manager (`dnf5`), effective root (`id -u == 0`) |
 | [roles/tuning](roles/tuning/README.md) | Low-latency audio, ZRAM swap generation, sysctl, cpupower drop-ins | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Effective root, init system (`systemd`), hardware memory checks |
 | [roles/networking](roles/networking/README.md) | NetworkManager profiles, DNS, interface bindings, firewall baseline | Fedora 44, AlmaLinux 10, Rocky Linux 10 | NetworkManager presence, firewall state |
-| [roles/containerd](roles/containerd/README.md) | Container runtime engines (containerd, nerdctl, rootless Podman) | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Kernel namespace support, subuid/subgid allocation |
+| [roles/containerd](roles/containerd/README.md) | Container runtime engines (`podman`, `docker`, `none`), nerdctl | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Kernel namespace support, subuid/subgid allocation |
 | [roles/libvirt](roles/libvirt/README.md) | KVM/QEMU virtualization, daemon security, virtual bridges, storage pools | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Hardware virtualization (`/dev/kvm`), libvirt group |
-| [roles/desktop_ui](roles/desktop_ui/README.md) | GNOME / COSMIC / Sway dispatch, display manager seat-safe handlers, themes | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, seat-session query |
+| [roles/theme](roles/theme/README.md) | Shared wallpapers, GTK/icon themes, cursor, font baselines | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, effective root (`id -u == 0`) |
+| [roles/gnome](roles/gnome/README.md) | GNOME desktop core stack, GDM display manager, seat-safe handlers | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, seat-session query |
+| [roles/cosmic](roles/cosmic/README.md) | COSMIC desktop environment, `cosmic-greeter`, skeleton seeding | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, seat-session query |
+| [roles/sway](roles/sway/README.md) | Sway / SwayFX compositor, Waybar / Eww bar engine, input/output config | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Graphical target verification, effective root (`id -u == 0`) |
 | [roles/gpu](roles/gpu/README.md) | Optional hardware acceleration: Intel oneAPI/SYCL and NVIDIA CUDA stacks | Fedora 44, AlmaLinux 10, Rocky Linux 10 | PCI device detection (`0x10de`, `0x8086`), driver compiler check |
 | [roles/tools](roles/tools/README.md) | Developer utilities, CLI tools, IDEs, AI coding agent harnesses, input-remapper | Fedora 44, AlmaLinux 10, Rocky Linux 10 | Package availability, target architecture (`x86_64`) |
 | [roles/user](roles/user/README.md) | Unprivileged user space: uv Python, bun, go, cargo, firstboot suite deployment | Fedora 44, AlmaLinux 10, Rocky Linux 10 | User existence, Tier 1 identity preconditions (`user.name`, `user.home`) |

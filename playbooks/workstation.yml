@@ -36,6 +36,16 @@
         src: /etc/os-release
         dest: /etc/system-release
         state: link
+
+    - name: Assert valid Tier 1 desktop_environment value
+      ansible.builtin.assert:
+        that:
+          - (desktop_environment | default('none')) in ['none', 'gnome', 'cosmic', 'sway']
+        fail_msg: >-
+          Invalid desktop_environment '{{ desktop_environment | default('') }}'.
+          Allowed values: none, gnome, cosmic, sway.
+        quiet: true
+      tags: ["always", "assert", "desktop"]
   roles:
     - role: common
       tags: ["common", "system"]
@@ -58,12 +68,17 @@
       tags: ["networking", "system"]
     - role: containerd
       tags: ["containerd", "virt"]
-    - role: desktop_ui
-      tags: ["desktop_ui", "desktop", "system"]
+    - role: theme
+      when: (desktop_environment | default('none')) != 'none'
+      tags: ["theme", "desktop", "system"]
+    - role: gnome
+      when: (desktop_environment | default('none')) == 'gnome'
+      tags: ["gnome", "desktop", "system"]
+    - role: cosmic
+      when: (desktop_environment | default('none')) == 'cosmic'
+      tags: ["cosmic", "desktop", "system"]
     - role: sway
-      when:
-        - enable_desktop | default(true) | bool
-        - desktop_ui_environment | default('') == 'sway'
+      when: (desktop_environment | default('none')) == 'sway'
       tags: ["sway", "desktop", "system"]
     - role: libvirt
       tags: ["libvirt", "virt"]

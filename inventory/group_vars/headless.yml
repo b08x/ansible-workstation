@@ -1,9 +1,2 @@
 ---
-use_containers: true
-use_kvm: false
-enable_desktop: false
-
-# Layer 2: Headless server group baseline components
-osbuild_group_components:
-  - containers-virt
-  - cockpit
+desktop_environment: none

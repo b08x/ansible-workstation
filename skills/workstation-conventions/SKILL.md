@@ -19,13 +19,13 @@ This skill documents the codebase architecture, role conventions, variable scopi
 
 ### 1.1 Repository Skeleton
 The repository is consolidated as a monolithic control repo:
-- **`roles/`**: Standard Ansible roles (`common`, `containerd`, `desktop_ui`, `gpu`, `libvirt`, `nas`, `networking`, `tools`, `tts`, `tuning`, `user`).
+- **`roles/`**: Standard Ansible roles (`common`, `containerd`, `cosmic`, `gnome`, `gpu`, `libvirt`, `nas`, `networking`, `sway`, `theme`, `tools`, `tts`, `tuning`, `user`).
 - **`playbooks/`**: Controller and orchestration playbooks (`workstation.yml`, `repositories.yml`, `cargo.yml`, `nvidia.yml`, `nas.yml`, `tts.yml`, `transcribe-cpp.yml`, and `agent-harness/`).
 - **`local.yml`**: Root autonomous pull playbook for `ansible-pull` and local bootstrap (implements the 15 Ansible Design Patterns).
 - **`inventory/`**: Single SSOT inventory directory:
   - `inventory/hosts.yml`: Primary inventory file (set in `ansible.cfg`).
   - `inventory/group_vars/`: Global and group definitions (`all.yml`, `dev.yml`, `workstations.yml`, `headless.yml`).
-  - `inventory/host_vars/`: Host-specific overrides (`gir.yml`, `tinybot.yml`, `soundbot.yml`, `ninjabot.yml`, `gir-virt.yml`).
+  - `inventory/host_vars/`: Host-specific overrides (`gir.yml`, `gir-sway.yml`, `gir-virt.yml`, `studio-cosmic.yml`, `tinybot.yml`, `soundbot.yml`, `ninjabot.yml`).
 - **`plugins/`**: Repo-local plugins (`plugins/callback/llm_analyzer.py`, `plugins/callback_utils/`).
 
 ### 1.2 Target Hosts & Disposable Testbed Target
@@ -207,11 +207,8 @@ The repository enforces strict two-tier scoping:
 - **Rule Exemption**: `var-naming[no-role-prefix]` is explicitly skipped in `.ansible-lint` to preserve semantic SSOT definitions without forced role prefixing.
 - **Examples**:
   - `user.name`, `user.home`, `user.shell`, `user.uid`, `user.gid`, `user.secondary_groups`
-  - `enable_desktop: true`
-  - `intel_oneapi_install: false`
-  - `nvidia_cuda_install: true`
-  - `containerd_use_podman: true`
-  - `containerd_use_docker: false`
+  - `desktop_environment: none` (`none` | `gnome` | `cosmic` | `sway`)
+  - `enable_third_party_repos: true`
   - `workstation_prompt_reboot: false`
 
 ### 4.2 Tier 2: Role-Scoped Variables (Prefixed `<role>_*`)
@@ -219,17 +216,20 @@ The repository enforces strict two-tier scoping:
 - **Convention**: MUST start with `<role>_` to prevent namespace collisions across plays.
 - **Examples**:
   - `common_packages_enabled`, `common_tuned_enabled`, `common_tuned_profile`
-  - `desktop_ui_environment`, `desktop_ui_greeter`, `desktop_ui_packages`
-  - `tools_vscode_force_install`, `tools_install_flatpaks`
-  - `tuning_cpupower_governor`, `tuning_irqbalance_enabled`
+  - `containerd_engine` (`podman` | `docker` | `none`)
+  - `cosmic_install_supplementary_apps`, `gnome_gdm_enabled`, `theme_force_install`
+  - `gpu_install_nvidia`, `gpu_install_intel_oneapi`
+  - `sway_bar_engine` (`waybar` | `eww`), `sway_compositor` (`swayfx` | `sway`), `sway_fx_corner_radius`
+  - `tools_vscode_install_method` (`none` | `rpm` | `flatpak`), `tools_install_flatpaks`
+  - `tuning_cpupower_governor`, `tuning_irqbalance_enabled`, `user_firstboot_enabled`
 
 ### 4.3 Registered Variables (Private Convention `_<role>_*`)
 - **Scope**: Created during playbook/task execution via `register:`.
 - **Convention**: Registered variables have global host scope in Ansible. To prevent leaking across roles, private registered variables MUST use `_<role>_<descriptor>`:
   - `_common_effective_uid`
-  - `_desktop_ui_effective_uid`
+  - `_gnome_effective_uid`
   - `_reboot_check_rhel`
-  - `tools_vscode_check` (or `_tools_vscode_check`)
+  - `_tools_vscode_check`
 
 ---
 
@@ -274,7 +274,7 @@ In `roles/user/tasks/main.yml`, modular tasks run under user privilege using `ap
 ```
 
 ### 5.3 Skeleton Seeding Pattern (`/etc/skel/.config/`)
-For system-wide default user configurations (e.g. desktop configs in `roles/desktop_ui/tasks/cosmic/environment.yml`), files are staged in `/etc/skel/.config/` with root ownership so subsequent user provisioning inherits clean defaults:
+For system-wide default user configurations (e.g. desktop configs in `roles/cosmic/tasks/environment.yml`), files are staged in `/etc/skel/.config/` with root ownership so subsequent user provisioning inherits clean defaults:
 ```yaml
 - name: Ensure COSMIC skeleton directories exist in /etc/skel
   ansible.builtin.file:

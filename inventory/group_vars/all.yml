@@ -19,24 +19,10 @@ user:
   realname: Robert Pannick
   sudoers: true
   email: rwpannick@gmail.com
-enable_desktop: true
+desktop_environment: none
 workstation_prompt_reboot: false
 
 # uv-managed Python version for the user role (roles/user/tasks/uv.yml).
 # The osbuild image installs Python 3.14 at firstboot; this override keeps
 # Ansible convergence aligned with the image.
 user_uv_python_version: "3.14"
-
-# ==============================================================================
-# OSBuild Single Source of Truth (SSOT) Component Mapping - Layered Inheritance
-# ==============================================================================
-# Layer 1: Universal baseline components for all managed hosts (vendor/osbuild)
-osbuild_base_components:
-  - base
-
-# Defaults for higher layers
-osbuild_group_components: []
-osbuild_host_components: []
-
-# Resolved list of OSBuild components: base + group + host (unique)
-osbuild_components: "{{ (osbuild_base_components + (osbuild_group_components | default([])) + (osbuild_host_components | default([]))) | unique }}"

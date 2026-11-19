@@ -1,3 +1,2 @@
 ---
-use_containers: true
-use_kvm: true
+# Development group variables (host-specific overrides belong in inventory/host_vars/)
