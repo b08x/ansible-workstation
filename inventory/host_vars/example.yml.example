@@ -1,0 +1,785 @@
+---
+# Host variables reference for Syncopated Workstation (Tier 1 & Tier 2).
+# Usage: cp inventory/host_vars/example.yml.example inventory/host_vars/<hostname>.yml
+# Uncomment only the variables you want to override for a specific host.
+
+# ==============================================================================
+# Tier 1 — Host & Global Workstation SSOT
+# ==============================================================================
+# Defined globally in inventory/group_vars/all.yml; override per host as needed.
+
+# Primary workstation user account (SSOT consumed across roles)
+# user:
+#   name: b08x
+#   group: b08x
+#   uid: 1000
+#   gid: 1000
+#   home: /home/b08x
+#   shell: /usr/bin/zsh
+#   secondary_groups: "wheel,input,video,audio,render"
+#   realname: Robert Pannick
+#   sudoers: true
+#   email: rwpannick@gmail.com
+
+# Target desktop environment; choices: none | gnome | cosmic | sway
+# desktop_environment: none
+
+# Enable third-party package repositories (RPM Fusion, COPR, etc.)
+# enable_third_party_repos: true
+
+# Ordered PATH directories for workstation user shell profile
+# workstation_path_dirs:
+#   - "{{ ansible_user_dir }}/.local/bin"
+#   - "{{ ansible_user_dir }}/.cargo/bin"
+#   - "{{ ansible_user_dir }}/go/bin"
+#   - "{{ ansible_user_dir }}/.bun/bin"
+#   - "/usr/local/bin"
+#   - "/usr/bin"
+#   - "/bin"
+
+# Prompt for reboot when kernel/system changes require a restart
+# workstation_prompt_reboot: false
+
+# Optional local.yml pre-flight overrides (auto-detected when unset)
+# pull_enable_libvirt: false
+# pull_enable_desktop: false
+# pull_enable_containerd: true
+
+# ==============================================================================
+# Tier 2 — Role: common (31 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# common_assert_enabled: true
+# Enable baseline system and interactive package installation
+# common_packages_enabled: true
+# Enable centralized Syncopated COPR repository on Fedora and EL10+
+# common_syncopated_copr_enabled: true
+# Centralized Syncopated COPR repository slug
+# common_syncopated_copr: "b08x/syncopated"
+# Enable hardware capability auto-detection (chassis, CPU, GPU, CUDA, Vulkan)
+# common_hardware_detection_enabled: true
+# Enable tuned daemon service and active profile enforcement
+# common_tuned_enabled: true
+# Active tuned profile name (defaults to hardware-recommended profile)
+# common_tuned_profile: "{{ recommended_tuned_profile | default('throughput-performance') }}"
+# Enable CIS Level 2 Workstation security hardening tasks
+# common_hardening_enabled: true
+# Enable auditd bounded rotation and syscall filtering
+# common_hardening_auditd_enabled: true
+# Enable SSH daemon security hardening
+# common_hardening_sshd_enabled: true
+# Enable system crypto policy enforcement
+# common_hardening_crypto_enabled: true
+# Enable umask and core dump limits
+# common_hardening_limits_enabled: true
+# Maximum audit log size in MB before rotation
+# common_auditd_max_log_file: 32
+# Number of rotated audit log files to retain
+# common_auditd_num_logs: 16
+# Auditd space left warning threshold in MB
+# common_auditd_space_left: 75
+# Auditd admin space left threshold in MB
+# common_auditd_admin_space_left: 50
+# Append immutable flag (-e 2) to audit rules
+# common_auditd_rules_immutable: false
+# SSH PermitRootLogin directive value
+# common_sshd_permit_root_login: "no"
+# SSH ClientAliveInterval in seconds
+# common_sshd_client_alive_interval: 300
+# SSH ClientAliveCountMax timeout count
+# common_sshd_client_alive_count_max: 3
+# Maximum SSH authentication attempts before disconnect
+# common_sshd_max_auth_tries: 4
+# System crypto policy name (e.g. DEFAULT, FUTURE)
+# common_crypto_policy: "DEFAULT"
+# Deploy default restrictive umask in /etc/profile.d
+# common_enforce_umask: true
+# Restrictive default umask value
+# common_default_umask: "027"
+# Prevent unauthorized core dumps in security limits
+# common_disable_coredumps: true
+# Download URL for yadm standalone binary fallback
+# common_yadm_url: "https://github.com/TheLocehiliosan/yadm/raw/master/yadm"
+# Force standalone yadm binary installation even if present
+# common_yadm_force_install: false
+# Install inxi system information tool
+# common_install_inxi: true
+# Install gitflow-avh (COPR on Fedora/EL10+, source build on EL9)
+# common_install_gitflow: true
+# Force gitflow source deployment even when git-flow is present
+# common_gitflow_force_install: false
+# Scratch directory for gitflow-avh source build
+# common_gitflow_build_dir: "/tmp/gitflow-avh"
+
+# ==============================================================================
+# Tier 2 — Role: tuning (41 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# tuning_assert_enabled: true
+# Permit execution inside container guests (skips host kernel assertion)
+# tuning_allow_containers: false
+# Enable system tuning package installation
+# tuning_packages_enabled: true
+# Enable user group membership configuration
+# tuning_groups_enabled: true
+# Enable security limits configuration for real-time priority
+# tuning_limits_enabled: true
+# Enable udev rules for hardware and power optimizations
+# tuning_udev_enabled: true
+# Enable kernel sysctl parameter tuning
+# tuning_sysctl_enabled: true
+# Enable ZRAM swap and dynamic swappiness tuning
+# tuning_zram_enabled: true
+# Enable systemd manager timeout and limit drop-ins
+# tuning_systemd_enabled: true
+# Enable rtirq real-time IRQ thread prioritization
+# tuning_rtirq_enabled: true
+# Enable RealtimeKit daemon configuration
+# tuning_rtkit_enabled: true
+# Enable CPU frequency governor configuration (true on Fedora, false on EL)
+# tuning_cpupower_enabled: "{{ ansible_distribution == 'Fedora' }}"
+# State of irqbalance service
+# tuning_irqbalance_enabled: false
+# Groups to which the workstation user is added
+# tuning_groups:
+#   - audio
+# Target sysctl drop-in file path
+# tuning_sysctl_file: /etc/sysctl.d/70-cachyos-settings.conf
+# Sysctl keys allowed to fail if host kernel lacks them
+# tuning_sysctl_optional:
+#   - dev.hpet.max-user-freq
+#   - kernel.unprivileged_userns_clone
+#   - kernel.nmi_watchdog
+# Dictionary of sysctl key-value pairs to enforce
+# tuning_sysctl:
+#   vm.swappiness: 150
+#   vm.vfs_cache_pressure: 50
+#   vm.dirty_bytes: 268435456
+#   vm.page-cluster: 0
+#   vm.dirty_background_bytes: 67108864
+#   vm.dirty_writeback_centisecs: 1500
+#   kernel.nmi_watchdog: 0
+#   kernel.unprivileged_userns_clone: 1
+#   kernel.printk: "3 3 3 3"
+#   kernel.kptr_restrict: 2
+#   net.core.netdev_max_backlog: 4096
+#   fs.file-max: 2097152
+#   fs.inotify.max_user_watches: 524288
+#   kernel.sysrq: 1
+#   dev.hpet.max-user-freq: 3072
+# Dictionary mapping user groups to real-time security limits
+# tuning_limits:
+#   audio:
+#     rtprio: 98
+#     memlock: unlimited
+#     nice: -20
+# Hardware timer devices assigned to the audio group
+# tuning_udev_timers:
+#   - rtc0
+#   - hpet
+# Enable SATA active link power management udev rule
+# tuning_udev_sata_enabled: true
+# SATA link power management policy
+# tuning_udev_sata_policy: max_performance
+# Enable udev rule assigning I/O schedulers by storage type
+# tuning_udev_iosched_enabled: true
+# I/O scheduler for rotational HDDs
+# tuning_udev_iosched_hdd: bfq
+# I/O scheduler for SATA SSDs
+# tuning_udev_iosched_ssd: mq-deadline
+# I/O scheduler for NVMe drives
+# tuning_udev_iosched_nvme: kyber
+# Disable snd-hda-intel power save while on AC power
+# tuning_udev_audio_pm_enabled: true
+# Path to audio-pm-ctl helper script
+# tuning_udev_audio_pm_ctl_path: /usr/local/bin/audio-pm-ctl
+# ZRAM block device name
+# tuning_zram_device: zram0
+# Compression algorithm for ZRAM
+# tuning_zram_compression_algorithm: zstd
+# ZRAM swap size relative to RAM or absolute
+# tuning_zram_size: ram
+# Priority of the ZRAM swap device
+# tuning_zram_swap_priority: 100
+# Filesystem type for the ZRAM swap device
+# tuning_zram_fs_type: swap
+# Dynamic swappiness value triggered when ZRAM initializes
+# tuning_zram_swappiness: 150
+# Packages required for ZRAM generator
+# tuning_zram_packages:
+#   - zram-generator
+# Default start timeout for systemd services
+# tuning_systemd_timeout_start_sec: 15s
+# Default stop timeout for systemd services
+# tuning_systemd_timeout_stop_sec: 10s
+# Default file descriptor limits for systemd user manager
+# tuning_systemd_user_limit_nofile: "1024:1048576"
+# Configuration file path for cpupower service
+# tuning_cpupower_config_file: "{{ '/etc/cpupower-service.conf' if ansible_distribution == 'Fedora' else '/etc/default/cpupower' }}"
+# CPU frequency scaling governor; choices: powersave | performance | ondemand | conservative | userspace | schedutil
+# tuning_cpupower_governor: powersave
+# Minimum CPU scaling frequency (e.g. "400MHz" or "800MHz")
+# tuning_cpupower_min_freq: ""
+# Maximum CPU scaling frequency (e.g. "3100MHz" or "3800MHz")
+# tuning_cpupower_max_freq: ""
+
+# ==============================================================================
+# Tier 2 — Role: gpu (19 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# gpu_assert_enabled: true
+# Install the Intel oneAPI toolkit
+# gpu_install_intel_oneapi: false
+# Pinned Intel oneAPI package list (see roles/gpu/defaults/main.yml for full list)
+# gpu_intel_oneapi_packages:
+#   - intel-oneapi-common-vars
+#   - intel-oneapi-compiler-dpcpp-cpp
+#   - intel-oneapi-mkl-devel
+#   - intel-oneapi-runtime-opencl
+# Force-install override; re-evaluates oneAPI packages with state latest
+# gpu_intel_oneapi_force_install: false
+# Install Intel graphics driver packages
+# gpu_install_intel_graphics: false
+# Whether Intel graphics driver failure causes a fatal error
+# gpu_intel_graphics_required: false
+# Intel graphics driver package list
+# gpu_intel_graphics_packages:
+#   - intel-audio-firmware
+#   - intel-gmmlib
+#   - intel-gpu-firmware
+#   - intel-media-driver
+#   - intel-vpl-gpu-rt
+#   - intel-vsc-firmware
+#   - libva-intel-driver
+# Install the NVIDIA CUDA driver, toolkit, and container toolkit
+# gpu_install_nvidia: false
+# Force-install override; re-evaluates NVIDIA driver packages with state latest
+# gpu_nvidia_force_install: false
+# Include cuda and cuda-devel packages in Negativo 17 payload
+# gpu_nvidia_cuda_toolkit: true
+# Install nvidia-container-toolkit, CDI script, and refresh service
+# gpu_nvidia_container_toolkit: true
+# Install NVIDIA utility packages (nvidia-settings, nvtop)
+# gpu_nvidia_utils: true
+# NVIDIA utility package list
+# gpu_nvidia_utils_packages:
+#   - nvidia-settings
+#   - nvtop
+# Ensure RPM Fusion Free/Non-Free repos are enabled for non-driver content
+# gpu_nvidia_ensure_rpmfusion: true
+# Enable NVIDIA driver provider mutual-exclusion preflight check
+# gpu_nvidia_provider_preflight: true
+# NVIDIA driver and CUDA package list installed from Negativo 17
+# gpu_nvidia_negativo17_packages:
+#   - akmod-nvidia
+#   - cuda
+#   - cuda-devel
+#   - nvidia-driver
+#   - nvidia-driver-cuda
+#   - nvidia-driver-cuda-libs
+#   - nvidia-driver-libs
+#   - nvidia-settings
+#   - nvidia-persistenced
+#   - nvtop
+# Enable NVIDIA systemd power management services
+# gpu_nvidia_power_management: true
+# Systemd services managed when NVIDIA power management is enabled
+# gpu_nvidia_power_services:
+#   - nvidia-suspend
+#   - nvidia-hibernate
+#   - nvidia-resume
+# Kernel command-line arguments applied via grubby for all kernels
+# gpu_nvidia_kernel_args:
+#   - rd.driver.blacklist=nouveau
+#   - rd.driver.blacklist=nova-core
+#   - modprobe.blacklist=nouveau
+#   - nvidia-drm.modeset=1
+
+# ==============================================================================
+# Tier 2 — Role: networking (1 variable)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# networking_assert_enabled: true
+
+# ==============================================================================
+# Tier 2 — Role: containerd (13 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# containerd_assert_enabled: true
+# Container runtime engine to install; choices: podman | docker | none
+# containerd_engine: "podman"
+# List of Podman packages installed when containerd_engine is 'podman'
+# containerd_podman_packages:
+#   - podman
+#   - podman-compose
+#   - podman-docker
+# Optional specific Docker CE version string to pin (e.g. "27.3.1")
+# containerd_docker_version: ""
+# Core Docker packages installed when containerd_engine is 'docker'
+# containerd_docker_packages:
+#   - containerd.io
+#   - docker-buildx-plugin
+#   - docker-compose-plugin
+#   - docker-model-plugin
+# GPG key URL used to verify official Docker CE packages
+# containerd_docker_gpg_key_url: "https://download.docker.com/linux/fedora/gpg"
+# Name of the systemd unit for the Docker daemon
+# containerd_docker_service_name: "docker.service"
+# Enable and start the Docker systemd service (defaults to true on Fedora)
+# containerd_docker_service_enabled: "{{ ansible_distribution == 'Fedora' }}"
+# Add containerd_docker_users to the docker group (defaults to true on Fedora)
+# containerd_docker_manage_users: "{{ ansible_distribution == 'Fedora' }}"
+# Configure --data-root in the Docker systemd unit (defaults to true on Fedora)
+# containerd_docker_manage_storage: "{{ ansible_distribution == 'Fedora' }}"
+# List of user accounts added to the docker system group
+# containerd_docker_users:
+#   - "{{ user.name }}"
+# Custom data root directory path for the Docker daemon
+# containerd_docker_storage: "/var/lib/docker"
+# Key-value mapping rendered into /etc/docker/daemon.json
+# containerd_docker_daemon_config: {}
+
+# ==============================================================================
+# Tier 2 — Role: theme (4 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# theme_assert_enabled: true
+# Install Qt5/Qt6 and GTK3/GTK4 runtime toolkit packages
+# theme_install_toolkits: true
+# System desktop theme to install; choices: yaru | none
+# theme_name: "{{ 'yaru' if (desktop_environment | default('none')) == 'gnome' else 'none' }}"
+# Force Yaru theme reinstallation/rebuild even when present
+# theme_force_install: false
+
+# ==============================================================================
+# Tier 2 — Role: gnome (5 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# gnome_assert_enabled: true
+# System Flatpak applications to install for GNOME management
+# gnome_flatpaks:
+#   - com.mattjakeman.ExtensionManager
+#   - page.tesk.Refine
+# System GNOME Shell extension RPM packages to install via DNF
+# gnome_extensions:
+#   - gnome-shell-extension-appindicator
+#   - gnome-shell-extension-apps-menu
+#   - gnome-shell-extension-auto-move-windows
+#   - gnome-shell-extension-dash-to-dock
+#   - gnome-shell-extension-places-menu
+#   - gnome-shell-extension-user-theme
+#   - gnome-shell-extension-window-list
+#   - gnome-shell-extension-launch-new-instance
+#   - gnome-shell-extension-workspace-indicator
+# User GNOME Shell extension UUIDs to enable in dconf if present
+# gnome_user_extensions:
+#   - notification-timeout@chlumskyvaclav.gmail.com
+#   - notification-configurator@exposedcat
+#   - junk-notification-cleaner@murar8.github.com
+#   - kando-integration@kando-menu.github.io
+# Control whether installed GNOME extensions are enabled in dconf
+# gnome_extensions_enable: false
+
+# ==============================================================================
+# Tier 2 — Role: cosmic (4 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# cosmic_assert_enabled: true
+# Target display manager for COSMIC desktop; choices: cosmic-greeter | gdm
+# cosmic_display_manager: "cosmic-greeter"
+# Enable ryanabx/cosmic-epoch COPR repository on Fedora
+# cosmic_use_copr: false
+# Install supplementary COSMIC desktop applications (@cosmic-desktop-apps)
+# cosmic_install_supplementary_apps: false
+
+# ==============================================================================
+# Tier 2 — Role: sway (27 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# sway_assert_enabled: true
+# Force reinstallation of Sway packages even if skip conditions match
+# sway_force_install: false
+# Modifier key used in Sway keybindings (e.g. Mod4 for Super, Mod1 for Alt)
+# sway_mod: "Mod4"
+# Default terminal emulator binary invoked in Sway bindings
+# sway_terminal: "foot"
+# Application launcher command executed in Sway menu bindings
+# sway_menu: "rofi -show drun"
+# Font definition string used by Sway window titlebars and UI
+# sway_font: "pango:monospace 10"
+# Sway compositor variant; choices: swayfx | sway
+# sway_compositor: "{{ 'swayfx' if ansible_distribution == 'Fedora' else 'sway' }}"
+# Bar engine to deploy and display; choices: waybar | eww
+# sway_bar_engine: "waybar"
+# Theme name applied across Sway, terminals, Rofi, Waybar, and Eww
+# sway_theme: "aphelion"
+# Enable SwayFX background blur effect
+# sway_fx_blur: false
+# Enable SwayFX drop shadows on windows and UI components
+# sway_fx_shadows: true
+# Corner radius in pixels for rounded SwayFX window corners
+# sway_fx_corner_radius: 10
+# Install desktop companion components (Waybar, Kanshi, Rofi-wayland, Mako)
+# sway_install_companions: true
+# Install utility tools (grim, slurp, wl-clipboard, pavucontrol, etc.)
+# sway_install_tools: true
+# Install and configure greetd login manager and tuigreet greeter
+# sway_install_greetd: true
+# Manage display manager service status (enable greetd, disable conflicts)
+# sway_manage_display_manager: true
+# Manage system and user session environment files for Sway
+# sway_manage_environment: true
+# Display manager services to stop and disable when greetd is enabled
+# sway_conflicting_display_managers:
+#   - gdm
+#   - cosmic-greeter
+#   - sddm
+#   - lightdm
+# Command line executed by greetd for session selection and login
+# sway_greetd_command: "tuigreet --time --remember --remember-user-session --cmd sway"
+# User account under which the greetd daemon runs
+# sway_greetd_user: "greetd"
+# Virtual terminal on which greetd displays the greeter
+# sway_greetd_vt: 1
+# Key-value map of Wayland and desktop session environment variables
+# sway_environment_vars:
+#   XDG_CURRENT_DESKTOP: "sway"
+#   XDG_SESSION_TYPE: "wayland"
+#   XDG_SESSION_DESKTOP: "sway"
+#   MOZ_ENABLE_WAYLAND: "1"
+#   QT_QPA_PLATFORM: "wayland;xcb"
+#   SDL_VIDEODRIVER: "wayland"
+#   _JAVA_AWT_WM_NONREPARENTING: "1"
+# Volume adjustment step percentage for WirePlumber bindings
+# sway_volume_step: 5
+# Maximum volume limit passed to WirePlumber volume helper
+# sway_volume_limit: "1.0"
+# Destination path for the WirePlumber volume helper script
+# sway_volume_helper_path: "{{ user.home | default('/home/' ~ user.name) }}/.local/bin/volume-helper"
+# List of glob include paths for custom Sway configuration
+# sway_config_custom_includes: []
+# Raw configuration text appended to user Sway configuration
+# sway_extra_config: ""
+
+# ==============================================================================
+# Tier 2 — Role: libvirt (9 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# libvirt_assert_enabled: true
+# Strictly require /dev/kvm device node during pre-flight assertions
+# libvirt_require_kvm: false
+# Name of the libvirt systemd service
+# libvirt_service: "libvirtd.service"
+# Enable and start the libvirt service
+# libvirt_service_enabled: true
+# List of users to add to the 'libvirt' group for passwordless access
+# libvirt_users:
+#   - "{{ user.name }}"
+# UNIX domain socket group ownership in libvirtd.conf
+# libvirt_unix_sock_group: "libvirt"
+# UNIX domain socket read-write permissions in libvirtd.conf
+# libvirt_unix_sock_rw_perms: "0770"
+# Authentication scheme for UNIX read-write sockets in libvirtd.conf
+# libvirt_auth_unix_rw: "none"
+# Disable lvmetad in /etc/lvm/lvm.conf for libvirt storage pool compatibility
+# libvirt_configure_lvm: true
+
+# ==============================================================================
+# Tier 2 — Role: nas (44 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# nas_assert_enabled: true
+# Enable and configure the NFSv4 server stack
+# nas_enable_nfs: true
+# Enable and configure Samba/SMB file sharing
+# nas_enable_samba: false
+# Enable and configure the Rsync daemon
+# nas_enable_rsync: false
+# System user for unprivileged NFS operations
+# nas_nfs_user_name: nobody
+# System group for unprivileged NFS operations
+# nas_nfs_user_group: nobody
+# UID for the NFS user
+# nas_nfs_user_uid: 65534
+# GID for the NFS group
+# nas_nfs_user_gid: 65534
+# NFSv4 ID mapping domain
+# nas_nfs_domain: "{{ ansible_domain | default('localdomain') }}"
+# Allowed client networks/CIDRs for NFS exports
+# nas_nfs_allowed_networks:
+#   - "192.168.41.0/24"
+# Default export options for NFS exports
+# nas_nfs_export_options:
+#   - rw
+#   - sync
+#   - no_subtree_check
+# Export options for the NFSv4 pseudo-root (fsid=0)
+# nas_nfs_root_export_options:
+#   - rw
+#   - fsid=0
+#   - no_subtree_check
+#   - sync
+# List of NFS export definitions
+# nas_nfs_exports:
+#   - path: /srv/nfs
+#     create_dir: true
+#     is_root: true
+# Optional additional custom NFS firewall ports
+# nas_nfs_firewall_ports: []
+# Fixed NFS daemon port mapping for firewalld and /etc/nfs.conf
+# nas_nfs_firewall:
+#   ports:
+#     rpcbind: 111
+#     nfs: 2049
+#     lockd:
+#       tcp: 32803
+#       udp: 32769
+#     mountd: 892
+#     statd: 662
+#     rdma: 20049
+# Samba system user account name
+# nas_samba_user: smbuser
+# Samba system group name
+# nas_samba_group: smbgroup
+# UID for Samba system user
+# nas_samba_uid: 1036
+# GID for Samba system group
+# nas_samba_gid: 1036
+# Create Samba user as a system account
+# nas_samba_user_system: false
+# Create Samba group as a system group
+# nas_samba_group_system: false
+# Samba workgroup name
+# nas_samba_workgroup: WORKGROUP
+# Samba server description string
+# nas_samba_server_string: "Samba Server %v"
+# Samba NetBIOS hostname
+# nas_samba_netbios_name: "{{ ansible_hostname | upper }}"
+# Minimum SMB server protocol level
+# nas_samba_server_min_protocol: NT1
+# Minimum SMB client protocol level
+# nas_samba_client_min_protocol: NT1
+# Maximum SMB client protocol level
+# nas_samba_client_max_protocol: SMB3
+# Samba NTLM authentication policy
+# nas_samba_ntlm_auth: ntlmv1-permitted
+# Allowed hosts/networks for Samba access
+# nas_samba_hosts_allow:
+#   - 127.0.0.1
+#   - "192.168.41.0/24"
+# Default file creation mask for Samba shares
+# nas_samba_create_mask: "0664"
+# Default directory creation mask for Samba shares
+# nas_samba_directory_mask: "2755"
+# Forced file creation mode for Samba shares
+# nas_samba_force_create_mode: "0644"
+# Forced directory creation mode for Samba shares
+# nas_samba_force_directory_mode: "2755"
+# List of Samba share definitions
+# nas_samba_shares:
+#   - name: shared
+#     path: /srv/samba/shared
+#     comment: Shared Files
+#     browseable: true
+#     public: false
+#     create_dir: true
+#     owner: root
+#     group: "{{ nas_samba_group }}"
+#     mode: "0775"
+# Enable Samba NetBIOS (nmb) service
+# nas_samba_enable_nmb: true
+# Enable samba-client firewalld service
+# nas_samba_enable_client_firewall: false
+# Enable Samba [homes] share
+# nas_samba_enable_homes: true
+# Disable Samba printer sharing
+# nas_samba_disable_printing: true
+# User account for rsync daemon operations
+# nas_rsync_user: nobody
+# Group for rsync daemon operations
+# nas_rsync_group: nobody
+# Maximum concurrent rsync daemon connections
+# nas_rsync_max_connections: 4
+# Enable chroot for rsync daemon modules
+# nas_rsync_use_chroot: false
+# Syslog facility for rsync daemon logging
+# nas_rsync_syslog_facility: local5
+# List of rsync daemon module definitions
+# nas_rsync_modules:
+#   - name: shared
+#     path: /srv/rsync/shared
+#     comment: Shared Files via Rsync
+#     read_only: false
+
+# ==============================================================================
+# Tier 2 — Role: tools (7 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# tools_assert_enabled: true
+# Master gate for graphical desktop applications
+# tools_install_gui_apps: "{{ auto_enable_desktop | default((desktop_environment | default('none')) != 'none') | bool }}"
+# Visual Studio Code installation method; choices: none | rpm | flatpak
+# tools_vscode_install_method: "none"
+# Force install VS Code even if the code binary exists
+# tools_vscode_force_install: false
+# Enable Flatpak package, Flathub remote, and Flatpak installations
+# tools_install_flatpaks: "{{ tools_install_gui_apps | default(false) | bool }}"
+# List of system Flatpak application IDs to install
+# tools_system_flatpaks:
+#   - com.github.tchx84.Flatseal
+#   - io.github.flattool.Warehouse
+#   - io.github.dvlv.boxbuddyrs
+#   - com.ranfdev.DistroShelf
+#   - org.easycoding.TunedSwitcher
+#   - app.devsuite.Ptyxis
+#   - io.github.vikdevelop.SaveDesktop
+#   - io.podman_desktop.PodmanDesktop
+#   - io.github.tanaybhomia.Whisp
+#   - org.remmina.Remmina
+#   - org.cutwire.Drift
+#   - org.darktable.Darktable
+#   - io.dbeaver.DBeaverCommunity
+#   - com.saivert.pwvucontrol
+#   - com.discordapp.Discord
+#   - org.upscayl.Upscayl
+#   - org.audacityteam.Audacity
+# Install and configure the input-remapper service
+# tools_install_input_remapper: "{{ tools_install_gui_apps | default(false) | bool }}"
+
+# ==============================================================================
+# Tier 2 — Role: tts (1 variable)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# tts_assert_enabled: true
+
+# ==============================================================================
+# Tier 2 — Role: user (35 variables)
+# ==============================================================================
+
+# Enable pre-flight environment, platform, and privilege assertions
+# user_assert_enabled: true
+# Python version installed via uv (group_vars/all.yml overrides to "3.14")
+# user_uv_python_version: "3.12"
+# Install uv-managed Python runtime into user space
+# user_install_uv: true
+# Install the Bun JS/TS runtime into user space (~/.bun/bin/bun)
+# user_install_bun: true
+# Destination path for the user-space bun binary
+# user_bun_dest: "{{ user.home | default('/home/' ~ user.name) }}/.bun/bin/bun"
+# Download URL for the Bun release archive
+# user_bun_url: "https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
+# Force bun reinstallation even when the binary already exists
+# user_bun_force_install: false
+# Manage Go toolchain (system-first, DNF fallback, then user-space tarball)
+# user_install_go: true
+# Minimum acceptable Go compiler version for the effective go in PATH
+# user_go_min_version: "1.22"
+# Go version installed user-space when system go is absent or older
+# user_go_version: "1.27.1"
+# Official Go binary tarball download URL
+# user_go_url: "https://go.dev/dl/go{{ user_go_version }}.linux-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}.tar.gz"
+# User-space Go installation tree (go/gofmt symlinked into ~/.local/bin)
+# user_go_dest_dir: "{{ user.home | default('/home/' ~ user.name) }}/.local/go"
+# Force reinstallation of user-space Go toolchain even when present
+# user_go_force_install: false
+# Manage Rust/cargo toolchain and install configured crates
+# user_install_cargo: true
+# Force rustup installer to run even when rustup is already present
+# user_cargo_force_install: false
+# Crates always attempted even when their binary or cargo entry exists
+# user_cargo_force_crates: []
+# rustup installer URL
+# user_cargo_rustup_url: "https://sh.rustup.rs"
+# Minimum acceptable system cargo version before falling back to rustup
+# user_cargo_min_system_version: "1.99.1"
+# Cargo crate names to provision
+# user_cargo_crates:
+#   - bottom
+#   - choose
+#   - git-cliff
+#   - gping
+#   - ripgrep_all
+#   - sd
+#   - gitui
+#   - eza
+#   - weathr
+#   - dua-cli
+# Crate name to installed command binary mapping (skip-if-present probes)
+# user_cargo_crate_bin_map:
+#   bottom: btm
+#   ripgrep_all: rga
+#   dua-cli: dua
+#   du-dust: dust
+# Crate name to DNF package mapping (DNF-preferred install with cargo fallback)
+# user_cargo_crate_dnf_map:
+#   dua-cli: dua-cli
+#   gitui: gitui
+#   eza: eza
+# Manage GNOME Shell user extensions (derived from desktop_environment == 'gnome')
+# user_install_gnome_extensions: "{{ (desktop_environment | default('none')) == 'gnome' }}"
+# Force reinstallation of every configured GNOME extension
+# user_gnome_extensions_force_install: false
+# extensions.gnome.org base URL for metadata queries and bundle downloads
+# user_gnome_extensions_base_url: "https://extensions.gnome.org"
+# GNOME Shell extension UUIDs to install from extensions.gnome.org
+# user_gnome_extensions:
+#   - notification-timeout@chlumskyvaclav.gmail.com
+#   - notification-configurator@exposedcat
+#   - junk-notification-cleaner@murar8.github.com
+#   - kando-integration@kando-menu.github.io
+# Install VS Code extensions via resolved CLI (native code or Flatpak)
+# user_install_vscode_extensions: false
+# Optional VS Code CLI override (empty auto-detects code, then Flatpak)
+# user_vscode_command: ""
+# Force reinstallation of every configured VS Code extension
+# user_vscode_force_install: false
+# Marketplace extension identifiers to install (see roles/user/defaults/main.yml for full 68-item list)
+# user_vscode_extensions:
+#   - anthropic.claude-code
+#   - google.google-antigravity
+#   - redhat.ansible
+#   - redhat.vscode-yaml
+# Deploy the 7-file two-stage firstboot suite
+# user_firstboot_enabled: true
+# Firstboot suite file entries ({ src, dest, owner, group, mode }; see roles/user/defaults/main.yml)
+# user_firstboot_files:
+#   - src: syncopated-firstboot
+#     dest: /usr/local/bin/syncopated-firstboot
+#     owner: root
+#     group: root
+#     mode: "0755"
+# Machine pull-success marker path (written only on full-tag convergence)
+# user_firstboot_marker_path: "{{ user.home | default('/home/' ~ user.name) }}/.initial-firstboot"
+# Escape hatch to leave the machine marker untouched (e.g. dev hosts)
+# user_firstboot_marker_write: true
+# Rewrite the marker timestamp even when it already exists
+# user_firstboot_marker_force: false
+# Machine tags that, with the user tag, count as full convergence for marker gate
+# user_firstboot_marker_machine_tags:
+#   - system
+#   - repos
+#   - common
+#   - tuning
+#   - networking
+#   - gpu
+#   - containerd
+#   - libvirt
+#   - theme
+#   - gnome
+#   - cosmic
+#   - sway
+#   - desktop
+#   - tools
