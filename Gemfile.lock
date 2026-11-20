@@ -1,3 +1,9 @@
+PATH
+  remote: /home/b08x/WorkspaceV3/ruby-scientist-labs/lancelot
+  specs:
+    lancelot (0.4.1)
+      rb_sys (~> 0.9)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -48,7 +54,7 @@ GEM
     commander (5.0.0)
       highline (~> 3.0.0)
     concurrent-ruby (1.3.8)
-    connection_pool (3.0.2)
+    connection_pool (3.0.3)
     console (1.38.0)
       fiber-annotation
       fiber-local (~> 1.1)
@@ -71,17 +77,16 @@ GEM
       cucumber-gherkin (> 36, < 43)
       cucumber-messages (> 31, < 35)
       cucumber-tag-expressions (> 6, < 12)
-    cucumber-cucumber-expressions (20.1.0)
+    cucumber-cucumber-expressions (20.2.0)
       bigdecimal
     cucumber-gherkin (42.0.1)
       cucumber-messages (>= 34, < 35)
-    cucumber-html-formatter (24.2.0)
-      cucumber-messages (> 23, < 35)
+    cucumber-html-formatter (24.4.0)
+      cucumber-messages (> 23, < 36)
     cucumber-messages (34.2.1)
-    cucumber-query (16.2.0)
+    cucumber-query (16.4.0)
       cucumber-messages (>= 34.1, < 36)
-    cucumber-tag-expressions (11.0.1)
-    date (3.6.0)
+    cucumber-tag-expressions (11.2.0)
     decode (0.30.0)
       prism
       rbs (~> 4.0)
@@ -96,6 +101,7 @@ GEM
     fiber-local (1.1.0)
       fiber-storage
     fiber-storage (1.0.1)
+    fiddle (1.1.8)
     highline (3.0.1)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
@@ -106,7 +112,7 @@ GEM
       journald-native (~> 1.0)
     journald-native (1.0.12)
     json (3.1.0)
-    kramdown (2.5.2)
+    kramdown (2.6.1)
       rexml (>= 3.4.4)
     kramdown-parser-gfm (1.1.0)
       kramdown (~> 2.0)
@@ -117,9 +123,9 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.5)
     mini_portile2 (2.8.9)
-    minitest (6.0.6)
+    minitest (6.1.0)
       drb (~> 2.0)
-      prism (~> 1.5)
+      prism (>= 1.5, < 3)
     multi_test (2.0.0)
     nokogiri (1.19.7)
       mini_portile2 (~> 2.8.2)
@@ -135,10 +141,10 @@ GEM
       parser
       rainbow (~> 3.0)
       sorbet-runtime (>= 0.5)
-    parser (3.3.13.0)
+    parser (3.3.14.0)
       ast (~> 2.4.1)
       racc
-    prism (1.9.0)
+    prism (2.1.0)
     pry (0.16.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -146,9 +152,8 @@ GEM
     pry-byebug (3.12.0)
       byebug (~> 13.0)
       pry (>= 0.13, < 0.17)
-    psych (5.5.0)
-      date
-      stringio
+    pycall (1.5.5)
+      fiddle (>= 1.0.0)
     racc (1.8.1)
     rack (3.2.8)
     rack-test (2.3.0)
@@ -165,30 +170,33 @@ GEM
       logger
       prism (>= 1.6.0)
       tsort
-    rdoc (7.2.0)
+    rdoc (8.1.0)
       erb
-      psych (>= 4.0.0)
+      prism (>= 1.6.0)
+      rbs (>= 4.0.0)
       tsort
-    regexp_parser (2.13.1)
+    regexp_parser (2.13.4)
     reline (0.7.0)
       io-console (~> 0.5)
-    reverse_markdown (3.0.2)
+    reverse_markdown (3.1.0)
       nokogiri
     rexml (3.4.4)
+    rllama (1.2.0)
+      ffi (>= 1.0)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
       rspec-mocks (~> 3.13.0)
-    rspec-core (3.13.6)
+    rspec-core (3.13.7)
       rspec-support (~> 3.13.0)
-    rspec-expectations (3.13.5)
+    rspec-expectations (3.13.6)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.8)
+    rspec-mocks (3.13.9)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-support (3.13.7)
-    rubocop (1.92.2)
+    rspec-support (3.13.8)
+    rubocop (1.92.3)
       json (>= 2.3)
       language_server-protocol (~> 3.17.0.2)
       lint_roller (~> 1.1.0)
@@ -199,9 +207,11 @@ GEM
       rubocop-ast (>= 1.49.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
-    rubocop-ast (1.50.0)
+    rubocop-ast (1.53.0)
+      ast (~> 2.4)
       parser (>= 3.3.7.2)
-      prism (~> 1.7)
+      prism (>= 1.7)
+      racc
     rubocop-performance (1.27.0)
       lint_roller (~> 1.1)
       rubocop (>= 1.89.0, < 2.0)
@@ -223,10 +233,10 @@ GEM
       lint_roller (~> 1.1)
       rubocop (~> 1.89)
       rubocop-ast (>= 1.44.0, < 2.0)
-    ruby-lsp (0.26.11)
+    ruby-lsp (0.11.2)
       language_server-protocol (~> 3.17.0)
-      prism (>= 1.2, < 2.0)
-      rbs (>= 3, < 5)
+      sorbet-runtime (>= 0.5.5685)
+      yarp (>= 0.12, < 0.13)
     ruby-progressbar (1.13.0)
     ruby_tree_sitter (2.1.1)
       oppen (~> 1.0)
@@ -236,7 +246,7 @@ GEM
     samovar (2.5.1)
       console (~> 1.0)
     securerandom (0.4.1)
-    solargraph (0.62.1)
+    solargraph (0.62.2)
       ast (~> 2.4.3)
       backport (~> 1.2)
       benchmark (~> 0.4)
@@ -250,9 +260,9 @@ GEM
       open3 (~> 0.2.1)
       ostruct (~> 0.6)
       parser (~> 3.0)
-      prism (~> 1.4)
+      prism (~> 2.1)
       rbs (>= 3.10.4)
-      rdoc (~> 7.0)
+      rdoc (>= 7.2)
       reverse_markdown (~> 3.0)
       rubocop (~> 1.76)
       sord (~> 7.0)
@@ -261,7 +271,7 @@ GEM
       yard (~> 0.9, >= 0.9.24)
       yard-activesupport-concern (~> 0.0)
       yard-solargraph (~> 0.1)
-    sorbet-runtime (0.6.13634)
+    sorbet-runtime (0.6.13704)
     sord (7.1.0)
       commander (~> 5.0)
       parlour (~> 9.1)
@@ -269,7 +279,6 @@ GEM
       rbs (>= 3.0, < 5)
       sorbet-runtime
       yard
-    stringio (3.2.0)
     subspace (0.1.3)
     sys-uname (1.5.1)
       ffi (~> 1.1)
@@ -279,7 +288,7 @@ GEM
     thor (1.5.0)
     thread_safe (0.3.6)
     tilt (2.9.0)
-    tree_sitter_language_pack (1.23.1)
+    tree_sitter_language_pack (1.25.0)
       rb_sys (>= 0.9.130, < 0.10)
       sorbet-runtime (~> 0.6)
     tsort (0.2.0)
@@ -299,6 +308,7 @@ GEM
       yard (>= 0.8)
     yard-solargraph (0.1.0)
       yard (~> 0.9)
+    yarp (0.12.0)
     zeitwerk (2.8.3)
 
 PLATFORMS
@@ -314,11 +324,14 @@ DEPENDENCIES
   decode
   dotenv
   journald-logger
+  lancelot!
   pry
   pry-byebug
+  pycall (~> 1.5)
   rack-test
   rake
   ratatui_ruby
+  rllama (~> 1.2)
   rspec
   rubocop
   rubocop-performance
@@ -358,18 +371,17 @@ CHECKSUMS
   coercible (1.0.0) sha256=5081ad24352cc8435ce5472bc2faa30260c7ea7f2102cc6a9f167c4d9bffaadc
   commander (5.0.0) sha256=22ca42866ce5ed1a7f3e9a9c831a23d03b75b3743c7ad0302c3cbcd9eb5f257d
   concurrent-ruby (1.3.8) sha256=b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
-  connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
+  connection_pool (3.0.3) sha256=e0f8ee3ee0039396753e06e8a2dde0ef028e40f7df29e97f57da7577c489cb5e
   console (1.38.0) sha256=35b82f59130e95e9be6b832d9e539c8b3988fc192e4a8e9a86ab4922f44ad5de
   cucumber (12.0.1) sha256=21a2da0763280c97cdd706b2f5be3c1631fe97da5cedc8e0aea40f1b0fa34c8c
   cucumber-ci-environment (13.0.0) sha256=f1c110943e07f72124b43c50c98d96016a77141a4bd45ebee0b8c877d8c264fb
   cucumber-core (20.1.0) sha256=1a2727ae27705f45c7732b8f1f19c0cf068696cf6bac9ccee2d62b575c7cf9d5
-  cucumber-cucumber-expressions (20.1.0) sha256=6cc4b5880ba1c3991292579d0451af0f44814f5a1a13d7823317a09705eb15d4
+  cucumber-cucumber-expressions (20.2.0) sha256=a993cc2976da3442a4f902a691ef91d79a3e985805674dc0c8713425d16014c4
   cucumber-gherkin (42.0.1) sha256=427efa1996770fd91a6e860e3f2e8b644108682256f4189db494fe85f4595e2f
-  cucumber-html-formatter (24.2.0) sha256=6edc50730e459f9bfea0b0dadfaf4f4066d7083094382ac0d703926414c9cce0
+  cucumber-html-formatter (24.4.0) sha256=eba488433694d8707952972848fa25ecac236091515910d4da56624455efba7d
   cucumber-messages (34.2.1) sha256=1de715dfeaa237939b8ab008987d3fbf3118ba32a86d844fd1503396ecc5bf7e
-  cucumber-query (16.2.0) sha256=27813b49913fb6d90bf851853604ecd3fb5c6ea8638d24bd5ceb9e192d8142d9
-  cucumber-tag-expressions (11.0.1) sha256=ead62a1c6bb613de1f5469975a9dd11ba2ced7322a6c8837cdde9db33dcbeac5
-  date (3.6.0) sha256=18ac945c4e24ebd93534f8eab8c2fd8c5604b3e977105b3798d62a1e8d27b580
+  cucumber-query (16.4.0) sha256=fe71ab0b45c4149dd35508a5c68e3d1bd7c37b4b7e1e65399f26e261ac443628
+  cucumber-tag-expressions (11.2.0) sha256=b010de26fed82662a311e95b8bc97d621902594e4f42df827a9892bcf186b0ae
   decode (0.30.0) sha256=f567364ad206f1b60987faeec0551dd1481aea7dfb192d7fab77020154b1a845
   descendants_tracker (0.0.4) sha256=e9c41dd4cfbb85829a9301ea7e7c48c2a03b26f09319db230e6479ccdc780897
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
@@ -380,6 +392,7 @@ CHECKSUMS
   fiber-annotation (0.2.0) sha256=7abfadf1d119f508867d4103bf231c0354d019cc39a5738945dec2edadaf6c03
   fiber-local (1.1.0) sha256=c885f94f210fb9b05737de65d511136ea602e00c5105953748aa0f8793489f06
   fiber-storage (1.0.1) sha256=f48e5b6d8b0be96dac486332b55cee82240057065dc761c1ea692b2e719240e1
+  fiddle (1.1.8) sha256=7fa8ee3627271497f3add5503acdbc3f40b32f610fc1cf49634f083ef3f32eee
   highline (3.0.1) sha256=ca18b218fd581b1fae832f89bfeaf2b34d3a93429c44fd4411042ffce286f009
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   ice_nine (0.11.2) sha256=5d506a7d2723d5592dc121b9928e4931742730131f22a1a37649df1c1e2e63db
@@ -388,8 +401,9 @@ CHECKSUMS
   journald-logger (3.1.0) sha256=6af69d285a75147ccc0911957897de1aae7f1f2f2929b07fa7624563b4232ec8
   journald-native (1.0.12) sha256=f38cd397623e4efad4afe83e48ec0e5cc13634329d5e056ea440bd72a1e6726f
   json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
-  kramdown (2.5.2) sha256=1ba542204c66b6f9111ff00dcc26075b95b220b07f2905d8261740c82f7f02fa
+  kramdown (2.6.1) sha256=fbef3479b69c875aacb118dde77a40d6cc3a91e2c1d505a4c3f3f9e92d142641
   kramdown-parser-gfm (1.1.0) sha256=fb39745516427d2988543bf01fc4cf0ab1149476382393e0e9c48592f6581729
+  lancelot (0.4.1)
   language_server-protocol (3.17.0.6) sha256=5ef2c0c138f8267e1bc631d3328347d354f96724b0af22f2c79516120443b7f0
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
@@ -397,7 +411,7 @@ CHECKSUMS
   method_source (1.1.0) sha256=181301c9c45b731b4769bc81e8860e72f9161ad7d66dd99103c9ab84f560f5c5
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
   mini_portile2 (2.8.9) sha256=0cd7c7f824e010c072e33f68bc02d85a00aeb6fce05bb4819c03dfd3c140c289
-  minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
+  minitest (6.1.0) sha256=ff373595aa8888631e8a5463986a76b3845346ae6d7fa46e139c1633d418076e
   multi_test (2.0.0) sha256=5fe1bf72a3b6f65ebeb0ee5c62c6fbd4cf4e180f06e7213f02ac60847ca094e7
   nokogiri (1.19.7) sha256=abe94507c54cb18f872777b16bdca4aad32b1abdc4c52fe843f1c80fbdf992b8
   observer (0.1.2) sha256=d8a3107131ba661138d748e7be3dbafc0d82e732fffba9fccb3d7829880950ac
@@ -407,11 +421,11 @@ CHECKSUMS
   ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
   parallel (2.3.0) sha256=f75a3e904101ce6a1ccb6b8dc800cbafd42166d83330192438dcf29395167a6f
   parlour (9.1.2) sha256=446ce24243e125f0e8c4f9b5722c3b86063d42d8b106c847a7d73a8cc693c382
-  parser (3.3.13.0) sha256=e02f9b63c2fe05b0c68f692ba4df89b3cb113b663964f75d988fbebfd6c3deca
-  prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
+  parser (3.3.14.0) sha256=62f8f76af7b919425ee2d811880e9dcb8011ab40bfd59970dfb583141697e58f
+  prism (2.1.0) sha256=1c0a7c6dea0e93183390fb123f007564dbe663198e2f86ad87204151147601f3
   pry (0.16.1) sha256=d92d82c86e7f2dc34beec6d2892d5cf5ea517eea22eed3ceabb38ee62a98accc
   pry-byebug (3.12.0) sha256=594e094ae8a8390a7ad4c7b36ae36e13304ed02664c67417d108dc5f7213d1b7
-  psych (5.5.0) sha256=4b245bbbd0f3238df8ccee766ebc1a6b062b10e4ee1d3284eb588739ba156a0a
+  pycall (1.5.5) sha256=6552170dc6723be73004fb7baf6af7f55d7eb06724d4ca18e44957444323d6e1
   racc (1.8.1) sha256=4a7f6929691dbec8b5209a0b373bc2614882b55fc5d2e447a21aaa691303d62f
   rack (3.2.8) sha256=1fecc85e463ebc7a2a945fff829ffcd549babeb1556384796fad946c28dc4ec7
   rack-test (2.3.0) sha256=b118d177cc002c572fc1b6fd8d19c9ed5881a36e8d6f689f9e618f9f861241e8
@@ -421,41 +435,41 @@ CHECKSUMS
   ratatui_ruby (1.5.2) sha256=4f510ee3522d43d6e2342383281d9711730b1923eecd3e1ed5998e705767aa57
   rb_sys (0.9.130) sha256=7d486d99c1da02635515deaf9860fc5aea90bb4ab2589b2deec7fdc7d3548615
   rbs (4.2.0) sha256=51f7b886dcc05bc09e10b901daa6a81829f6adc03101d6ca9ea4aac6103e0674
-  rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
-  regexp_parser (2.13.1) sha256=5aedb6b7c35688f51e86eef17a15374dfd287c83f4ca644b2c5f3ec50a33b44b
+  rdoc (8.1.0) sha256=befc37880a5cfd36dcb176c748b5fd5ee39dd3536a75e81824e4972ce230f60a
+  regexp_parser (2.13.4) sha256=1d0547814f57e6f00946957bd0ca201bc42f42cfb08eee89df60998aedcd8a3b
   reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
-  reverse_markdown (3.0.2) sha256=818ebb92ce39dbb1a291690dd1ec9a6d62530d4725296b17e9c8f668f9a5b8af
+  reverse_markdown (3.1.0) sha256=7fc569f3708a90ca3d6661e419d9d1233d57eef5a5b59eb1347c24e6a6b988a4
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+  rllama (1.2.0) sha256=402bf77e1fb59ced878a118921d0f269d3e2e58df044ab4d83df38d300cebcbd
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
-  rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
-  rspec-expectations (3.13.5) sha256=33a4d3a1d95060aea4c94e9f237030a8f9eae5615e9bd85718fe3a09e4b58836
-  rspec-mocks (3.13.8) sha256=086ad3d3d17533f4237643de0b5c42f04b66348c28bf6b9c2d3f4a3b01af1d47
-  rspec-support (3.13.7) sha256=0640e5570872aafefd79867901deeeeb40b0c9875a36b983d85f54fb7381c47c
-  rubocop (1.92.2) sha256=14fb31eed143a0dc6f78186c550c1715e81cd38f59d05d1165050e445c1f5382
-  rubocop-ast (1.50.0) sha256=b9ca88300da0803ee222ad20cdb30494c0a784eed06fdc35d254b06d662788db
+  rspec-core (3.13.7) sha256=c64ff16d9788119805cbc6a3f4b6d87cc22417c2d25976a3330de136896b5469
+  rspec-expectations (3.13.6) sha256=bf538ca6d367ff5b0d85a87fdb5c0c6038f2cd1308a0eeba07476caa02d22f35
+  rspec-mocks (3.13.9) sha256=ea5c7ff3054a6098ca6039aacef80aec69d5a8a3ef80be8fc88337359b672a30
+  rspec-support (3.13.8) sha256=e4160030309b7e3e9d9863dfe720a35dfcc577162f5402cd68fc8c5258a0ffd6
+  rubocop (1.92.3) sha256=fd77feac46e8e91c3a534f868a1702c59f5bf8173515fd00a3c6ce1198672ff6
+  rubocop-ast (1.53.0) sha256=027984d28485d6502ae4c72f9341080f54f538599f5dbb54f81875a4ddcad574
   rubocop-performance (1.27.0) sha256=eeeb1374d062a368ee1c787b70eb0b0cc4b184cb1f8565f424760946146d61ce
   rubocop-rake (0.7.1) sha256=3797f2b6810c3e9df7376c26d5f44f3475eda59eb1adc38e6f62ecf027cbae4d
   rubocop-rspec (3.10.2) sha256=0b3e2ecc592cd10ecbf0095bb58d1e357905276e069643523cc19eb7495f65e2
   rubocop-sequel (0.4.1) sha256=f325dc470c1e3191a616b41a4bf8cfbb2c3c2f4fbc2eee6286de019ca1f7c113
   rubocop-shopify (3.1.0) sha256=0345309997d5d9b544c13b967ca64e51437bd573bdc79a30f1e0e72956d85c29
   rubocop-thread_safety (0.8.0) sha256=71fe5e7894fb9acfbd4c2dcd394feabc35bd690f75b0bc846e1504d9e31f9034
-  ruby-lsp (0.26.11) sha256=4cc8f1587237ff8c9031680b5491df901a82559eeaa1ae96863ffe700b32583d
+  ruby-lsp (0.11.2) sha256=f39a50e20752c01436a79ed10b6a5e52612f742b59cb8cad1f88cb59d5e5479f
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   ruby_tree_sitter (2.1.1) sha256=022c9cd711896032ccc2f21889073f86db5d6045898d3b253d796e006758a4af
   rubydex (0.4.4) sha256=f506bcc9f4ef4c55ac1312392410f95392ce919a4c0b0c36a18f243969bdd2ba
   samovar (2.5.1) sha256=8a9fc41eb8868084f0321eb41678c485cfbc7d282fb306c0be67c3284b1d2394
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
-  solargraph (0.62.1) sha256=c48525b3ba7ec2f5d34cae3e85aa080f3313b80e1daa544a1fb32ee66ee23976
-  sorbet-runtime (0.6.13634) sha256=06926d941132854f477a8b42458562dc71be8e252e2dab255ef5ac8d2d09767b
+  solargraph (0.62.2) sha256=ef8e89ebadd5ad1f60ae31a04020e69a5faaeeded493d870f3af47e5802a03a7
+  sorbet-runtime (0.6.13704) sha256=110d042714fc15f4ffd651d53890215178b42285f3182a844d637465b96b005e
   sord (7.1.0) sha256=e02fd59294da520e50cea80a07fb9bc93db709c552d055871379ae8d8e87601f
-  stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   subspace (0.1.3) sha256=05d976e01333cbaea2cd1c5e85217673d6c29859f3f85d17a841c452d09ac871
   sys-uname (1.5.1) sha256=784d7e6491b0393c25cbbe5ac38324ac7be9fda083a6094832648af669386d7b
   terrapin (1.1.1) sha256=9cae91045cffe5764b2c02ed10ddd847c580346ddd193870558e99891fd75329
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
   thread_safe (0.3.6) sha256=9ed7072821b51c57e8d6b7011a8e282e25aeea3a4065eab326e43f66f063b05a
   tilt (2.9.0) sha256=da5735d0280bba96e9a91041bb14aee435ccad5c17b0fa519249ae543d9aa3a5
-  tree_sitter_language_pack (1.23.1) sha256=d3d34bd1b1f0808c79ed43fd5327fc374e7dc8e352cb79f48f6c5f94decba757
+  tree_sitter_language_pack (1.25.0) sha256=924bb9ddf6ee1859cae65e9e9346996b3b642ea23b6ef69167ed2df0e6530223
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
   unicode-display_width (3.3.0) sha256=4b7aa66a4b11db50f6f7e98411215cd0dd10eaecb665d36eec5bcacb3fa0b613
@@ -466,6 +480,7 @@ CHECKSUMS
   yard (0.9.45) sha256=52e211493f7cb8a3ebf7e104a25a1e73937a3103092545d34cb88fafebb3dc51
   yard-activesupport-concern (0.0.1) sha256=be790cb0efc23e2e87677063598ac8b743586154657bbd9655a7f03ce78390ef
   yard-solargraph (0.1.0) sha256=a19a4619c942181a618fb9458970a9d2534cf7fda69fc43949629a7948a5930e
+  yarp (0.12.0) sha256=39a61c84daa8a20a02548d1121ff791ba233f70b9ec664c57c4e9d43088f15db
   zeitwerk (2.8.3) sha256=2c85125a8467ce069e20123d1e709a08955c9d29c118c25b46b7b7fafdbb92e5
 
 BUNDLED WITH

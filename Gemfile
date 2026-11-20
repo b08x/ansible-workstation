@@ -11,12 +11,12 @@ gem "decode"
 gem "dotenv"
 gem "journald-logger"
 gem "rake"
-gem "rubydex"
 gem "ratatui_ruby"
+gem "rubydex"
 gem "ruby_tree_sitter"
-gem "tree_sitter_language_pack"
 gem "subspace"
 gem "terrapin"
+gem "tree_sitter_language_pack"
 gem "yajl-ruby", require: "yajl"
 
 # =============================================================================
@@ -52,5 +52,9 @@ group :development, :test do
   gem "solargraph"
 end
 
+gem "pycall", "~> 1.5"
+
+gem "rllama", "~> 1.2"
 
 
+gem "lancelot", path: "/home/b08x/WorkspaceV3/ruby-scientist-labs/lancelot"
