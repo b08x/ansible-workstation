@@ -2,7 +2,9 @@
 _common_distro_packages:
   - aria2
   - audit
+  - bind-utils
   - curl
+  - eza
   - fastfetch
   - fd-find
   - flatpak
@@ -11,8 +13,13 @@ _common_distro_packages:
   - golang
   - gum
   - htop
+  - kernel-devel
+  - lld
   - lm_sensors-devel
+  - lnav
   - micro
+  - most
+  - net-tools
   - nodejs22
   - nodejs22-npm
   - openssh-server
@@ -23,10 +30,14 @@ _common_distro_packages:
   - ruby-build-all
   - ruby-build-rbenv
   - ranger
+  - rsync
+  - systemd-devel
   - tar
   - tuned
   - unzip
   - uv
+  - yq
   - wl-clipboard
+  - zoxide
   - zram-generator
   - zsh
