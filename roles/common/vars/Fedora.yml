@@ -3,6 +3,8 @@ _common_distro_packages:
   - aria2
   - audit
   - curl
+  - fastfetch
+  - fd-find
   - flatpak
   - fzf
   - git
@@ -15,6 +17,7 @@ _common_distro_packages:
   - nodejs22-npm
   - openssh-server
   - openssl-devel
+  - pinentry-tty
   - policycoreutils-python-utils
   - ruby-devel
   - ruby-build-all
