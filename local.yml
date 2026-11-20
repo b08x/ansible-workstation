@@ -388,6 +388,11 @@
       when: enable_third_party_repos | default(true) | bool
       tags: ["repos", "repositories", "system"]
 
+    - name: Configure Negativo 17 NVIDIA and Multimedia repositories
+      ansible.builtin.include_tasks: playbooks/tasks/repositories/negativo17.yml
+      when: enable_negativo17 | default(true) | bool
+      tags: ["repos", "repositories", "negativo17", "system"]
+
     - name: Execute system package upgrade
       ansible.builtin.dnf:
         name: "*"

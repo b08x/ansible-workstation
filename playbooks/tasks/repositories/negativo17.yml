@@ -6,7 +6,7 @@
 #   - GPG key RPM-GPG-KEY-slaanesh imported once, gpgcheck enabled
 #   - negativo17-nvidia / negativo17-multimedia repo definitions
 #   - managed priority/exclusion drop-in /etc/dnf/repos.override.d/
-#     90-negativo17-overrides.repo (priority=90 on Negativo 17, RPM Fusion
+#     90-negativo17-overrides.repo (priority=80 on Negativo 17, RPM Fusion
 #     section-glob excludepkgs) so RPM Fusion packages cannot win conflicts
 #
 # The repos are installed unconditionally (multimedia is useful on any host;

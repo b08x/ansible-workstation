@@ -2,16 +2,20 @@
 #
 # Mirrors the osbuild nvidia component drop-in
 # (/etc/dnf/repos.override.d/90-negativo17-overrides.repo):
-#   - priority=90 (higher priority than the default 99) on every Negativo 17
-#     repository so Negativo 17 wins metadata conflicts against RPM Fusion
+#   - priority=80 (higher priority than RPM Fusion's 90 and the default 99) on
+#     every Negativo 17 repository so Negativo 17 wins metadata conflicts
+#     against RPM Fusion
 #   - the [rpmfusion*] section-name glob applies excludepkgs to every RPM
 #     Fusion repository at once, so RPM Fusion can never provide the
 #     conflicting NVIDIA driver, akmod, ffmpeg, or codec packages
 [negativo17-nvidia]
-priority=90
+priority=80
 
 [negativo17-multimedia]
-priority=90
+priority=80
 
 [rpmfusion*]
-excludepkgs=nvidia-* akmod-nvidia xorg-x11-drv-nvidia* ffmpeg* mpv* libdvdcss* gstreamer1-plugin*
+excludepkgs=nvidia-* akmod-nvidia xorg-x11-drv-nvidia* ffmpeg* mpv* libdvdcss* gstreamer1-plugin* libheif-freeworld* x265* vvenc* x264* libde265*
+
+[fedora]
+excludepkgs=mpv* ffmpeg-free
