@@ -1,4 +1,37 @@
 ---
+user:
+  name: b08x
+  group: b08x
+  uid: 1000
+  gid: 1000
+  home: /home/b08x
+  shell: /usr/bin/zsh
+  secondary_groups: "wheel,input,video,audio,render"
+  realname: Robert Pannick
+  sudoers: true
+  email: rwpannick@gmail.com
+
+# Target desktop environment; choices: none | gnome | cosmic | sway
+desktop_environment: sway
+
+# Enable third-party package repositories (RPM Fusion, COPR, etc.)
+enable_third_party_repos: true
+
+# Ordered PATH directories for workstation user shell profile
+workstation_path_dirs:
+  - "{{ ansible_user_dir }}/.local/bin"
+  - "{{ ansible_user_dir }}/.cargo/bin"
+  - "{{ ansible_user_dir }}/go/bin"
+  - "{{ ansible_user_dir }}/.bun/bin"
+  - "/usr/local/bin"
+  - "/usr/bin"
+  - "/bin"
+
+# Prompt for reboot when kernel/system changes require a restart
+workstation_prompt_reboot: true
+
+sway_bar_engine: "eww"
+
 tuning_cpupower_governor: powersave
 tuning_cpupower_min_freq: "400MHz"
 tuning_cpupower_max_freq: "3800MHz"
