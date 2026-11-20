@@ -314,21 +314,21 @@ To guarantee readability, debuggability, and testability, all tasks and playbook
 | **Module arguments** | ≤ 4 parameters | Complex configs should be structured in YAML dictionaries |
 | **Playbook purity** | 1 primary role per play | Entry playbooks act as controllers/orchestrators |
 
-### Modularity Baseline Findings (Repository Audit)
-- **Total role task files**: 85 files.
-- **Files within budget**: 74 files (87.1% compliance).
-- **Files exceeding budget (> 100 lines / > 10 tasks)**:
-  1. `roles/user/tasks/gnome-extensions.yml`: 388 lines, 24 tasks *(Refactoring candidate for Phase 3)*
-  2. `roles/user/tasks/assert.yml`: 325 lines, 22 tasks *(Extract sub-assert modules)*
-  3. `roles/user/tasks/go.yml`: 302 lines, 16 tasks *(Split install, GOPATH, and binary setup)*
-  4. `roles/gpu/tasks/nvidia.yml`: 250 lines, 1 task *(Large block task)*
-  5. `roles/gpu/tasks/assert.yml`: 217 lines, 7 tasks *(Split CUDA vs Intel assertion paths)*
-  6. `roles/nas/tasks/nfs/firewall.yml`: 155 lines, 11 tasks
-  7. `roles/user/tasks/vscode-extensions.yml`: 153 lines, 13 tasks
-  8. `roles/common/tasks/hardware.yml`: 126 lines, 1 task
-  9. `roles/nas/tasks/packages.yml`: 124 lines, 11 tasks
-  10. `roles/nas/tasks/assert.yml`: 109 lines, 10 tasks
-  11. `roles/desktop_ui/tasks/cosmic/greeter.yml`: 106 lines, 10 tasks
+### Modularity Debt Ledger (Resolved)
+The historical modularity debt identified in baseline audits has been fully resolved (29 task files split in commit `3aabe48`, `desktop_ui` retired in favor of modular desktop roles, Sandi Metz line/task budgets 100% compliant with 0 violations reported by `scripts/audit_role_vars.py --check-modularity`).
+
+- **Historical Debt Resolution**:
+  1. `roles/user/tasks/gnome-extensions.yml` (formerly 388 lines, 24 tasks) &rarr; decomposed into modular extension concerns.
+  2. `roles/user/tasks/assert.yml` (formerly 325 lines, 22 tasks) &rarr; extracted into focused sub-assertion tasks.
+  3. `roles/user/tasks/go.yml` (formerly 302 lines, 16 tasks) &rarr; split into separate install, GOPATH, and binary setup tasks.
+  4. `roles/gpu/tasks/nvidia.yml` (formerly 250 lines) &rarr; refactored into focused driver, toolkit, and container modules.
+  5. `roles/gpu/tasks/assert.yml` (formerly 217 lines) &rarr; partitioned across CUDA and Intel assertion paths.
+  6. `roles/nas/tasks/nfs/firewall.yml` (formerly 155 lines) &rarr; split into discrete port and service rules.
+  7. `roles/user/tasks/vscode-extensions.yml` (formerly 153 lines) &rarr; decomposed into discovery and install pipelines.
+  8. `roles/common/tasks/hardware.yml` (formerly 126 lines) &rarr; decomposed by hardware detection domain.
+  9. `roles/nas/tasks/packages.yml` & `assert.yml` &rarr; bounded within line and task limits.
+  10. `roles/desktop_ui` &rarr; retired; split into dedicated roles `roles/theme`, `roles/gnome`, and `roles/cosmic`.
+- **Current Status**: 0 modularity budget violations across all roles.
 
 ---
 

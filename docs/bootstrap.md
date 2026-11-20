@@ -163,7 +163,7 @@ sudo ansible-pull -U https://gitlab.com/syncopatedX/workstation.git --skip-tags 
 #### Integrated with Yadm Bootstrap
 Yadm's bootstrap pipeline executes the consolidated `bootstrap.d/02-ansible-pull.sh` step. It is conditional on the machine pull marker `~/.initial-firstboot` (primary workstation user's home):
 - When the marker exists, the step logs `firstboot ansible-pull already completed; skipping` (naming the marker path) and returns `RC_SKIPPED` (2) — bootstrap continues its remaining steps.
-- When the marker is absent, the step computes hardware- and desktop-aware default tags (`gpu` only with a GPU, `libvirt` only with KVM, `desktop_ui,desktop` only on a graphical desktop) and runs one privileged `ansible-pull` (`--ask-become-pass`) against `https://gitlab.com/syncopatedX/workstation.git` / `local.yml`; override the tag CSV with `SYNCOPATED_ANSIBLE_TAGS`, force the desktop environment with `SYNCOPATED_DESKTOP_UI_ENVIRONMENT`.
+- When the marker is absent, the step computes hardware- and desktop-aware default tags (`gpu` only with a GPU, `libvirt` only with KVM, `theme,gnome,cosmic,sway,desktop` only on a graphical desktop) and runs one privileged `ansible-pull` (`--ask-become-pass`) against `https://gitlab.com/syncopatedX/workstation.git` / `local.yml`; override the tag CSV with `SYNCOPATED_ANSIBLE_TAGS`, force the desktop environment with `SYNCOPATED_DESKTOP_ENVIRONMENT`.
 - `SYNCOPATED_ANSIBLE_PULL_FORCE=1` runs the pull despite the marker (re-converge by name); `SYNCOPATED_ANSIBLE_PULL_FIRSTBOOT_MARKER` overrides the marker path for testing.
 
 Choosing which yadm bootstrap steps run:

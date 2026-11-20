@@ -112,8 +112,8 @@ introduce operational hazards, the pipeline enforces a **Gherkin-Gated step poin
                │
                ▼ (Deterministic AST & Schema Compilation)
 [ Ansible Task & Play Compilation ]
-  - Tier 1 Variables: use_kvm: true, use_containers: true
   - Pre-flight checks: tasks/assert.yml (<1s fail-fast)
+  - Hardware facts & tags: --tags containerd,libvirt
   - Playbook execution: ansible-playbook or ansible-pull
 ```
 
@@ -169,8 +169,8 @@ autonomous coding agents and LLM execution pipelines:
   for safe Linux configuration automation.
 - **Vetted Domain Idioms**:
   - *Tier 1 vs Tier 2 variable separation*: Eliminates variable collision across plays.
-  - *Seat-aware handlers*: Handlers in `roles/desktop_ui` query `loginctl list-sessions` to prevent
-    terminating an active user's graphical seat.
+  - *Seat-aware handlers*: Handlers in `roles/gnome` and `roles/cosmic` query `loginctl list-sessions`
+    to prevent terminating an active user's graphical seat.
   - *Single file ownership*: Exactly one role owns each file path on disk.
   - *Check-mode safety*: Pre-flight tasks and probes enforce `check_mode: false` to ensure `--check`
     dry-runs produce valid diagnostic facts.
@@ -231,17 +231,18 @@ Every Ansible role frontloads assertions in `tasks/assert.yml` to fail fast (< 1
 
 ### 5. Two-Tier Variable Architecture
 - **Tier 1 (Host & Domain Scope)**: Semantic, unprefixed Single Source of Truth keys (`user.name`, `user.home`,
-  `intel_oneapi_install`, `nvidia_cuda_install`, `enable_third_party_repos`, `use_containers`, `use_kvm`)
+  `desktop_environment`, `enable_third_party_repos`, `workstation_prompt_reboot`)
   housed in `inventory/group_vars/` and `inventory/host_vars/`. These represent physical hardware and user identity.
 - **Tier 2 (Role Scope)**: Variables defined in role `defaults/main.yml`, `vars/main.yml`, and `set_fact` must be
-  role-prefixed (`<role>_*`) to maintain clean namespaces and prevent host variable leakage.
-- **Registered Variables**: Variables created via `register:` must be role-prefixed (`_<role>_*`) because registered
-  variables possess global host scope in Ansible and collide if left generic.
+  role-prefixed (`<role>_*`) to maintain clean namespaces and prevent host variable leakage (e.g. `gpu_install_nvidia`,
+  `gpu_install_intel_oneapi`).
+- **Registered Variables**: Variables created via `register:` and internal task state must be role-prefixed with a leading
+  underscore (`_<role>_*`) per refactoring rule R3 because registered variables possess global host scope in Ansible and collide if left generic.
 
 ### 6. Session-Safe Handlers
-Handlers must never blindly restart desktop-critical units. Handlers in `roles/desktop_ui` query
-`loginctl list-sessions` to verify seat occupancy before triggering display manager restarts, avoiding
-severing active Wayland sessions.
+Handlers must never blindly restart desktop-critical units. Handlers in `roles/gnome/handlers/main.yml` and
+`roles/cosmic/handlers/main.yml` query `loginctl list-sessions` to verify seat occupancy before triggering display
+manager restarts, avoiding severing active Wayland sessions.
 
 ---
 
@@ -255,7 +256,7 @@ has exactly one row, and the row is the owner.
 | **Base RPM Packages** | OSBuild | `osbuild` / `bootc` | `kernel`, `podman`, `gcc`, `glibc`, `cosmic-desktop` | Immutable appliance foundations. Baked at build time with DNF/DNF5 package management. |
 | **Host RPM Packages** | Ansible | `ansible.builtin.dnf` (DNF / DNF5 validated) | `sox`, `tesseract-devel`, `yad`, `wl-clipboard`, `@gnome-desktop`, `@cosmic-desktop` | Dynamic host capabilities, desktop environments (GNOME & COSMIC), hardware dev libraries. Validated on DNF5 (Fedora 44) and DNF (AlmaLinux 10 / Rocky Linux 10). |
 | **System Binaries** | Ansible | [`roles/common`](../roles/common) (`inxi`, `gitflow-avh`), [`playbooks/transcribe-cpp.yml`](../playbooks/transcribe-cpp.yml) (`transcribe`) | `/usr/local/bin/transcribe`, `/usr/local/bin/git-flow`, `/usr/local/bin/inxi` | Globally shared utilities requiring compilation or system-wide drop. `transcribe` is built by its opt-in standalone playbook, gated on CUDA/Vulkan GPU hardware presence. `bun` is in user space (`~/.bun/bin/bun`, owned by [`roles/user`](../roles/user)). |
-| **GPU Vendor Stacks** | Ansible | [`roles/gpu`](../roles/gpu) | `intel-oneapi-*` pinned MKL/compiler set, `akmod-nvidia`, `nvidia-driver-*`, `cuda`/`cuda-devel`, `nvidia-container-toolkit` + CDI service | Optional per-host stacks gated by Tier 1 `intel_oneapi_install` / `nvidia_cuda_install`; tools and common probe only. |
+| **GPU Vendor Stacks** | Ansible | [`roles/gpu`](../roles/gpu) | `intel-oneapi-*` pinned MKL/compiler set, `akmod-nvidia`, `nvidia-driver-*`, `cuda`/`cuda-devel`, `nvidia-container-toolkit` + CDI service | Optional per-host stacks gated by Tier 2 `gpu_install_intel_oneapi` / `gpu_install_nvidia`; tools and common probe only. |
 | **System Flatpaks** | Ansible | [`roles/tools/tasks/flatpak.yml`](../roles/tools/tasks/flatpak.yml) | `ExtensionManager`, `Flatseal`, `Warehouse`, `BoxBuddy` | System-wide utility and administration GUI applications. |
 | **User Flatpaks** | Yadm | `yadm/bootstrap.d/80-install-user-flatpaks.sh` | `Obsidian`, `Typora`, `Audacity`, `freac`, `Helvum`, `Podman Desktop`, `DBeaver` | User productivity, authoring, and media creation applications installed per-user. |
 | **User Rust / Cargo** | Ansible + Yadm | [`roles/user`](../roles/user) (`tasks/cargo.yml`), Yadm (`bootstrap.d/20-cargo.sh` bootstrap fallback, `~/.cargo` env sourcing) | `bottom`, `choose`, `git-cliff`, `gping`, `ripgrep_all`, `sd`, `gitui`, `eza` | `roles/user` provisions crates with behavior parity from the yadm script (system-cargo-first with threshold, rustup fallback, DNF-preferred packages); the yadm script remains the bootstrap-time fallback. `~/.cargo/config.toml` and rc files stay Layer 2. |

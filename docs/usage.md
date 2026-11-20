@@ -31,22 +31,23 @@ ansible-playbook playbooks/workstation.yml --tags "assert" --check
 
 ## Converge
 
-With the assertions green, converge the host — the full run defaults to GNOME;
-the same command shape selects the COSMIC variant, a single role, or
-fine-grained tags.
+With the assertions green, converge the host — the run defaults to headless (`desktop_environment: none` in `inventory/group_vars/all.yml`); pass `-e desktop_environment=gnome|cosmic|sway` to select a desktop environment, or target a single role or fine-grained tags.
 
 ```bash
-# From the repository root (defaults to GNOME desktop environment)
+# From the repository root (defaults to headless base; desktop_environment: none)
 ansible-playbook playbooks/workstation.yml
 
-# Provision COSMIC desktop environment instead of GNOME
-ansible-playbook playbooks/workstation.yml -e desktop_ui_environment=cosmic
+# Provision GNOME desktop environment
+ansible-playbook playbooks/workstation.yml -e desktop_environment=gnome
+
+# Provision COSMIC desktop environment
+ansible-playbook playbooks/workstation.yml -e desktop_environment=cosmic
 
 # Specific role only
 ansible-playbook playbooks/workstation.yml --tags "tools"
 
-# Specific role with fine-grained tags (e.g. COSMIC desktop components)
-ansible-playbook playbooks/workstation.yml --tags "desktop_ui,cosmic"
+# Desktop stack roles with fine-grained tags
+ansible-playbook playbooks/workstation.yml --tags "theme,gnome,cosmic,sway"
 ```
 
 ## Stay Converged

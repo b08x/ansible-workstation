@@ -17,15 +17,16 @@ to the numbered entries in [`failure-points.md`](failure-points.md).
 See [`variable-precedence.md`](variable-precedence.md) for the full rules.
 
 - **Tier 1 (Host & Domain)**: Semantic, unprefixed names (`user.*`,
-  `enable_third_party_repos`, `use_containers`) in `group_vars/` or
+  `desktop_environment`, `enable_third_party_repos`, `workstation_prompt_reboot`) in `group_vars/` or
   `host_vars/`. These represent machine hardware, primary user identity, or
   system-wide capabilities.
-- **Tier 2 (Role Scope)**: Variables in role `defaults/`, `vars/`, and `set_fact`
+- **Tier 2 (Role Scope)**: Variables in role `defaults/`, `vars/`, and public role interfaces
   must be role-prefixed (`<role>_*`). *(Failure point 12, 18)*
-- **Task Registrations**: Variables from `register:` must be role-prefixed
-  (registered variables have global host scope) — the `desktop_ui` session
-  handlers register `_desktop_ui_dm_seat_sessions` and resolve
-  `_desktop_ui_dm_session_user`, not bare names like `gdm_session_user`.
+- **Task Registrations & Internal State**: Variables from `register:` and private internal facts
+  must be role-prefixed with a leading underscore (`_<role>_*`) per refactoring rule R3 (registered
+  variables have global host scope) — session handlers in `roles/gnome` and `roles/cosmic` register
+  `_gnome_dm_seat_sessions` and `_cosmic_dm_seat_sessions`, resolving `_gnome_dm_session_user`
+  and `_cosmic_dm_session_user` rather than bare names like `gdm_session_user`.
 
 ## Pre-Flight Assertions
 
@@ -66,5 +67,5 @@ overwriting the other — is the canonical case. *(Failure point 2)*
 Re-running a playbook against a converged host reports zero changes. Presence
 checks skip redundant installs, and every skip-if-present guard ships with a
 matching `*_force_install` override variable — `user_bun_force_install`,
-`desktop_ui_theme_force_install`, and `common_yadm_force_install` are live
+`theme_force_install`, and `common_yadm_force_install` are live
 examples. *(Failure points 8, 10)*

@@ -10,14 +10,14 @@ and [`build-process.md`](build-process.md). For day-to-day operations, see [`usa
 ## What This Is
 
 At the functional layer, this repository is an Ansible control repository that converges a
-**Fedora 44 / AlmaLinux 10 / Rocky Linux 10** host into a developer workstation across eleven modular roles:
+**Fedora 44 / AlmaLinux 10 / Rocky Linux 10** host into a developer workstation across 14 modular roles:
 
 - **System Foundations & Hardening**: System baselines, DNF5 packaging, and CIS L2 hardening (`roles/common`).
 - **Low-Latency & Kernel Tuning**: Real-time audio sysctl, cpupower drop-ins, and reboot-safe ZRAM swap allocation (`roles/tuning`).
 - **Networking & Virtualization**: NetworkManager baseline profiles (`roles/networking`) and KVM/QEMU virtualization (`roles/libvirt`).
 - **Containers**: Isolated runtimes across containerd, nerdctl, and rootless Podman (`roles/containerd`).
-- **Desktop Environments**: Seamless GNOME and COSMIC desktop dispatch with seat-aware display manager handlers (`roles/desktop_ui`).
-- **Hardware Acceleration**: Optional Intel oneAPI / SYCL and NVIDIA CUDA/CDI vendor stacks (`roles/gpu`).
+- **Desktop Environments & Window Managers**: Modular desktop stacks across GNOME (`roles/gnome`), COSMIC (`roles/cosmic`), and Sway / SwayFX (`roles/sway`), accompanied by centralized wallpapers and styling (`roles/theme`), controlled by Tier 1 `desktop_environment` (`none` | `gnome` | `cosmic` | `sway`) with seat-aware display manager handlers.
+- **Hardware Acceleration**: Optional Intel oneAPI / SYCL and NVIDIA CUDA/CDI vendor stacks (`roles/gpu`), toggled via Tier 2 `gpu_install_intel_oneapi` and `gpu_install_nvidia`.
 - **Developer Toolchains & Utilities**: System developer utilities, VS Code, Flatpaks, and input-remapper (`roles/tools`), alongside unprivileged user-space toolchains (`uv`, `bun`, `go`, `cargo`) and firstboot scripts (`roles/user`).
 - **Storage & Speech Synthesis**: Multi-protocol storage services (`roles/nas`) and Whisper / Piper local speech pipelines (`roles/tts`).
 - **Agent Harnesses**: Provisioning for AI coding agent CLIs: Claude Code, Google Antigravity, Charm Crush, and OpenCode.
@@ -108,7 +108,7 @@ Feature: High-Performance Developer Workstation
   Scenario: Provision CUDA acceleration and developer toolchains
     Given an x86_64 Fedora 44 machine with an active NVIDIA GPU (PCI vendor 0x10de)
       And effective UID is 0 (root elevation confirmed)
-     When role "gpu" is executed with nvidia_cuda_install: true
+     When role "gpu" is executed with gpu_install_nvidia: true
       And role "user" is executed for primary user "b08x"
      Then NVIDIA kernel modules (nvidia, nvidia_uvm) must be loaded
       And Negativo 17 repositories must be the sole NVIDIA provider (provider preflight)
@@ -189,16 +189,18 @@ This repository serves as a **controlled reference distilled dataset** for auton
   deprecated syntax, or flawed system configurations. This repository provides a vetted, tested, and
   consistent reference corpus demonstrating production-grade patterns.
 - **Vetted Architectural Idioms**:
-  - *Two-Tier Variable Scoping*: Tier 1 host/domain variables (`user.name`, `intel_oneapi_install`)
-    live in inventory without artificial role prefixes; Tier 2 variables (`<role>_*`) remain cleanly
-    scoped in role defaults and vars; registered variables are prefixed `_<role>_*`.
+  - *Two-Tier Variable Scoping*: Tier 1 host/domain variables (`user.name`, `desktop_environment`,
+    `enable_third_party_repos`) live in inventory without artificial role prefixes; Tier 2 variables
+    (`<role>_*`, e.g. `gpu_install_nvidia`, `gpu_install_intel_oneapi`) remain cleanly scoped in role
+    defaults and vars; registered variables and internal private facts are prefixed `_<role>_*`.
   - *Sub-Second Assertions*: Every role includes a standalone `tasks/assert.yml` validating platform,
     elevation, and identity in under one second.
   - *Strict Single Ownership*: Every configuration file on disk is owned by exactly one role.
   - *NVIDIA Provider Mutual Exclusion*: The `gpu` role's preflight fails when more than one NVIDIA
     driver provider (upstream CUDA, negativo17-lts, Negativo 17, RPM Fusion) is configured in
     `/etc/yum.repos.d` (escape hatch `gpu_nvidia_provider_preflight: false`).
-  - *Session-Safe Handlers*: Handlers inspect `loginctl list-sessions` to prevent disconnecting active seats.
+  - *Session-Safe Handlers*: Display manager handlers in `roles/gnome` and `roles/cosmic` inspect
+    `loginctl list-sessions` to prevent disconnecting active seats.
 - **On-Demand Generation**: Autonomous agents can safely reference this dataset to generate custom
   tasks, auxiliary playbooks, or extension roles that immediately conform to the platform's safety contracts.
 
@@ -226,7 +228,10 @@ workstation/
 │   ├── networking/            # NetworkManager profiles, DNS, firewalld baseline
 │   ├── containerd/            # Isolated container engines (containerd, nerdctl, rootless Podman)
 │   ├── libvirt/               # Virtualization (KVM/QEMU, virtual bridges, storage pools)
-│   ├── desktop_ui/            # GNOME & COSMIC desktop dispatch, seat-safe display handlers
+│   ├── theme/                 # Centralized aesthetic assets, Plymouth, GTK/icon styling
+│   ├── gnome/                 # GNOME desktop environment, GDM, and seat-safe session handlers
+│   ├── cosmic/                # COSMIC desktop environment, greeter, and session handlers
+│   ├── sway/                  # Sway and SwayFX Wayland compositor configurations
 │   ├── gpu/                   # Hardware acceleration: Intel oneAPI / SYCL and NVIDIA CUDA stacks
 │   ├── tools/                 # System utilities, IDEs (VS Code), Flatpaks, input-remapper
 │   ├── user/                  # Unprivileged user space: uv, bun, go, cargo, firstboot suite
